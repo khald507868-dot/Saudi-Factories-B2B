@@ -2,6 +2,67 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## READ THIS FIRST — the file split (2026-08-20)
+
+**Every page name below this section is stale.** On 2026-08-20 the owner split
+the codebase into two independent paths, and most of this document still
+describes the pre-split single-file structure.
+
+| | prefix | carries `desktop.css` |
+|---|---|---|
+| Browser site | **`web-`** | yes |
+| Phone app | **`app-`** | **no** |
+
+`home.html` → `web-home.html` + `app-home.html`, and so on for **13 web pages
+and 15 app pages**. When this file says `home.html`, `account.html`,
+`factory.html` etc., read it as *both* copies unless the point is
+specifically about the desktop layer (then it is the `web-` one).
+
+**`index.html` is the one exception with no prefix.** It holds the *app*
+splash content and redirects to `app-user-type.html`. The name is reserved:
+servers serve it automatically at a bare domain, so renaming it to
+`app-index.html` would break the site's root URL. Do not rename it.
+
+### What this changes about editing
+
+- **The two paths never link to each other.** A `web-` page links only to
+  `web-` pages; an `app-` page only to `app-` pages. Verified with zero
+  cross-links in either direction. Preserve that when adding any link.
+- **A change to a shared component is now a two-file edit**, not one — the
+  `web-` copy and the `app-` copy. The bottom nav, previously duplicated
+  across 5 files, now lives in more.
+- **`desktop.css` only ever reaches `web-` pages.** Adding a rule there
+  cannot affect the app path. Conversely `mobile.css` still reaches both.
+- **Creating a new `app-` copy: deleting the `desktop.css` link is not
+  enough.** The rule that *hides* desktop-only markup (`.dt-bar`,
+  `.dt-catbar`, `.dt-actions`, `.page-logo`, `.dash-side`, `.dash-stats`)
+  lives inside `desktop.css` itself — so dropping the link also drops the
+  hiding, and the markup renders unstyled as black boxes and bare links.
+  This shipped once on `app-home.html` and the owner caught it in a
+  screenshot. Grep the source page for those six class names first; if any
+  are present, delete the markup **and its scripts**, not just the link.
+- **`auth-guard.js` is shared and now path-aware.** `LOGIN_PAGE` is gone;
+  `currentPage()` / `isWebPath()` / `loginPage()` / `registerPage()` pick the
+  destination from the current filename, used in three places (session
+  expiry, `sfRequireLogin()`, sign-out). `index.html` has no prefix so it
+  falls into the "not web-" branch — the app path, which is correct.
+
+### There IS a git repository now
+
+The "no git repository initialized" note further down is **false as of
+2026-08-20**. `git init` was run, `.gitignore` excludes `*bak`, and there
+are three commits. The manual `.bak` convention is retired — all backup
+files were deleted after archiving their pre-split states in commit
+`e0767a3`. **Do not create new `.bak` files; commit instead.**
+
+### An accurate page map lives in `الصفحات.md`
+
+That file (Arabic, written for the owner) has the current table of all 28
+pages, both path diagrams, and the "where do I edit?" guide. It is kept up
+to date; this file is not, below this point.
+
+---
+
 ## What this is
 
 A no-build multi-page web app: an **Alibaba-style B2B marketplace** for Saudi Arabian factories. There is no `package.json`, no bundler, no framework, and no Node.js — everything is hand-authored HTML/CSS/JS. It is no longer purely static: `login.html`, `register.html`, and `admin.html` talk to a hosted Supabase backend over the network (see *Backend* below), but the dependency is still just a `<script>` tag from a CDN, not a toolchain.
