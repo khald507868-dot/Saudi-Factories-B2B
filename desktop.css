@@ -1,0 +1,1273 @@
+/* ============================================================
+   طبقة سطح المكتب — الشكل الواسع للابتوب والمتصفح
+
+   يُحمَّل بعد mobile.css مباشرة، ولا يعمل إلا فوق 1024px.
+   دونها يبقى شكل الجوال كما هو تماماً — فالملف لا يلمس
+   أي قاعدة خارج @media، وهذا مقصود: الجوال هو الأصل
+   وسطح المكتب طبقة فوقه.
+
+   نفس الملف يخدم الشكلين — لا نسخة ثانية من كل صفحة،
+   فأي تعديل مستقبلي يُكتب مرة واحدة.
+   ============================================================ */
+
+@media (min-width: 1024px) {
+
+  /* ===== فكّ عمود الجوال ===== */
+  /* لون html هو ما يرسمه المتصفح خلف المستند كلّه،
+     فأي جزء لا يغطّيه body يظهر بهذا اللون. كان أبيض فيظهر
+     شريط أبيض أسفل الصفحات ذات الارتفاع المحدد (الرسائل). */
+  html { background: #f6f7f6; }
+
+  body {
+    max-width: none !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    background: #f6f7f6;
+
+    /* الصفحات تحجز مسافة علوية للشريط الثابت في الجوال.
+       الشريط هنا عاديّ في مجرى الصفحة، فالمسافة تصير فجوة
+       فارغة تدفع المحتوى لأسفل — تُصفَّر. */
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+  }
+
+  /* إطار الصفحة الأخضر يختفي — هو زينة جوال */
+  body::after { display: none !important; }
+
+  /* الشريط السفلي يختفي: التنقّل ينتقل للأعلى */
+  .bottom-nav { display: none !important; }
+
+  /* ===== الشريط العلوي ===== */
+  .top-bar {
+    position: static !important;
+    max-width: none !important;
+    height: auto !important;
+    background: #ffffff !important;
+    border-bottom: 1px solid #e6ebe8;
+    padding: 0 !important;
+    display: block !important;
+  }
+
+  .dt-bar {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-direction: row-reverse;
+  }
+
+  html[dir="ltr"] .dt-bar { flex-direction: row; }
+
+  /* الشعار داخل الشريط الواسع */
+  .top-bar-logo {
+    width: 168px !important;
+    flex-shrink: 0;
+  }
+
+  .top-bar-logo .wm-title { font-size: 19px !important; }
+  .top-bar-logo .w-dark   { color: #04361b !important; }
+
+  /* ===== حركة الكتابة المستمرة (الصفحة الرئيسية فقط) =====
+     الاسم يُكشف من اليسار حرفاً حرفاً، يثبت ٣ ثوانٍ ظاهراً
+     بالكامل، ثم يختفي فوراً ويعيد الكرّة من اليسار بلا توقف.
+
+     التنفيذ بـ clip-path لا بقناع تدرّج: النص يبقى كاملاً في
+     DOM ومقروءاً لقارئات الشاشة ومحرّكات البحث، مع ميزتين
+     على القناع — inset تقبل قيمة صريحة تثبت تماماً عند 0
+     (فلا يتجمّد الاسم نصف مكشوف كما كان يحدث مع
+     mask-size: 200% حيث لا تكشف mask-position: 0% كل العرض)،
+     و right/left فيها فيزيائية لا تنعكس مع اتجاه الصفحة RTL.
+
+     الدورة ٤.٤ ثانية: ١.٤ كشف + ٣ ثبات ظاهراً. */
+
+  .top-bar-logo .wm-title {
+    animation: wmType 4.4s steps(24, end) infinite;
+  }
+
+  /* inset(أعلى يمين أسفل يسار): القصّ من اليمين، فيُكشف
+     النص من اليسار. 100% = مخفي تماماً، 0% = ظاهر بالكامل. */
+  @keyframes wmType {
+    0%     { clip-path: inset(0 100% 0 0); }  /* مخفي */
+    31.8%  { clip-path: inset(0 0 0 0); }     /* اكتمل الكشف */
+    99.9%  { clip-path: inset(0 0 0 0); }     /* ثبات ٣ ثوانٍ ظاهراً بالكامل */
+    100%   { clip-path: inset(0 100% 0 0); }  /* اختفاء فوري ثم يعيد من اليسار */
+  }
+
+  /* الخط الذهبي يُرسم مع الاسم بنفس التوقيت والاتجاه */
+  .top-bar-logo { position: relative; }
+
+  .top-bar-logo .wm-rule {
+    animation: wmCaret 4.4s steps(24, end) infinite;
+    /* نسبة مئوية لا كلمة left/right: الكلمات تنعكس مع اتجاه
+       الصفحة RTL فيمتدّ الخط من اليمين، أما 0% فهي الحافة
+       اليسرى الفيزيائية في الاتجاهين معاً */
+    transform-origin: 0% center;
+  }
+
+  /* يتبع النص: يمتد معه، يثبت ٣ ثوانٍ، ثم يختفي فوراً */
+  @keyframes wmCaret {
+    0%     { transform: scaleX(0); }
+    31.8%  { transform: scaleX(1); }
+    99.9%  { transform: scaleX(1); }
+    100%   { transform: scaleX(0); }
+  }
+
+  /* احترام تفضيل تقليل الحركة في نظام المستخدم */
+  @media (prefers-reduced-motion: reduce) {
+    .top-bar-logo .wm-title {
+      clip-path: none;
+      animation: none;
+    }
+    .top-bar-logo .wm-rule { animation: none; transform: none; }
+  }
+
+  /* البحث يتمدّد ويأخذ وسط الشريط */
+  .top-bar .search-box {
+    flex: 1;
+    max-width: 620px;
+    height: 44px !important;
+    border: 2px solid #1f6b42 !important;
+    border-radius: 24px !important;
+    background: #ffffff !important;
+    padding: 0 16px !important;
+  }
+
+  .top-bar .search-box input {
+    font-size: 15px !important;
+    color: #04361b !important;
+  }
+
+  .top-bar .search-box input::placeholder { color: #93a398 !important; }
+  .top-bar .search-box svg { stroke: #1f6b42 !important; }
+
+  /* أدوات الحساب على يسار الشريط */
+  .dt-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .dt-icon {
+    width: 40px;
+    height: 40px;
+    border: none;
+    background: none;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    position: relative;
+    text-decoration: none;
+  }
+
+  .dt-icon:hover { background: #f0f4f1; }
+  .dt-icon svg { width: 22px; height: 22px; stroke: #04361b; fill: none; stroke-width: 1.9; }
+
+  .dt-btn {
+    border: none;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    padding: 10px 20px;
+    border-radius: 22px;
+    cursor: pointer;
+    white-space: nowrap;
+    text-decoration: none;
+    display: inline-block;
+  }
+
+  .dt-btn.primary { background: #1f6b42; color: #ffffff; }
+  .dt-btn.primary:hover { background: #175733; }
+  .dt-btn.ghost { background: #eef3f0; color: #04361b; }
+  .dt-btn.ghost:hover { background: #e2eae5; }
+
+  /* خانة الحساب: زرّان للزائر، أو اسم المستخدم */
+  /* gap هو ما يرسم المسافة هنا — الحاوية flex،
+     فأي margin على .dt-user لا أثر له */
+  #dt-auth {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+  }
+
+
+  /* ===== شريط الفئات تحت الرأس ===== */
+  .dt-catbar {
+    background: #ffffff;
+    border-bottom: 1px solid #e6ebe8;
+  }
+
+  .dt-catbar-inner {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    gap: 22px;
+    height: 46px;
+    flex-direction: row-reverse;
+
+    /* لا overflow هنا: أي قصّ يبتلع اللوحة المنسدلة.
+       الروابط الزائدة تُخفى بدل تمريرها. */
+    overflow: visible;
+    flex-wrap: nowrap;
+  }
+
+  /* الروابط التي لا يتسع لها الشريط تُخفى — الفئات كلها
+     متاحة داخل لوحة ☰ على أي حال */
+  .dt-catbar-inner > a { flex-shrink: 0; }
+
+  html[dir="ltr"] .dt-catbar-inner { flex-direction: row; }
+
+  .dt-catbar-inner a {
+    font-size: 13.5px;
+    color: #46584c;
+    text-decoration: none;
+    white-space: nowrap;
+    font-weight: 600;
+  }
+
+  .dt-catbar-inner a:hover { color: #1f6b42; }
+  .dt-catbar-inner a.all { color: #04361b; font-weight: 700; }
+
+  /* ===== زر الفئات (☰) واللوحة المنسدلة ===== */
+  /* زر "الفئات" يلاصق أول رابط ("الكيماويات") في بداية
+     القراءة: يميناً في العربية ويساراً في الإنجليزية.
+     نُزّح الزر وحده بـ order ولا نعكس الحاوية: عكسها يقلب
+     ترتيب روابط الفئات نفسها المُضافة بالترتيب من JS. */
+  .dt-catmenu {
+    position: relative;
+    flex-shrink: 0;
+    /* الحاوية row-reverse، فأقلّ order يقع في أقصى اليسار
+       بصرياً لا اليمين — ولذلك يأخذ الزر أعلى قيمة
+       ليلاصق "الكيماويات" في بداية القراءة. */
+    order: 1;
+  }
+
+  .dt-catbar-inner > a { order: 0; }
+
+  /* في LTR تصير الحاوية row، فينعكس المعنى: أقلّ order
+     هو بداية القراءة (اليسار). */
+  html[dir="ltr"] .dt-catmenu { order: -1; }
+
+  .dt-catmenu-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: none;
+    background: none;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    color: #04361b;
+    padding: 12px 0;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+  }
+
+  .dt-catmenu-btn svg {
+    width: 19px;
+    height: 19px;
+    stroke: #04361b;
+    stroke-width: 2;
+    fill: none;
+  }
+
+  .dt-catmenu:hover .dt-catmenu-btn { border-bottom-color: #1f6b42; }
+
+  /* اللوحة: تُفتح بمرور المؤشر على .dt-catmenu كاملاً
+     (الزر واللوحة معاً) فلا تُغلق أثناء انتقال المؤشر إليها */
+  .dt-catpanel {
+    position: absolute;
+    top: 100%;
+    /* اللوحة (780px) تُثبّت من جهة الزر وتنمو نحو الداخل:
+       الزر الآن في بداية القراءة (أقصى اليمين عربياً)،
+       فـ right: 0 تمدّها يساراً داخل الشاشة. و left: 0 هنا تدفعها
+       يميناً خارجها فتُقصّ — وهذا ما حدث بعد نقل الزر. */
+    right: 0;
+    display: flex;
+    /* عمود الأسماء يساراً والمعاينة يميناً — وهذا لا ينعكس
+       مع اللغة. ترتيب العمودين خيار تصميم ثابت أقرّه المالك،
+       لا تخطيطاً مرآوياً. ولأن `row` تتبع اتجاه الصفحة، تلزم
+       `row` في RTL و`row` في LTR معاً لا عكسهما. */
+    flex-direction: row;
+    width: 780px;
+    max-width: 90vw;
+    height: 400px;
+    background: #ffffff;
+    border: 1px solid #e6ebe8;
+    border-radius: 0 0 12px 12px;
+    box-shadow: 0 12px 30px rgba(4, 54, 27, 0.16);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-6px);
+    transition: opacity 0.16s, transform 0.16s, visibility 0.16s;
+    z-index: 40;
+    overflow: hidden;
+  }
+
+  html[dir="ltr"] .dt-catpanel {
+    /* الموضع وحده ينعكس (الزر أقصى اليسار)؛
+       أمّا ترتيب العمودين فيبقى كما هو — ولذلك لا نكتب
+       flex-direction هنا إطلاقاً، فترث القيمة الأساسية row. */
+    right: auto;
+    left: 0;
+  }
+
+  .dt-catmenu:hover .dt-catpanel,
+  .dt-catmenu:focus-within .dt-catpanel {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+  }
+
+  /* عمود أسماء الفئات */
+  .dt-catlist {
+    width: 250px;
+    flex-shrink: 0;
+    margin: 0;
+    padding: 8px 0;
+    list-style: none;
+    overflow-y: auto;
+    /* الفاصل على يمين عمود الأسماء دائماً (الجهة الملاصقة
+       للمعاينة). قيمة فيزيائية لا منطقية: border-inline-end
+       كانت تنقلب في LTR فيقع الخط على الحافة الخارجية. */
+    border-right: 1px solid #eef2ef;
+  }
+
+  .dt-catlist li a {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 10px 18px;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: #33473a;
+    text-decoration: none;
+    white-space: normal;
+    line-height: 1.5;
+  }
+
+  /* السهم يشير دائماً نحو المعاينة، وهي يمين الأسماء في
+     اللغتين — فلا ينعكس مع اتجاه القراءة. */
+  .dt-catlist li a::after {
+    content: "›";
+    color: #b3c0b7;
+    font-size: 17px;
+  }
+
+  .dt-catlist li a:hover,
+  .dt-catlist li.active a {
+    background: #f2f7f4;
+    color: #1f6b42;
+  }
+
+  /* لوحة المعاينة: بطاقات الفئة المختارة */
+  .dt-catpreview {
+    flex: 1;
+    padding: 18px 20px;
+    overflow-y: auto;
+  }
+
+  .dt-catpreview h4 {
+    font-size: 15px;
+    margin-bottom: 14px;
+    color: #04361b;
+  }
+
+  .dt-preview-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+  }
+
+  .dt-preview-item {
+    text-decoration: none;
+    text-align: center;
+  }
+
+  .dt-preview-thumb {
+    width: 100%;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: #f2f5f3;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 7px;
+  }
+
+  .dt-preview-thumb svg {
+    width: 30px;
+    height: 30px;
+    stroke: #9daea3;
+    fill: none;
+    stroke-width: 1.6;
+  }
+
+  .dt-preview-item:hover .dt-preview-thumb { background: #e7efe9; }
+
+  .dt-preview-item span {
+    font-size: 12px;
+    color: #46584c;
+    line-height: 1.5;
+    display: block;
+  }
+
+  /* ===== المحتوى: عمودان ===== */
+  .content {
+    max-width: 1280px;
+    margin: 0 auto !important;
+    padding: 22px 24px 60px !important;
+    display: grid;
+    grid-template-columns: 400px 1fr;
+    gap: 22px;
+    align-items: start;
+  }
+
+  /* الخريطة في العمود الجانبي داخل بطاقة */
+  .map-section {
+    grid-column: 1;
+    background: #ffffff !important;
+    border: 1px solid #e6ebe8;
+    border-radius: 14px;
+    padding: 16px !important;
+    position: sticky;
+    top: 18px;
+  }
+
+  /* الخريطة مقيَّدة بـ 240px في الجوال لتظهر أول بطاقتَي منتج
+     دون تمرير — قيد لا معنى له هنا، فتملأ عرض البطاقة. */
+  .map-section .ksa-map {
+    width: 100% !important;
+    max-width: 100% !important;
+    display: block;
+  }
+
+  /* الأكثر مبيعاً يأخذ العمود العريض */
+  .bestsellers-section {
+    grid-column: 2;
+    padding: 0 !important;
+  }
+
+  .bestsellers-title {
+    font-size: 21px !important;
+    margin-bottom: 14px !important;
+  }
+
+  /* شبكة المنتجات: تملأ العرض تلقائياً بدل عمودين */
+  .bestsellers-grid {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)) !important;
+    gap: 16px !important;
+  }
+
+  .bestsellers-grid .product-card {
+    transition: box-shadow 0.18s, transform 0.18s;
+  }
+
+  .bestsellers-grid .product-card:hover {
+    box-shadow: 0 6px 18px rgba(4, 54, 27, 0.13);
+    transform: translateY(-2px);
+  }
+
+  /* ============================================================
+     صفحة السلة (cart.html)
+     عمودان: المحتوى يميناً وبطاقة الملخّص ثابتة يساراً.
+     تخطيط مختلف عمداً عن علي بابا: ملخّص مؤطَّر بدل شريط
+     دفع سفليّ، ورسم السلة داخل بطاقة بحدّ متقطّع.
+     ============================================================ */
+
+  /* .cart-page هي body نفسها — لذا !important لتتجاوز
+     قاعدة body العامة أعلاه التي تصفّر الحشو */
+  body.cart-page {
+    max-width: 1180px !important;
+    margin: 0 auto !important;
+    padding: 10px 24px 60px !important;
+    display: grid;
+    grid-template-columns: 1fr 330px;
+    gap: 22px;
+    align-items: start;
+  }
+
+  /* رأس السلة عنوانٌ لا شريط تنقّل: يمتدّ فوق العمودين
+     ويستعيد حشوه الذي صفّرته قاعدة .top-bar العامة */
+  .cart-page > .top-bar {
+    grid-column: 1 / -1;
+    /* الحشو الأصلي يضيف env(safe-area-inset-top) للنَتش —
+       لا وجود له هنا فيصير فراغاً علوياً */
+    padding: 0 0 4px !important;
+    margin: 0 !important;
+    background: transparent !important;
+    border-bottom: none !important;
+    align-items: flex-start !important;
+  }
+
+  .cart-page > .top-bar h1 { font-size: 26px !important; }
+
+  /* الحالة الفارغة: بطاقة بحدّ متقطّع */
+  .cart-page .empty-state {
+    grid-column: 1;
+    background: #ffffff;
+    border: 2px dashed #dde5e0;
+    border-radius: 16px;
+    padding: 54px 30px !important;
+    text-align: center;
+  }
+
+  .cart-page .empty-state .icon-wrap {
+    width: 92px !important;
+    height: 92px !important;
+  }
+
+  .cart-page .empty-state .icon-wrap svg {
+    width: 44px !important;
+    height: 44px !important;
+  }
+
+  .cart-page .empty-state p { font-size: 17px !important; }
+
+  .cart-page .empty-state .browse-btn {
+    font-size: 15px !important;
+    padding: 12px 34px !important;
+  }
+
+  /* قسم الحماية أسفل الحالة الفارغة في العمود نفسه */
+  .cart-page .protection-section {
+    grid-column: 1;
+    background: #ffffff;
+    border: 1px solid #e6ebe8;
+    border-radius: 16px;
+    margin: 18px 0 0 !important;
+  }
+
+  /* بطاقة الملخّص: تحلّ محلّ شريط الدفع السفليّ */
+  .cart-page .checkout-bar {
+    grid-column: 2;
+    grid-row: 2 / span 2;
+    position: sticky !important;
+    top: 22px;
+    inset: auto !important;
+    max-width: none !important;
+    margin: 0 !important;
+    display: block !important;
+    height: auto !important;
+    background: #ffffff !important;
+    border: 1px solid #e6ebe8 !important;
+    border-radius: 16px;
+    box-shadow: 0 2px 10px rgba(4, 54, 27, 0.06);
+    padding: 20px !important;
+  }
+
+  .cart-page .checkout-bar .total {
+    display: flex !important;
+    justify-content: space-between;
+    align-items: baseline;
+    padding-bottom: 15px;
+    margin-bottom: 15px;
+    border-bottom: 1px solid #eef2ef;
+  }
+
+  .cart-page .checkout-bar .total-label { font-size: 14px !important; }
+  .cart-page .checkout-bar .total-value { font-size: 21px !important; }
+
+  .cart-page .checkout-btn {
+    width: 100%;
+    padding: 14px !important;
+    font-size: 15px !important;
+    border-radius: 11px !important;
+  }
+
+  /* ============================================================
+     صفحة الحساب (account.html) — لوحة تحكّم
+     الشعار أعلى اليسار، ثم قائمة جانبية + شريط إحصاءات.
+     ============================================================ */
+
+  body.account-page {
+    max-width: 1180px !important;
+    margin: 0 auto !important;
+    padding: 20px 24px 60px !important;
+    display: grid;
+    grid-template-columns: 250px 1fr;
+    grid-auto-rows: min-content;
+    gap: 20px;
+    align-items: start;
+  }
+
+  /* الشعار: صفّ خاص يمتدّ فوق العمودين، محاذى لليسار */
+  .page-logo {
+    grid-column: 1 / -1;
+    justify-self: start;   /* الصفحة RTL: start = اليمين… */
+    display: inline-flex;
+    flex-direction: column;
+    gap: 3px;
+    width: 150px;
+    margin: 0 0 4px;
+    text-decoration: none;
+  }
+
+  /* …لذا نُجبره على الطرف الأيسر فعلياً */
+  html[dir="rtl"] .page-logo { justify-self: end; }
+  html[dir="ltr"] .page-logo { justify-self: start; }
+
+  /* القائمة الجانبية */
+  .dash-side {
+    grid-column: 1;
+    grid-row: 2 / span 4;
+    background: #ffffff;
+    border: 1px solid #e6ebe8;
+    border-radius: 16px;
+    padding: 18px 0;
+    position: sticky;
+    top: 20px;
+  }
+
+  .dash-side-head {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 0 18px 16px;
+    margin-bottom: 6px;
+    border-bottom: 1px solid #eef2ef;
+  }
+
+  .dash-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: #eef4f0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 21px;
+    flex-shrink: 0;
+    overflow: hidden;
+  }
+
+  .dash-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+  .dash-name {
+    font-size: 14.5px;
+    font-weight: 700;
+    color: #04361b;
+    line-height: 1.4;
+  }
+
+  .dash-type { font-size: 12px; color: #7d8c83; }
+
+  .dash-group {
+    font-size: 11.5px;
+    color: #9aa8a0;
+    font-weight: 700;
+    padding: 12px 18px 6px;
+    margin: 0;
+  }
+
+  .dash-nav { display: flex; flex-direction: column; }
+
+  .dash-nav a {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 11px 18px;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: #3c4f43;
+    text-decoration: none;
+    border-inline-start: 3px solid transparent;
+  }
+
+  .dash-nav a svg {
+    width: 18px;
+    height: 18px;
+    stroke: #6b7d70;
+    fill: none;
+    stroke-width: 1.9;
+    flex-shrink: 0;
+  }
+
+  .dash-nav a:hover { background: #f4f8f5; color: #1f6b42; }
+  .dash-nav a:hover svg { stroke: #1f6b42; }
+
+  .dash-nav a.active {
+    background: #f2f7f4;
+    color: #1f6b42;
+    border-inline-start-color: #1f6b42;
+  }
+
+  .dash-nav a.active svg { stroke: #1f6b42; }
+
+  /* ===== القوائم الفرعية المنبثقة =====
+     تُفتح بمرور المؤشر على العنصر كاملاً (الرابط واللوحة معاً)
+     فلا تُغلق أثناء انتقال المؤشر إليها. */
+
+  .dash-item { position: relative; }
+
+  .dash-item > a { justify-content: flex-start; }
+
+  .dash-caret {
+    margin-inline-start: auto;
+    color: #b3c0b7;
+    font-size: 17px;
+    line-height: 1;
+  }
+
+  /* السهم يشير نحو جهة انفتاح القائمة */
+  html[dir="rtl"] .dash-caret { transform: scaleX(1); }
+  html[dir="ltr"] .dash-caret { transform: scaleX(-1); }
+
+  .dash-item:hover > a {
+    background: #f4f8f5;
+    color: #1f6b42;
+  }
+
+  .dash-item:hover > a svg { stroke: #1f6b42; }
+
+  .dash-sub {
+    position: absolute;
+    top: -10px;
+    /* في RTL القائمة الجانبية على يمين الشاشة، فتُفتح
+       القائمة الفرعية إلى الداخل (يساراً نحو المحتوى)
+       لا نحو حافة النافذة حيث كانت تُقصّ. */
+    right: 100%;
+    width: 226px;
+    background: #ffffff;
+    border: 1px solid #e6ebe8;
+    border-radius: 14px;
+    box-shadow: 0 10px 26px rgba(4, 54, 27, 0.14);
+    padding: 14px 0;
+    margin-inline-end: 12px;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateX(6px);
+    transition: opacity 0.16s, transform 0.16s, visibility 0.16s;
+    z-index: 40;
+  }
+
+  /* في LTR القائمة على اليسار، فتُفتح إلى اليمين */
+  html[dir="ltr"] .dash-sub {
+    right: auto;
+    left: 100%;
+    transform: translateX(-6px);
+  }
+
+  .dash-item:hover .dash-sub,
+  .dash-item:focus-within .dash-sub {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(0);
+  }
+
+  /* جسر شفاف يمنع انغلاق القائمة في الفجوة بينها وبين الرابط.
+     يقع على الجهة المواجهة للقائمة الجانبية. */
+  .dash-sub::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 14px;
+  }
+
+  html[dir="rtl"] .dash-sub::before { right: -14px; }
+  html[dir="ltr"] .dash-sub::before { left: -14px; }
+
+  .dash-sub-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #04361b;
+    padding: 0 18px 10px;
+    margin: 0;
+  }
+
+  .dash-sub a {
+    display: block;
+    padding: 9px 18px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #52655a;
+    text-decoration: none;
+    border-inline-start: none;
+  }
+
+  .dash-sub a:hover { background: #f4f8f5; color: #1f6b42; }
+
+  /* شريط الإحصاءات */
+  .dash-stats {
+    grid-column: 2;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+  }
+
+  .dash-stat {
+    background: #ffffff;
+    border: 1px solid #e6ebe8;
+    border-radius: 14px;
+    padding: 18px;
+    text-align: center;
+  }
+
+  .dash-stat-num {
+    display: block;
+    font-size: 26px;
+    font-weight: 700;
+    color: #04361b;
+    line-height: 1.2;
+  }
+
+  .dash-stat-label { font-size: 12.5px; color: #7d8c83; }
+
+  /* المحتوى في العمود الثاني */
+  .account-page .factory-card-wrap {
+    grid-column: 2;
+    margin-top: 0 !important;
+  }
+
+  /* settings.html فيها عدة أقسام تتراصّ في العمود نفسه،
+     فيحمل كلٌّ منها عنوانه ويفصلها gap الشبكة */
+  .account-page .account-section { grid-column: 2; margin: 0 !important; }
+
+  /* صف "الإعدادات" المكرّر: القائمة الجانبية تحمله أصلاً
+     على سطح المكتب، ويبقى ظاهراً على الجوال لأنه الطريق
+     الوحيد إلى settings.html هناك */
+  #mobile-settings-row { display: none; }
+  .account-page .account-section .section-title { margin: 0 2px 8px !important; }
+  .account-page .app-version { grid-column: 2; margin: 4px 0 0 !important; }
+
+  /* profile.html تشارك نفس التخطيط: ترويستها ونموذجها
+     في العمود الثاني بدل امتدادهما بعرض الصفحة */
+  .account-page .page-header {
+    grid-column: 2;
+    position: static !important;
+    background: transparent !important;
+    border-bottom: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* زر الرجوع لا لزوم له مع وجود القائمة الجانبية */
+  .account-page .page-header .back-btn { display: none; }
+
+  .account-page .form-wrap {
+    grid-column: 2;
+    background: #ffffff;
+    border: 1px solid #e6ebe8;
+    border-radius: 16px;
+    padding: 22px !important;
+    margin: 0 !important;
+    max-width: none !important;
+  }
+
+  /* admin.html: التبويبات والقائمة في العمود الثاني،
+     والبطاقات تتوزّع في شبكة بدل عمود واحد */
+  .account-page .tabs {
+    grid-column: 2;
+    padding: 0 !important;
+    gap: 8px;
+  }
+
+  .account-page .tabs .tab { flex: 0 0 auto; padding: 10px 22px !important; }
+
+  .account-page .list {
+    grid-column: 2;
+    padding: 0 !important;
+    display: grid !important;
+    grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+    gap: 14px !important;
+    align-items: start;
+  }
+
+  /* رسائل الحالة تمتدّ بعرض الشبكة كاملاً */
+  .account-page .list .state { grid-column: 1 / -1; }
+
+  .page-logo .wm-title {
+    font-size: 17px;
+    font-weight: 800;
+    line-height: 1.1;
+    white-space: nowrap;
+    direction: ltr;   /* الاسم لاتيني: يمنع انعكاس ترتيب الكلمات في RTL */
+    text-align: center;
+  }
+
+  .page-logo .w-green { color: #45a06a; }
+  .page-logo .w-dark  { color: #04361b; }
+
+  .page-logo .w-b2b {
+    color: #c9a227;
+    font-size: 0.62em;
+    vertical-align: 0.58em;
+  }
+
+  .page-logo .wm-rule {
+    height: 2px;
+    border-radius: 2px;
+    background: linear-gradient(to left, #1f6b42, #45a06a, #c9a227);
+  }
+
+  html[dir="ltr"] .page-logo .wm-rule {
+    background: linear-gradient(to right, #1f6b42, #45a06a, #c9a227);
+  }
+
+  /* ============================================================
+     صفحات المحتوى البسيطة (help.html) — عمود واحد متوسّط
+     لا قائمة جانبية: الصفحة عامة ولا تتطلب حساباً.
+     ============================================================ */
+
+  body.doc-page {
+    max-width: 820px !important;
+    margin: 0 auto !important;
+    padding: 20px 24px 60px !important;
+  }
+
+  .doc-page .page-logo { margin-bottom: 14px; }
+
+  .doc-page .page-header {
+    position: static !important;
+    background: transparent !important;
+    border-bottom: none !important;
+    padding: 0 0 14px !important;
+    margin: 0 !important;
+  }
+
+  .doc-page .page-header h1 { font-size: 24px !important; }
+  .doc-page .page-header .back-btn { display: none; }
+
+  .doc-page .content-wrap { padding: 0 !important; margin: 0 !important; }
+  .doc-page .contact-title { font-size: 16px !important; }
+
+  /* ============================================================
+     صفحة الرسائل (messages.html)
+     على الجوال تتبادل قائمةُ المحادثات والمحادثةُ الظهور عبر
+     body.in-chat. هنا تظهران معاً جنباً إلى جنب — فتُلغى
+     قواعد الإخفاء تلك.
+     ============================================================ */
+
+  /* الصفحة تملأ النافذة تماماً ولا تتجاوزها: صفحة الرسائل
+     تضبط min-height: 100vh على body للجوال، وهي تتغلّب
+     على height فيمتدّ المستند تحت البطاقات فيظهر بياض. */
+  body.chat-page {
+    max-width: 1180px !important;
+    margin: 0 auto !important;
+    padding: 18px 24px !important;
+    height: 100vh;
+    max-height: 100vh;
+    min-height: 0 !important;
+    display: grid;
+    grid-template-columns: 330px 1fr;
+    grid-template-rows: auto 1fr;
+    column-gap: 18px;
+    row-gap: 12px;
+    overflow: hidden;
+  }
+
+  .chat-page .top-bar {
+    grid-column: 1 / -1;
+    display: flex !important;
+    align-items: center;
+    gap: 12px;
+    padding: 0 0 4px !important;
+    background: transparent !important;
+    border-bottom: none !important;
+  }
+
+  .chat-page .top-bar h1 { font-size: 22px !important; }
+
+  /* زر الرجوع لا لزوم له: القائمة ظاهرة دائماً */
+  .chat-page .back-btn { display: none !important; }
+
+  /* قائمة المحادثات — عمود ثابت */
+  .chat-page .thread-list-view {
+    display: flex !important;
+    flex-direction: column;
+    grid-column: 1;
+    grid-row: 2;
+    position: relative;   /* مرساة زرّ المحادثة الجديدة */
+    background: #ffffff;
+    border: 1px solid #e6ebe8;
+    border-radius: 16px;
+    overflow: hidden;
+    min-height: 0;
+  }
+
+  .chat-page .thread-list {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+  }
+
+  /* المحادثة — العمود العريض */
+  .chat-page .chat-view {
+    display: flex !important;
+    flex-direction: column;
+    grid-column: 2;
+    grid-row: 2;
+    background: #ffffff;
+    border: 1px solid #e6ebe8;
+    border-radius: 16px;
+    overflow: hidden;
+    min-height: 0;
+  }
+
+  .chat-page .messages-area {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+    padding: 16px !important;
+  }
+
+  /* المُنشئ يلتصق بأسفل بطاقة المحادثة بدل تثبيته بالنافذة */
+  .chat-page .composer {
+    position: static !important;
+    max-width: none !important;
+    margin: 0 !important;
+    border-top: 1px solid #eef2ef;
+  }
+
+  /* زر محادثة جديدة يبقى ظاهراً داخل عمود القائمة */
+  .chat-page .new-chat-btn {
+    position: absolute !important;
+    inset: auto 22px 22px auto !important;
+  }
+
+  html[dir="ltr"] .chat-page .new-chat-btn {
+    inset: auto auto 22px 22px !important;
+  }
+
+  /* .chat-peer يتحكم به السكربت عند فتح محادثة — لا يُجبر هنا */
+
+  /* العلامة المائية للخريطة تشوّش التخطيط العريض */
+  .chat-page .map-watermark { display: none !important; }
+
+  /* ===== شبكة المصانع (factories.html) ===== */
+  .factories-grid {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)) !important;
+    max-width: 1280px;
+    margin: 0 auto !important;
+    padding: 22px 24px 60px !important;
+  }
+
+  /* ===== النوافذ المنبثقة تتوسّط بدل الالتصاق بالأسفل ===== */
+  .map-modal,
+  .pick-modal,
+  .source-sheet {
+    max-width: 620px !important;
+    margin: 0 auto !important;
+  }
+
+  /* القائمة الجانبية للفئات لا تُستعمل على سطح المكتب */
+  .categories-drawer,
+  .drawer-overlay { display: none !important; }
+
+  /* ============================================================
+     صفحة المصنع (factory.html) — الأركيتايب الخامس
+     واجهة متجر: الغلاف ممتدّ بعرض اللوحة، ثم عمودان:
+     معلومات المصنع والمنتجات. كانت هذه الصفحة الوحيدة
+     التي لا تحمل desktop.css فكانت تظهر بعرض الجوال.
+     ============================================================ */
+
+  body.store-page {
+    max-width: 1500px !important;
+    margin: 0 auto !important;
+    padding: 0 32px 60px !important;
+    background: #f6f7f6;
+  }
+
+  /* الرأس يصير عاديّاً في مجرى الصفحة لا ثابتاً */
+  .store-page .page-header {
+    position: static !important;
+    background: transparent !important;
+    border-bottom: none !important;
+    padding: 18px 0 14px !important;
+    margin: 0 !important;
+  }
+
+  .store-page .page-header h1 { font-size: 24px !important; }
+
+  .store-page .content-wrap {
+    /* الصفحة تقيّد هذه الحاوية بـ max-width: 520px لعمود
+       الجوال — وهو القيد الفعلي لا عرض body. توسيع
+       body وحده لا يفعل شيئاً ما دام هذا قائماً. */
+    max-width: none !important;
+    width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    display: grid;
+    grid-template-columns: 340px minmax(0, 1fr);
+    column-gap: 24px;
+    align-items: start;
+  }
+
+  /* الغلاف يعبر العمودين معاً */
+  .store-page .cover-block {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    border-radius: 14px;
+    overflow: visible;
+    margin-bottom: 40px !important;
+  }
+
+  .store-page .cover-image {
+    aspect-ratio: 24 / 7;
+    border-radius: 14px;
+  }
+
+  .store-page .storage-warning { grid-column: 1 / -1; grid-row: 2; }
+
+  /* الإسناد بمعرّفات صريحة لا بـ nth-of-type: الأخير يعُدّ
+     حسب اسم الوسم، والغلاف وتحذير التخزين ـdivـات أيضاً،
+     فتزحزح الترقيم وتتلقّى البطاقة الخطأ العمود الخطأ.
+     الصفوف مثبتة صراحةً لئلا يترك التدفّق التلقائي فراغاً. */
+  .store-page #card-name    { grid-column: 1; grid-row: 3; }
+  .store-page #card-about   { grid-column: 1; grid-row: 4; }
+  .store-page .contact-btn  { grid-column: 1; grid-row: 5; }
+
+  .store-page #card-products {
+    grid-column: 2;
+    grid-row: 3 / span 3;
+    align-self: stretch;
+  }
+
+  .store-page .card {
+    border-radius: 12px;
+    /* هامش الجوال (0 14px) يزاحم أعمدة الشبكة فيُصفّر */
+    margin: 0 0 16px !important;
+  }
+
+  .store-page #card-products { padding: 20px !important; }
+
+  /* وضع العرض (الزائر القادم من "الأكثر مبيعاً"):
+     لا حقول ولا أزرار حذف، فالعمود الجانبي يضيق وتتوسّع
+     المنتجات، وزر المراسلة هو الإجراء الرئيس فيبرز. */
+  body.store-page.view-only .content-wrap {
+    grid-template-columns: 300px minmax(0, 1fr);
+  }
+
+  .store-page.view-only .contact-btn {
+    font-size: 15px;
+    padding: 14px 20px !important;
+  }
+
+  /* شبكة أوسع: عمودان على الجوال ← ثلاثة هنا */
+  .store-page .products-grid {
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+    gap: 18px;
+  }
+
+  /* زر "إضافة منتج" لا يتقلّص فينكسر نصّه سطرين */
+  .store-page .add-product-btn {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+
+  .store-page .products-head { flex-wrap: nowrap; }
+
+  /* زر المراسلة لا يمتدّ عرض الشاشة */
+  .store-page .contact-btn {
+    margin: 0 0 16px !important;
+    border-radius: 12px;
+  }
+
+  /* ============================================================
+     صفحات الدخول للموقع: login • register
+     مقابلاهما في التطبيق (app-login و app-register) لا
+     يحملان هذا الملف أصلاً، فلا تصلهما هذه القواعد.
+     صفحات الدخول لا تُمطّط بعرض الشاشة — المعيار
+     بطاقة مركزية على خلفية نظيفة.
+     ============================================================ */
+
+  body.auth-page {
+    max-width: none !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    min-height: 100vh;
+    background: #f6f7f6;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 24px !important;
+  }
+
+  /* العلامة المائية تملأ الشاشة العريضة بلا تشويه */
+  .auth-page .map-watermark {
+    right: 0 !important;
+    left: 0 !important;
+    opacity: 0.05;
+  }
+
+  /* الترويسة تندمج في الصفحة بدل التثبيت أعلى النافذة */
+  .auth-page .page-header {
+    position: relative !important;
+    background: transparent !important;
+    border-bottom: none !important;
+    height: auto !important;
+    padding: 0 0 20px !important;
+    justify-content: center;
+    width: 100%;
+    max-width: 460px;
+    z-index: 1;
+  }
+
+  .auth-page .page-header h1 { font-size: 24px !important; }
+
+  /* زر الرجوع لا لزوم له: التنقّل بالمتصفّح */
+  .auth-page .back-btn { display: none !important; }
+
+  /* البطاقة المركزية */
+  .auth-page .form-wrap {
+    width: 100%;
+    max-width: 460px;
+    margin: 0 !important;
+    padding: 36px 38px 40px !important;
+    background: #ffffff;
+    border: 1px solid #e6ebe8;
+    border-radius: 18px;
+    box-shadow: 0 10px 40px rgba(4, 54, 27, 0.10);
+    position: relative;
+    z-index: 1;
+  }
+
+  /* صفحة الترحيب تستعمل .wrap لا .form-wrap */
+  .auth-page .wrap {
+    width: 100%;
+    max-width: 460px;
+    margin: 0 !important;
+    padding: 44px 38px !important;
+    background: #ffffff;
+    border: 1px solid #e6ebe8;
+    border-radius: 18px;
+    box-shadow: 0 10px 40px rgba(4, 54, 27, 0.10);
+    position: relative;
+    z-index: 1;
+  }
+
+  .auth-page .wrap .wm-title { font-size: 34px !important; }
+
+  .auth-page .auth-btn {
+    font-size: 16px !important;
+    padding: 15px 20px !important;
+  }
+
+  /* حقول أريح للفأرة */
+  .auth-page .field input,
+  .auth-page .field select {
+    font-size: 15px !important;
+    padding: 13px 14px !important;
+  }
+}
+
+/* عناصر سطح المكتب مخفية تماماً على الجوال */
+@media (max-width: 1023px) {
+  .dt-bar,
+  .dt-catbar,
+  .dt-actions,
+  .page-logo,
+  .dash-side,
+  .dash-stats { display: none !important; }
+}

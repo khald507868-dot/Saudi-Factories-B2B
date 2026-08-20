@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<!-- نوع الصفحة: تطبيق فقط (جوال) | لوحة الحساب — نسخة التطبيق
+     لا يوجد desktop.css — تعرض تصميم الجوال دائماً.
+
+     نسخة مستقلة عن account.html (نسخة المتصفّح).
+     كل روابط التنقّل تشير إلى نسخ app- فلا يخرج المسار.
+     الدليل الكامل: الصفحات.md -->
+
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#04361b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title data-i18n="account_page_title">حسابي - المصانع السعودية</title>
+<script src="i18n.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
+<script src="auth-guard.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: "Segoe UI", Tahoma, "Arial", sans-serif;
+    background: #f3f5f3;
+    color: #04361b;
+    min-height: 100vh;
+    padding-bottom: 52px;
+    /* لا ترويسة هنا بعد حذفها، فيتولى body إزاحة نتوء الأيفون */
+    padding-top: env(safe-area-inset-top);
+  }
+
+  /* ===== قوائم الحساب ===== */
+  .account-section {
+    margin: 22px 16px 0;
+  }
+
+  .account-section .section-title {
+    font-size: 13px;
+    color: #04361b;
+    font-weight: 700;
+    margin: 0 4px 8px;
+  }
+
+  .account-list {
+    background: #ffffff;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 2px 10px rgba(4,54,27,0.06);
+  }
+
+  .account-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 16px 14px;
+    text-decoration: none;
+    color: #04361b;
+    border-bottom: 1px solid #eef1ee;
+  }
+
+  .account-list .account-row:last-child {
+    border-bottom: none;
+  }
+
+  .account-row .row-label {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 15px;
+    font-weight: 600;
+  }
+
+  .account-row .row-label svg {
+    width: 20px;
+    height: 20px;
+    stroke: #04361b;
+    fill: none;
+    stroke-width: 1.8;
+    flex-shrink: 0;
+  }
+
+  .account-row .row-end {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #9aa8a0;
+    font-size: 13px;
+  }
+
+  .account-row .chevron {
+    width: 18px;
+    height: 18px;
+    stroke: #04361b;
+    fill: none;
+    stroke-width: 2;
+    transform: rotate(180deg);
+  }
+
+  .app-version {
+    text-align: center;
+    color: #9aa8a0;
+    font-size: 12px;
+    margin: 22px 0 0;
+  }
+
+  /* ===== القائمة السفلية ===== */
+  .bottom-nav {
+    position: fixed;
+    bottom: 0;
+    right: 0;
+    left: 0;
+    height: 52px;
+    background: #ffffff;
+    display: flex;
+    border-top: 2px solid #04361b;
+    box-shadow: 0 -2px 8px rgba(0,0,0,0.08);
+    z-index: 10;
+  }
+
+  .nav-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    text-decoration: none;
+    color: #5c8a70;
+    font-size: 11px;
+    padding: 0 2px;
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  .nav-item svg {
+    width: 22px;
+    height: 22px;
+    stroke: currentColor;
+    fill: none;
+    flex-shrink: 0;
+  }
+
+  .nav-item.active {
+    color: #04361b;
+    font-weight: 700;
+  }
+</style>
+<link rel="stylesheet" href="mobile.css">
+</head>
+<body>
+
+  <!-- القائمة الرئيسية -->
+  <section class="account-section" id="mobile-settings-row">
+    <div class="account-list">
+      <a href="app-settings.html" class="account-row" style="border-bottom:none;">
+        <span class="row-label">
+          <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.55V21a2 2 0 0 1-4 0v-.09a1.7 1.7 0 0 0-1.11-1.55 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.55-1H3a2 2 0 0 1 0-4h.09a1.7 1.7 0 0 0 1.55-1.11 1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34H9a1.7 1.7 0 0 0 1-1.55V3a2 2 0 0 1 4 0v.09a1.7 1.7 0 0 0 1 1.55 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87V9a1.7 1.7 0 0 0 1.55 1H21a2 2 0 0 1 0 4h-.09a1.7 1.7 0 0 0-1.55 1z"></path></svg>
+          <span data-i18n="row_settings">الإعدادات</span>
+        </span>
+        <span class="row-end"><svg class="chevron" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"></path></svg></span>
+      </a>
+    </div>
+  </section>
+
+  <p class="app-version" data-i18n="app_version">دليل المصانع السعودية · الإصدار 1.0.0</p>
+
+  <!-- القائمة السفلية -->
+  <nav class="bottom-nav">
+    <a href="app-home.html" class="nav-item">
+      <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 11l9-8 9 8"></path>
+        <path d="M5 10v10h14V10"></path>
+      </svg>
+      <span data-i18n="nav_home">الرئيسية</span>
+    </a>
+    <a href="app-home.html#categories" class="nav-item">
+      <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="3" width="7" height="7"></rect>
+        <rect x="14" y="3" width="7" height="7"></rect>
+        <rect x="3" y="14" width="7" height="7"></rect>
+        <rect x="14" y="14" width="7" height="7"></rect>
+      </svg>
+      <span data-i18n="nav_categories">الفئات</span>
+    </a>
+    <a href="app-factories.html" class="nav-item">
+      <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 21V10l6 4v-4l6 4V4l6 6v11H3z"></path>
+      </svg>
+      <span data-i18n="nav_factories">المصانع</span>
+    </a>
+    <a href="app-messages.html" class="nav-item">
+      <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+      </svg>
+      <span data-i18n="nav_messages">الرسائل</span>
+    </a>
+    <a href="app-account.html" class="nav-item active">
+      <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="8" r="4"></circle>
+        <path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"></path>
+      </svg>
+      <span data-i18n="nav_account">الحساب</span>
+    </a>
+    <a href="app-cart.html" class="nav-item">
+      <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="9" cy="21" r="1"></circle>
+        <circle cx="20" cy="21" r="1"></circle>
+        <path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"></path>
+      </svg>
+      <span data-i18n="nav_cart">عربة التسوق</span>
+    </a>
+  </nav>
+
+</body>
+</html>

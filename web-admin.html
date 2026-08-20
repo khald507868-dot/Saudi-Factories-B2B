@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<!-- نوع الصفحة: متصفّح | اعتماد المصانع (للمشرف وحده)
+     البادئة web- تعني نسخة الموقع؛ والبادئة app- نسخة التطبيق.
+     desktop.css محمّل — التصميم العريض يعمل فوق ١٠٢٤ بكسل.
+     لا توجد لها نسخة تطبيق بعد.
+     الدليل الكامل: الصفحات.md -->
+
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>إدارة المصانع - المصانع السعودية</title>
+<script src="i18n.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
+<script src="auth-guard.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: "Segoe UI", Tahoma, "Arial", sans-serif;
+    background: #f3f5f3;
+    color: #04361b;
+    min-height: 100vh;
+    padding-bottom: 30px;
+  }
+
+  /* ===== رأس الصفحة ===== */
+  .page-header {
+    background: #ffffff;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 14px;
+    border-bottom: 1px solid #e8ece9;
+    position: sticky;
+    top: 0;
+    z-index: 5;
+  }
+
+  .back-btn {
+    width: 34px;
+    height: 34px;
+    border: none;
+    background: #f3f5f3;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  .back-btn svg { width: 18px; height: 18px; stroke: #04361b; }
+  html[dir="ltr"] .back-btn svg { transform: scaleX(-1); }
+
+  .page-title { font-size: 17px; font-weight: 700; }
+
+  /* ===== تبويبات الحالة ===== */
+  .tabs {
+    display: flex;
+    gap: 6px;
+    padding: 12px 14px 0;
+  }
+
+  .tab {
+    flex: 1;
+    border: none;
+    background: #ffffff;
+    color: #6b7d70;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 10px 4px;
+    border-radius: 10px;
+    cursor: pointer;
+    border: 1px solid #e8ece9;
+  }
+
+  .tab.active {
+    background: #04361b;
+    color: #ffffff;
+    border-color: #04361b;
+  }
+
+  .tab .count {
+    display: inline-block;
+    min-width: 18px;
+    font-size: 11px;
+    margin-inline-start: 3px;
+    opacity: 0.85;
+  }
+
+  /* ===== قائمة المصانع ===== */
+  .list { padding: 14px; display: flex; flex-direction: column; gap: 12px; }
+
+  .factory-card {
+    background: #ffffff;
+    border: 1px solid #e8ece9;
+    border-radius: 14px;
+    overflow: hidden;
+  }
+
+  .fc-head { display: flex; gap: 11px; padding: 13px; align-items: flex-start; }
+
+  .fc-logo {
+    width: 46px;
+    height: 46px;
+    border-radius: 11px;
+    background: #f3f5f3;
+    flex-shrink: 0;
+    object-fit: cover;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: 700;
+    color: #45a06a;
+  }
+
+  .fc-info { flex: 1; min-width: 0; }
+
+  .fc-name {
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 3px;
+    word-break: break-word;
+  }
+
+  .fc-meta { font-size: 12px; color: #6b7d70; line-height: 1.7; }
+  .fc-meta b { color: #04361b; font-weight: 600; }
+
+  .badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 9px;
+    border-radius: 20px;
+    margin-top: 5px;
+  }
+
+  .badge.pending  { background: #fff4d6; color: #8a6a00; }
+  .badge.approved { background: #e2f4e8; color: #1f6b42; }
+  .badge.rejected { background: #fde8e8; color: #9b2c2c; }
+
+  /* ===== التفاصيل ===== */
+  .fc-details {
+    border-top: 1px solid #f0f3f1;
+    padding: 11px 13px;
+    font-size: 12.5px;
+    color: #46584c;
+    line-height: 1.9;
+    display: none;
+  }
+
+  .fc-details.open { display: block; }
+  .fc-details .row { display: flex; gap: 6px; }
+  .fc-details .row span:first-child { color: #6b7d70; min-width: 88px; }
+  .fc-details .cr { direction: ltr; text-align: right; font-weight: 700; }
+  html[dir="ltr"] .fc-details .cr { text-align: left; }
+
+  .toggle-details {
+    background: none;
+    border: none;
+    color: #45a06a;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    padding: 0 13px 11px;
+  }
+
+  /* ===== أزرار الإجراء ===== */
+  .fc-actions {
+    display: flex;
+    gap: 8px;
+    padding: 11px 13px;
+    border-top: 1px solid #f0f3f1;
+  }
+
+  .act {
+    flex: 1;
+    border: none;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 10px;
+    border-radius: 10px;
+    cursor: pointer;
+  }
+
+  .act:disabled { opacity: 0.55; cursor: default; }
+  .act.approve { background: #1f6b42; color: #ffffff; }
+  .act.reject  { background: #fde8e8; color: #9b2c2c; }
+  .act.revert  { background: #f3f5f3; color: #46584c; }
+
+  /* ===== حالات ===== */
+  .state {
+    text-align: center;
+    padding: 50px 20px;
+    color: #6b7d70;
+    font-size: 14px;
+    line-height: 1.9;
+  }
+
+  .state.error { color: #9b2c2c; }
+
+  .spinner {
+    width: 28px;
+    height: 28px;
+    border: 3px solid #e8ece9;
+    border-top-color: #45a06a;
+    border-radius: 50%;
+    margin: 0 auto 12px;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ===== نافذة سبب الرفض ===== */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s;
+    z-index: 30;
+    display: flex;
+    align-items: flex-end;
+  }
+
+  .modal-overlay.open { opacity: 1; pointer-events: auto; }
+
+  .sheet {
+    background: #ffffff;
+    width: 100%;
+    border-radius: 18px 18px 0 0;
+    padding: 18px 16px calc(20px + env(safe-area-inset-bottom));
+    transform: translateY(100%);
+    transition: transform 0.28s;
+  }
+
+  .modal-overlay.open .sheet { transform: translateY(0); }
+
+  .sheet h3 { font-size: 16px; margin-bottom: 4px; }
+  .sheet p { font-size: 12.5px; color: #6b7d70; margin-bottom: 13px; }
+
+  .sheet textarea {
+    width: 100%;
+    min-height: 88px;
+    border: 1px solid #dfe5e1;
+    border-radius: 11px;
+    padding: 11px;
+    font-family: inherit;
+    font-size: 14px;
+    resize: vertical;
+    background: #ffffff;
+    color: #04361b;
+  }
+
+  .sheet textarea:focus { outline: none; border-color: #45a06a; }
+
+  .sheet-actions { display: flex; gap: 8px; margin-top: 13px; }
+</style>
+<link rel="stylesheet" href="mobile.css">
+<link rel="stylesheet" href="desktop.css">
+</head>
+<body class="account-page">
+
+<!-- الشعار — سطح المكتب فقط (مخفي على الجوال عبر desktop.css) -->
+<a class="page-logo" href="web-home.html">
+  <span class="wm-title"><span class="w-green">Saudi</span> <span class="w-dark">Factories</span> <span class="w-b2b">B2B</span></span>
+  <span class="wm-rule"></span>
+</a>
+
+<!-- ===== القائمة الجانبية — سطح المكتب فقط ===== -->
+<aside class="dash-side">
+  <div class="dash-side-head">
+    <span class="dash-avatar" id="dash-avatar">👤</span>
+    <div>
+      <div class="dash-name" id="dash-name">حسابي</div>
+      <div class="dash-type" id="dash-type">—</div>
+    </div>
+  </div>
+
+  <p class="dash-group" data-i18n="section_account">حسابي</p>
+  <nav class="dash-nav">
+    <a href="web-account.html">
+      <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect></svg>
+      <span data-i18n="dash_control_panel">لوحة التحكم</span>
+    </a>
+
+    <div class="dash-item has-sub">
+      <a href="web-messages.html">
+        <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.2a8.4 8.4 0 0 1-.9-3.8 8.4 8.4 0 0 1 8.4-9 8.4 8.4 0 0 1 8.6 8.5z"></path></svg>
+        <span data-i18n="dash_inbox">صندوق الوارد</span>
+        <span class="dash-caret">‹</span>
+      </a>
+      <div class="dash-sub">
+        <p class="dash-sub-title" data-i18n="dash_inbox">صندوق الوارد</p>
+        <a href="web-messages.html" data-i18n="nav_messages">الرسائل</a>
+        <a href="web-messages.html" data-i18n="dash_inquiries">الاستفسارات وطلبات الأسعار</a>
+        <a href="web-factories.html" data-i18n="dash_contacts">جهات الاتصال</a>
+      </div>
+    </div>
+
+    <div class="dash-item has-sub">
+      <a href="web-cart.html">
+        <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"></path></svg>
+        <span data-i18n="dash_orders">الطلبات</span>
+        <span class="dash-caret">‹</span>
+      </a>
+      <div class="dash-sub">
+        <p class="dash-sub-title" data-i18n="dash_orders">الطلبات</p>
+        <a href="web-cart.html" data-i18n="dash_cart">سلة التسوق</a>
+        <a href="web-cart.html" data-i18n="dash_my_orders">طلباتي</a>
+        <a href="web-cart.html" data-i18n="dash_favorites">المفضّلة</a>
+      </div>
+    </div>
+
+    <div class="dash-item has-sub">
+      <a href="web-profile.html">
+        <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+        <span data-i18n="row_profile">ملفي الشخصي</span>
+        <span class="dash-caret">‹</span>
+      </a>
+      <div class="dash-sub">
+        <p class="dash-sub-title" data-i18n="row_profile">ملفي الشخصي</p>
+        <a href="web-profile.html" data-i18n="dash_personal_data">البيانات الشخصية</a>
+        <a href="web-profile.html" data-i18n="dash_national_address">العنوان الوطني</a>
+        <a href="web-settings.html" data-i18n="row_security">الأمان والخصوصية</a>
+      </div>
+    </div>
+  </nav>
+
+  <p class="dash-group" data-i18n="section_other">أخرى</p>
+  <nav class="dash-nav">
+    <a href="web-factories.html">
+      <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21V8l9-5 9 5v13"></path><path d="M9 21v-6h6v6"></path></svg>
+      <span data-i18n="nav_factories">المصانع</span>
+    </a>
+    <a href="web-settings.html">
+      <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87 2 2 0 1 1-2.83 2.83 1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.55 2 2 0 0 1-4 0 1.7 1.7 0 0 0-1.11-1.55 1.7 1.7 0 0 0-1.87.34 2 2 0 1 1-2.83-2.83 1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.55-1 2 2 0 0 1 0-4 1.7 1.7 0 0 0 1.55-1.11 1.7 1.7 0 0 0-.34-1.87 2 2 0 1 1 2.83-2.83 1.7 1.7 0 0 0 1.87.34 1.7 1.7 0 0 0 1-1.55 2 2 0 0 1 4 0 1.7 1.7 0 0 0 1 1.55 1.7 1.7 0 0 0 1.87-.34 2 2 0 1 1 2.83 2.83 1.7 1.7 0 0 0-.34 1.87 1.7 1.7 0 0 0 1.55 1 2 2 0 0 1 0 4 1.7 1.7 0 0 0-1.55 1z"></path></svg>
+      <span data-i18n="row_settings">الإعدادات</span>
+    </a>
+    <a href="web-help.html">
+      <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 2-3 4"></path><path d="M12 17h.01"></path></svg>
+      <span data-i18n="row_help">المساعدة والدعم</span>
+    </a>
+    <a href="web-admin.html" class="active">
+      <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><path d="M9 12l2 2 4-4"></path></svg>
+      <span data-i18n="dash_admin_factories">إدارة المصانع</span>
+    </a>
+  </nav>
+</aside>
+
+<header class="page-header">
+  <button class="back-btn" onclick="history.back()" aria-label="رجوع">
+    <svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M15 18l-6-6 6-6"/>
+    </svg>
+  </button>
+  <div class="page-title">إدارة المصانع</div>
+</header>
+
+<div class="tabs">
+  <button class="tab active" data-status="pending">قيد المراجعة <span class="count" id="c-pending"></span></button>
+  <button class="tab" data-status="approved">معتمدة <span class="count" id="c-approved"></span></button>
+  <button class="tab" data-status="rejected">مرفوضة <span class="count" id="c-rejected"></span></button>
+</div>
+
+<div class="list" id="list">
+  <div class="state"><div class="spinner"></div>جارٍ التحميل…</div>
+</div>
+
+<!-- نافذة سبب الرفض -->
+<div class="modal-overlay" id="reject-modal">
+  <div class="sheet">
+    <h3>سبب الرفض</h3>
+    <p>سيظهر هذا السبب لصاحب المصنع.</p>
+    <textarea id="reject-reason" placeholder="مثال: رقم السجل التجاري غير مطابق"></textarea>
+    <div class="sheet-actions">
+      <button class="act revert" id="reject-cancel">إلغاء</button>
+      <button class="act reject" id="reject-confirm">تأكيد الرفض</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var listEl    = document.getElementById("list");
+  var modal     = document.getElementById("reject-modal");
+  var reasonEl  = document.getElementById("reject-reason");
+  var current   = "pending";
+  var factories = [];
+  var rejectId  = null;
+
+  /* ===== أدوات ===== */
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
+  function fmtDate(iso) {
+    if (!iso) return "—";
+    var d = new Date(iso);
+    return d.getFullYear() + "/" + (d.getMonth() + 1) + "/" + d.getDate();
+  }
+
+  function statusLabel(s) {
+    return s === "approved" ? "معتمد" : s === "rejected" ? "مرفوض" : "قيد المراجعة";
+  }
+
+  function showState(msg, isError) {
+    listEl.innerHTML = '<div class="state' + (isError ? " error" : "") + '">' + msg + "</div>";
+  }
+
+  /* ===== جلب المصانع ===== */
+  function loadFactories() {
+    listEl.innerHTML = '<div class="state"><div class="spinner"></div>جارٍ التحميل…</div>';
+
+    sb.from("factories")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .then(function (res) {
+        if (res.error) {
+          showState("تعذّر تحميل المصانع.<br>" + esc(res.error.message), true);
+          return;
+        }
+        factories = res.data || [];
+        updateCounts();
+        render();
+      });
+  }
+
+  function updateCounts() {
+    var n = { pending: 0, approved: 0, rejected: 0 };
+    factories.forEach(function (f) { if (n[f.status] !== undefined) n[f.status]++; });
+    document.getElementById("c-pending").textContent  = n.pending  || "";
+    document.getElementById("c-approved").textContent = n.approved || "";
+    document.getElementById("c-rejected").textContent = n.rejected || "";
+  }
+
+  /* ===== العرض ===== */
+  function render() {
+    var rows = factories.filter(function (f) { return f.status === current; });
+
+    if (!rows.length) {
+      showState(
+        current === "pending"  ? "لا توجد مصانع قيد المراجعة." :
+        current === "approved" ? "لا توجد مصانع معتمدة بعد." :
+                                 "لا توجد مصانع مرفوضة."
+      );
+      return;
+    }
+
+    listEl.innerHTML = rows.map(cardHtml).join("");
+  }
+
+  function cardHtml(f) {
+    var name  = f.name || "مصنع بلا اسم";
+    var logo  = f.logo
+      ? '<img class="fc-logo" src="' + esc(f.logo) + '" alt="">'
+      : '<div class="fc-logo">' + esc(name.charAt(0)) + "</div>";
+
+    var addr = [f.address_city, f.address_district, f.address_street]
+      .filter(Boolean).join("، ") || "—";
+
+    var actions =
+      f.status === "pending"
+        ? '<button class="act approve" data-act="approve" data-id="' + f.id + '">اعتماد</button>' +
+          '<button class="act reject"  data-act="reject"  data-id="' + f.id + '">رفض</button>'
+        : '<button class="act revert" data-act="pending" data-id="' + f.id + '">إعادة للمراجعة</button>' +
+          (f.status === "rejected"
+            ? '<button class="act approve" data-act="approve" data-id="' + f.id + '">اعتماد</button>'
+            : '<button class="act reject" data-act="reject" data-id="' + f.id + '">رفض</button>');
+
+    return '' +
+      '<div class="factory-card" id="fc-' + f.id + '">' +
+        '<div class="fc-head">' +
+          logo +
+          '<div class="fc-info">' +
+            '<div class="fc-name">' + esc(name) + "</div>" +
+            '<div class="fc-meta">سجل تجاري: <b>' + esc(f.commercial_register || "—") + "</b></div>" +
+            '<div class="fc-meta">التسجيل: ' + fmtDate(f.created_at) + "</div>" +
+            '<span class="badge ' + f.status + '">' + statusLabel(f.status) + "</span>" +
+          "</div>" +
+        "</div>" +
+        '<button class="toggle-details" data-toggle="' + f.id + '">عرض التفاصيل ▾</button>' +
+        '<div class="fc-details" id="d-' + f.id + '">' +
+          '<div class="row"><span>الوصف</span><span>' + esc(f.about || "—") + "</span></div>" +
+          '<div class="row"><span>المنطقة</span><span>' + esc(f.region_id || "—") + "</span></div>" +
+          '<div class="row"><span>العنوان</span><span>' + esc(addr) + "</span></div>" +
+          '<div class="row"><span>العنوان المختصر</span><span class="cr">' + esc(f.address_short || "—") + "</span></div>" +
+          '<div class="row"><span>الرمز البريدي</span><span class="cr">' + esc(f.address_postal || "—") + "</span></div>" +
+          (f.rejection_reason
+            ? '<div class="row"><span>سبب الرفض</span><span>' + esc(f.rejection_reason) + "</span></div>"
+            : "") +
+        "</div>" +
+        '<div class="fc-actions">' + actions + "</div>" +
+      "</div>";
+  }
+
+  /* ===== تغيير الحالة ===== */
+  function setStatus(id, status, reason) {
+    var card = document.getElementById("fc-" + id);
+    if (card) {
+      card.querySelectorAll(".act").forEach(function (b) { b.disabled = true; });
+    }
+
+    var patch = { status: status };
+    if (status === "rejected") patch.rejection_reason = reason || "";
+    if (status === "approved" || status === "pending") patch.rejection_reason = "";
+
+    sb.from("factories")
+      .update(patch)
+      .eq("id", id)
+      .select()
+      .then(function (res) {
+        if (res.error || !res.data || !res.data.length) {
+          alert("تعذّر تنفيذ العملية.\n" + (res.error ? res.error.message : "لم يُحدَّث أي صف — تأكد أن حسابك مدير."));
+          if (card) card.querySelectorAll(".act").forEach(function (b) { b.disabled = false; });
+          return;
+        }
+
+        // نجحت — حدّث النسخة المحلية دون إعادة تحميل كامل
+        var updated = res.data[0];
+        for (var i = 0; i < factories.length; i++) {
+          if (factories[i].id === updated.id) { factories[i] = updated; break; }
+        }
+        updateCounts();
+        render();
+      });
+  }
+
+  /* ===== الأحداث ===== */
+  document.querySelectorAll(".tab").forEach(function (tab) {
+    tab.addEventListener("click", function () {
+      document.querySelectorAll(".tab").forEach(function (t) { t.classList.remove("active"); });
+      tab.classList.add("active");
+      current = tab.getAttribute("data-status");
+      render();
+    });
+  });
+
+  listEl.addEventListener("click", function (e) {
+    var toggle = e.target.closest("[data-toggle]");
+    if (toggle) {
+      var d = document.getElementById("d-" + toggle.getAttribute("data-toggle"));
+      var open = d.classList.toggle("open");
+      toggle.textContent = open ? "إخفاء التفاصيل ▴" : "عرض التفاصيل ▾";
+      return;
+    }
+
+    var btn = e.target.closest("[data-act]");
+    if (!btn) return;
+
+    var id  = btn.getAttribute("data-id");
+    var act = btn.getAttribute("data-act");
+
+    if (act === "reject") {
+      rejectId = id;
+      reasonEl.value = "";
+      modal.classList.add("open");
+      document.body.style.overflow = "hidden";
+      setTimeout(function () { reasonEl.focus(); }, 300);
+      return;
+    }
+
+    setStatus(id, act);
+  });
+
+  /* ===== نافذة الرفض ===== */
+  function closeModal() {
+    modal.classList.remove("open");
+    document.body.style.overflow = "";
+    rejectId = null;
+  }
+
+  document.getElementById("reject-cancel").addEventListener("click", closeModal);
+
+  document.getElementById("reject-confirm").addEventListener("click", function () {
+    if (!rejectId) return;
+    var id = rejectId, reason = reasonEl.value.trim();
+    closeModal();
+    setStatus(id, "rejected", reason);
+  });
+
+  modal.addEventListener("click", function (e) {
+    if (e.target === modal) closeModal();
+  });
+
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && modal.classList.contains("open")) closeModal();
+  });
+
+  /* ===== البدء: تحقّق أن المستخدم مدير ===== */
+  SF_AUTH_READY.then(function () {
+    /* ترويسة القائمة الجانبية (سطح المكتب) */
+    if (SF_PROFILE) {
+      var nameEl = document.getElementById("dash-name");
+      var typeEl = document.getElementById("dash-type");
+      var avaEl  = document.getElementById("dash-avatar");
+
+      if (nameEl && SF_PROFILE.full_name) nameEl.textContent = SF_PROFILE.full_name;
+      if (typeEl) {
+        typeEl.textContent = SF_PROFILE.account_type === "factory" ? "حساب مصنع" : "حساب فرد";
+      }
+      if (avaEl && SF_PROFILE.company_image) {
+        avaEl.innerHTML = '<img src="' + SF_PROFILE.company_image + '" alt="">';
+      }
+    }
+
+    if (!SF_PROFILE || !SF_PROFILE.is_admin) {
+      showState("هذه الصفحة للمدير فقط.<br>حسابك لا يملك صلاحية الإدارة.", true);
+      document.querySelector(".tabs").style.display = "none";
+      return;
+    }
+    loadFactories();
+  });
+})();
+</script>
+
+</body>
+</html>

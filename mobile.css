@@ -1,0 +1,177 @@
+/* ===== طبقة مظهر تطبيق الجوال =====
+   تُحمَّل في <head> بعد <style> الخاص بكل صفحة، وتحتوي فقط على القواعد
+   المشتركة بين كل الصفحات: المساحات الآمنة، منع تكبير iOS، وإحساس اللمس الأصلي.
+
+   ملاحظة عن !important: الصفحات تعرّف أنماطها بمحدِّدات أعلى تخصيصاً
+   (مثل .field input) فلا يكفي ترتيب التحميل لتجاوزها. القواعد المعلَّمة هنا
+   هي فقط التي يجب أن تفوز على كل الصفحات لأن كسرها يكسر التجربة على الجوال. */
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overscroll-behavior-y: none;
+  overflow-x: hidden;
+}
+
+/* سفاري iOS يكبّر الصفحة تلقائياً عند التركيز على حقل خطه أصغر من 16px */
+input,
+textarea,
+select {
+  font-size: 16px !important;
+}
+
+/* إحساس التطبيق الأصلي: بلا وميض لمس، وبلا تأخير 300ms، وبلا تحديد نص على الواجهة */
+a,
+button,
+label,
+nav {
+  -webkit-user-select: none;
+  user-select: none;
+  touch-action: manipulation;
+}
+
+/* المحتوى النصي يبقى قابلاً للتحديد والنسخ */
+p,
+h1,
+h2,
+h3,
+input,
+textarea,
+.contact-value {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* تمرير بالزخم داخل القوائم المنبثقة الطويلة */
+.country-list,
+.lang-list,
+.drawer-list,
+.protection-modal-body,
+.address-body {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ===== المساحات الآمنة: نتوء الشاشة أعلى، وشريط الإيماءات أسفل ===== */
+
+/* رأس الصفحة الثابت في أعلى معظم الصفحات */
+.page-header {
+  padding-top: calc(18px + env(safe-area-inset-top)) !important;
+}
+
+/* القائمة السفلية ترتفع فوق شريط الإيماءات في الأيفون */
+.bottom-nav {
+  height: calc(52px + env(safe-area-inset-bottom)) !important;
+  padding-bottom: env(safe-area-inset-bottom) !important;
+}
+
+body:has(.bottom-nav) {
+  padding-bottom: calc(52px + env(safe-area-inset-bottom)) !important;
+}
+
+/* النوافذ المنبثقة السفلية لا تختفي خلف شريط الإيماءات */
+.country-modal,
+.lang-modal,
+.protection-modal,
+.address-modal,
+.pick-modal {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* أهداف لمس مريحة (٤٤px هو الحد الأدنى الموصى به من آبل) */
+.nav-item {
+  min-height: 44px;
+}
+
+/* ===== إطار الصفحة =====
+   إطار أخضر على الصفحات البيضاء، وإطار أبيض على الصفحات الخضراء.
+   يُرسم كطبقة ثابتة فوق المحتوى مع pointer-events: none حتى لا يعترض اللمس،
+   ويحترم المساحات الآمنة حتى لا يختفي تحت نتوء الشاشة أو شريط الإيماءات. */
+body::after {
+  content: "";
+  position: fixed;
+  top: env(safe-area-inset-top);
+  bottom: env(safe-area-inset-bottom);
+  right: 0;
+  left: 0;
+  border: 3px solid #04361b;
+  /* زوايا مربّعة: الأشرطة الثابتة (الرأس والقائمة السفلية) مربّعة الزوايا،
+     فأي استدارة في الإطار تظهر كتقوّس لا ينطبق عليها. */
+  border-radius: 0;
+  pointer-events: none;
+  z-index: 100;
+}
+
+/* الصفحات ذات الخلفية الخضراء تأخذ إطاراً أبيض */
+body.dark-page::after {
+  border-color: #ffffff;
+}
+
+
+/* ===== عمود الجوال على الشاشات العريضة =====
+   التطبيق مخصَّص للجوال بشكل طولي. على أي شاشة أعرض من جهاز جوال يُعرض
+   داخل عمود بعرض جوال في المنتصف بدل أن يتمدد على كامل الشاشة، حتى يبدو
+   ويتصرف كتطبيق جوال حقيقي. لا يؤثر هذا إطلاقاً على الجوالات الفعلية. */
+@media (min-width: 520px) {
+  html {
+    background: #dfe4e0;
+  }
+
+  body {
+    max-width: 430px;
+    margin: 0 auto;
+    min-height: 100vh;
+    box-shadow: 0 0 30px rgba(4, 54, 27, 0.16);
+  }
+
+  /* الأشرطة الثابتة تتبع عمود الجوال بدل عرض الشاشة كاملاً */
+  .top-bar,
+  .bottom-nav,
+  .checkout-bar,
+  .composer {
+    max-width: 430px;
+    margin-right: auto;
+    margin-left: auto;
+  }
+
+  /* القائمة الجانبية تنزلق داخل حدود العمود.
+     المسافة المخفية تُزاد بـ 50vw لأن حافة الشاشة لم تعد تحجبها بعد التوسيط. */
+  .categories-drawer {
+    right: calc(50% - 215px);
+    transform: translateX(calc(100% + 50vw));
+  }
+
+  html[dir="ltr"] .categories-drawer {
+    right: auto;
+    left: calc(50% - 215px);
+    transform: translateX(calc(-100% - 50vw));
+  }
+
+  .categories-drawer.open,
+  html[dir="ltr"] .categories-drawer.open {
+    transform: translateX(0);
+  }
+
+  /* النوافذ المنبثقة السفلية بعرض العمود نفسه */
+  .lang-modal,
+  .country-modal,
+  .protection-modal,
+  .address-modal,
+  .map-modal,
+  .pick-modal,
+  .source-sheet {
+    max-width: 430px;
+  }
+
+  /* الإطار يتبع عمود الجوال لا عرض الشاشة */
+  body::after {
+    max-width: 430px;
+    margin-right: auto;
+    margin-left: auto;
+  }
+}
