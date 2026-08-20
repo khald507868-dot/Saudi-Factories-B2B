@@ -2,8 +2,11 @@
 //  حارس الجلسة — يمنع فتح الصفحات الداخلية دون تسجيل دخول
 //
 //  يُحمَّل في <head> بعد supabase-config.js مباشرة.
-//  الصفحات العامة (index, welcome, user-type, login, register)
-//  لا تحمّله.
+//  الصفحات العامة لا تحمّله: index و app-welcome و app-user-type
+//  وصفحات الدخول والتسجيل في المسارين.
+//
+//  الوجهة عند الطرد ليست ثابتة: تُختار حسب مسار الصفحة
+//  الحالية (web- أم app-) — انظر loginPage() و registerPage().
 //
 //  ملاحظة مهمة: هذا حارس تجربة استخدام، لا حماية بيانات.
 //  الحماية الحقيقية في سياسات RLS داخل الخادم — فحتى لو
@@ -13,7 +16,31 @@
 (function (global) {
   "use strict";
 
-  var LOGIN_PAGE = "welcome.html";
+  /* ------------------------------------------------------------
+     المشروع مساران منفصلان: صفحات `web-` للمتصفّح
+     وصفحات `app-` للتطبيق. وهذا الملف مشترك بينهما،
+     فلا تصلح وجهة ثابتة: زائر الموقع الذي تنتهي جلسته
+     كان يُنقل إلى صفحة بتصميم الجوال في وسط شاشة عريضة.
+
+     الحل: نقرأ اسم الصفحة الحالية ونبقى في مسارها.
+     ملاحظة: index.html محتواها تطبيق ولا تحمل بادئة،
+     فهي تقع ضمن حالة "غير web-" أي مسار التطبيق — وهو الصحيح.
+     ------------------------------------------------------------ */
+  function currentPage() {
+    return location.pathname.split("/").pop() || "index.html";
+  }
+
+  function isWebPath() {
+    return currentPage().indexOf("web-") === 0;
+  }
+
+  function loginPage() {
+    return isWebPath() ? "web-welcome.html" : "app-welcome.html";
+  }
+
+  function registerPage() {
+    return isWebPath() ? "web-register.html" : "app-register.html";
+  }
 
   /* تُملأ عند التحقق، وتستخدمها الصفحات بدل localStorage */
   global.SF_USER = null;
@@ -30,8 +57,8 @@
   var isPublic = global.SF_PUBLIC_PAGE === true;
 
   function redirect() {
-    var here = location.pathname.split("/").pop() || "index.html";
-    location.replace(LOGIN_PAGE + "?next=" + encodeURIComponent(here));
+    var here = currentPage();
+    location.replace(loginPage() + "?next=" + encodeURIComponent(here));
   }
 
   /* يستدعيها أي زر يتطلب حساباً (شراء، سلة، مراسلة).
@@ -39,8 +66,8 @@
   global.sfRequireLogin = function (nextPage) {
     if (global.SF_USER) return true;
     try { localStorage.setItem("sf_account_type", "individual"); } catch (e) {}
-    var here = nextPage || location.pathname.split("/").pop() || "index.html";
-    location.href = "register.html?next=" + encodeURIComponent(here);
+    var here = nextPage || currentPage();
+    location.href = registerPage() + "?next=" + encodeURIComponent(here);
     return false;
   };
 
@@ -79,7 +106,7 @@
         localStorage.removeItem("sf_account_type");
         localStorage.removeItem("sf_account");
       } catch (e) {}
-      location.replace(LOGIN_PAGE);
+      location.replace(loginPage());
     });
   };
 })(window);
