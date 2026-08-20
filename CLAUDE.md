@@ -2,78 +2,83 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## READ THIS FIRST — the file split (2026-08-20)
-
-**Every page name below this section is stale.** On 2026-08-20 the owner split
-the codebase into two independent paths, and most of this document still
-describes the pre-split single-file structure.
-
-| | prefix | carries `desktop.css` |
-|---|---|---|
-| Browser site | **`web-`** | yes |
-| Phone app | **`app-`** | **no** |
-
-`home.html` → `web-home.html` + `app-home.html`, and so on for **13 web pages
-and 15 app pages**. When this file says `home.html`, `account.html`,
-`factory.html` etc., read it as *both* copies unless the point is
-specifically about the desktop layer (then it is the `web-` one).
-
-**`index.html` is the one exception with no prefix.** It holds the *app*
-splash content and redirects to `app-user-type.html`. The name is reserved:
-servers serve it automatically at a bare domain, so renaming it to
-`app-index.html` would break the site's root URL. Do not rename it.
-
-### What this changes about editing
-
-- **The two paths never link to each other.** A `web-` page links only to
-  `web-` pages; an `app-` page only to `app-` pages. Verified with zero
-  cross-links in either direction. Preserve that when adding any link.
-- **A change to a shared component is now a two-file edit**, not one — the
-  `web-` copy and the `app-` copy. The bottom nav, previously duplicated
-  across 5 files, now lives in more.
-- **`desktop.css` only ever reaches `web-` pages.** Adding a rule there
-  cannot affect the app path. Conversely `mobile.css` still reaches both.
-- **Creating a new `app-` copy: deleting the `desktop.css` link is not
-  enough.** The rule that *hides* desktop-only markup (`.dt-bar`,
-  `.dt-catbar`, `.dt-actions`, `.page-logo`, `.dash-side`, `.dash-stats`)
-  lives inside `desktop.css` itself — so dropping the link also drops the
-  hiding, and the markup renders unstyled as black boxes and bare links.
-  This shipped once on `app-home.html` and the owner caught it in a
-  screenshot. Grep the source page for those six class names first; if any
-  are present, delete the markup **and its scripts**, not just the link.
-- **`auth-guard.js` is shared and now path-aware.** `LOGIN_PAGE` is gone;
-  `currentPage()` / `isWebPath()` / `loginPage()` / `registerPage()` pick the
-  destination from the current filename, used in three places (session
-  expiry, `sfRequireLogin()`, sign-out). `index.html` has no prefix so it
-  falls into the "not web-" branch — the app path, which is correct.
-
-### There IS a git repository now
-
-The "no git repository initialized" note further down is **false as of
-2026-08-20**. `git init` was run, `.gitignore` excludes `*bak`, and there
-are three commits. The manual `.bak` convention is retired — all backup
-files were deleted after archiving their pre-split states in commit
-`e0767a3`. **Do not create new `.bak` files; commit instead.**
-
-### An accurate page map lives in `الصفحات.md`
-
-That file (Arabic, written for the owner) has the current table of all 28
-pages, both path diagrams, and the "where do I edit?" guide. It is kept up
-to date; this file is not, below this point.
-
----
-
 ## What this is
 
-A no-build multi-page web app: an **Alibaba-style B2B marketplace** for Saudi Arabian factories. There is no `package.json`, no bundler, no framework, and no Node.js — everything is hand-authored HTML/CSS/JS. It is no longer purely static: `login.html`, `register.html`, and `admin.html` talk to a hosted Supabase backend over the network (see *Backend* below), but the dependency is still just a `<script>` tag from a CDN, not a toolchain.
-
-**It targets two form factors from one codebase.** The owner wants a browser site people find through Google *and*, later, a phone app. That is served by **one file per page carrying two layouts**, not by duplicate files: each page's own `<style>` block, then `mobile.css`, then `desktop.css` (which does nothing below 1024px). Both layers are described below; a change to a shared component is a multi-file edit in *both*.
+A no-build multi-page web app: an **Alibaba-style B2B marketplace** for Saudi Arabian factories. There is no `package.json`, no bundler, no framework, and no Node.js — everything is hand-authored HTML/CSS/JS. It is no longer purely static: the login, register, and admin pages talk to a hosted Supabase backend over the network (see *Backend* below), but the dependency is still just a `<script>` tag from a CDN, not a toolchain.
 
 Development is roughly two-thirds interface: the database and its security are solid and tested, while most pages still render placeholder data (see *Current state / deliberate gaps*).
 
+## The two paths — read this before editing any page
+
+On 2026-08-20 the owner split the codebase into **two independent paths**. This is the single most important structural fact here, and it changes what "edit a page" means.
+
+| | prefix | carries `desktop.css` | on a wide screen |
+|---|---|---|---|
+| Browser site | **`web-`** | yes | wide desktop layout |
+| Phone app | **`app-`** | **no** | stays a phone column |
+
+**13 web pages and 15 app pages**, verified: exactly 13 files contain a real `<link>` to `desktop.css`, and they are exactly the `web-` ones.
+
+| | browser | app |
+|---|---|---|
+| home / factories / factory | `web-home` `web-factories` `web-factory` | `app-home` `app-factories` `app-factory` |
+| messages / cart / account | `web-messages` `web-cart` `web-account` | `app-messages` `app-cart` `app-account` |
+| login / register / welcome | `web-login` `web-register` `web-welcome` | `app-login` `app-register` `app-welcome` |
+| settings / profile / help / admin | `web-settings` `web-profile` `web-help` `web-admin` | `app-settings` `app-profile` `app-help` `app-admin` |
+| splash | — | **`index.html`** |
+| account-type gate | — | `app-user-type.html` |
+
+**`index.html` is the one exception with no prefix.** It holds the *app* splash content and redirects to `app-user-type.html`. The name is reserved: servers serve it automatically at a bare domain, so renaming it to `app-index.html` would break the site's root URL. Do not rename it.
+
+### What the split changes
+
+- **The two paths never link to each other.** A `web-` page links only to `web-` pages; an `app-` page only to `app-` pages. Verified with zero cross-links in either direction, including links built inside JS strings (`'href="app-factory.html?id=' + i + '"'`) — those are easy to miss in a rename, and 11 such sites exist. Preserve this when adding any link.
+- **A change to a shared component is a two-file edit**, not one. The bottom nav now lives in **10** files (`home`/`account`/`factories`/`cart`/`messages` × both paths); the desktop sidebar in 4.
+- **`desktop.css` only ever reaches `web-` pages.** A rule added there cannot affect the app path. Conversely `mobile.css`, `i18n.js`, `auth-guard.js`, and `supabase-config.js` are shared by both.
+- **Creating a new `app-` copy: deleting the `desktop.css` link is not enough.** The rule that *hides* desktop-only markup (`.dt-bar`, `.dt-catbar`, `.dt-actions`, `.page-logo`, `.dash-side`, `.dash-stats`) lives inside `desktop.css` itself — so dropping the link also drops the hiding, and that markup renders unstyled as black boxes and bare links. This shipped once on `app-home.html` and the owner caught it in a screenshot. Grep the source page for those six class names first; if any are present, delete the markup **and its scripts**, not just the link.
+- **Some `app-` pages still carry a body archetype class** (`chat-page` on `app-messages`, `store-page` on `app-factory`). They are inert — no `desktop.css` reads them — but harmless. Don't take their presence as evidence a page has a desktop layout.
+
+### Unprefixed page names in the sections below
+
+Sections after this one were written before the split and say `home.html`, `account.html`, `factory.html` and so on. **Read every such name as *both* copies** — `web-home.html` *and* `app-home.html` — unless the point is specifically about the desktop layer, in which case it is the `web-` one only. The behaviour described is accurate; only the filenames are shorthand. `index.html` always means the literal file of that name.
+
+**`الصفحات.md`** (Arabic, written for the owner) holds the same map plus a "where do I edit?" table. Keep the two in sync when pages are added or renamed.
+
+### Every page carries an Arabic banner comment saying which path it belongs to
+
+This is how a page self-identifies, and it is also a **grep trap**: `grep -l 'desktop.css' *.html` matches all 28 files, because the app pages contain the sentence "لا يوجد desktop.css". The same bites `auth-guard.js` and `web-app`. **Always grep for the tag, not the name** — `grep -c '<link[^>]*desktop\.css'` or `grep -c '<script[^>]*auth-guard\.js'`. Counting comment text produced two false conclusions while writing this file.
+
 ## Running / testing
 
-There is no dev server, build step, or test suite. To "run" the app, open `index.html` directly in a browser (or serve the folder with any static file server).
+There is no dev server, build step, lint step, or test suite — no `package.json`, no `node`. "Running" the app means opening a file in a browser. The checks below are the closest thing to a test suite this project has; run the relevant ones after every edit.
+
+```bash
+# open a page for the owner (plain Windows path — no query string, no file:/// URL)
+powershell Start-Process "web-home.html"
+
+# brace balance after editing any HTML/CSS — the two numbers must match
+awk '{o+=gsub(/{/,"{"); c+=gsub(/}/,"}")} END{print o, c}' web-home.html
+
+# .sql balance — strip comments first (Arabic "1)" numbering gives false positives)
+sed 's/--.*$//' schema.sql | awk '{o+=gsub(/\(/,"("); c+=gsub(/\)/,")")} END{print o, c}'
+
+# every link resolves? (prints nothing when clean)
+grep -oh 'href="[a-z][a-z0-9._-]*\.html' *.html | sed 's/href="//' | sort -u \
+  | while read f; do [ -f "$f" ] || echo "BROKEN: $f"; done
+
+# path isolation — both must print nothing
+grep -o 'href="app-[a-z-]*\.html' web-*.html | sort -u
+grep -o 'href="web-[a-z-]*\.html' app-*.html index.html | sort -u
+
+# which pages really load a shared asset (tag, not name — see the grep trap above)
+grep -c '<link[^>]*desktop\.css' web-home.html
+grep -c '<script[^>]*auth-guard\.js' app-home.html
+
+# an i18n key must exist in all 30 language blocks (anchor the pattern!)
+grep -c '^      btn_update: ' i18n.js     # -> 30
+```
+
+To "run" the app, open `index.html` (app path) or `web-home.html` (browser path) directly, or serve the folder with any static file server.
 
 The environment is Windows with **both PowerShell and Git Bash** available. There is no `node` and no headless-browser CLI — so **you cannot execute or render the app yourself**.
 
@@ -81,7 +86,7 @@ The environment is Windows with **both PowerShell and Git Bash** available. Ther
 
 Three traps inside that Python-script workflow, all hit in practice:
 - **Always `assert s.count(old) == 1` before replacing.** A zero-match rewrites the file unchanged and looks like success; a two-match corrupts a second site you never inspected.
-- **Backslashes in the replacement text are escape sequences.** A Windows path like `C:\\Program Files` inside a normal `'''...'''` literal raises `SyntaxError: truncated \\uXXXX escape`. Use a raw/`u`-prefixed literal or double the backslashes.
+- **Backslashes in the replacement text are escape sequences.** A Windows path like `C:\\Program Files` inside a normal `'''...'''` literal raises `SyntaxError: truncated \\uXXXX escape`. Use a **raw** literal (r-prefix) or double the backslashes. Note `ur"..."` is Python-2 syntax and a hard `SyntaxError` in 3.12 — for a path that also needs Arabic, use `r"..."` alone (str is already Unicode) and write the Arabic as `\uXXXX` escapes. This bit again while editing this very file.
 - **Printing Arabic to stdout raises `UnicodeEncodeError`** — the Windows console is cp1252. Keep `print()` ASCII (`print("OK: replaced")`); never echo the matched Arabic back.
 
 Two consequences of not being able to render:
@@ -94,18 +99,20 @@ Two consequences of not being able to render:
 - **Visual verification is the user's job, and you must ask for it.** Open the page for them with
   `powershell Start-Process "welcome.html"` (launches their real default browser), then *ask what they see*. Never report a UI change as confirmed working off a balance check — that check cannot see layout, z-index, animation, or runtime errors. State plainly that you can't see the rendered page.
 
-There is no git repository initialized in this folder — do not assume `git` history/diffing is available unless the user has run `git init`.
+**There is a git repository** (`git init` was run 2026-08-20, branch `master`, 4 commits). Use it for history and diffing, and **commit instead of creating `.bak` files** — see *Backups are retired* below.
 
 **Database changes are applied by the owner, not by you.** There is no `psql` and no Supabase CLI here. The workflow is: edit `schema.sql` (or write a focused one-off `.sql`), then tell the owner to open Supabase → SQL Editor → New query → paste the file → Run. Everything in `schema.sql` is written to be safely re-runnable, so a full re-paste is always the safe instruction. Check `.sql` balance with comments stripped, since Arabic comment numbering (`1)`, `2)`) produces false positives:
 ```bash
 sed 's/--.*$//' schema.sql | awk '{o+=gsub(/\(/,"("); c+=gsub(/\)/,")")} END{print o, c}'
 ```
 
-**The backup folder was swept on 2026-08-20 at the owner's request** ("اي شيئ قديم ليس له فائدة احذفه"). It had grown to **68 backups against 15 live pages**, and the owner twice opened a stale `.bak` in the browser believing it was the live page — that confusion is what triggered the cleanup. 61 were deleted; **7 remain**, the newest for each major file: `desktop.css.whitebak`, `CLAUDE.md.catposbak`, `i18n.js.dashbak`, `account.html.rowbak`, `factory.html.viewbak`, `schema.sql.postsbak`, `regions-geo.js.bak`.
+### Backups are retired — commit instead
 
-There is still no git here, so a backup before any bulk rewrite remains the only safety net — keep making them. But **they are working copies, not an archive**: once a change is confirmed, older generations are clutter that the owner may mistake for the real page. Name them for the change (`.whitebak`, `.viewbak`), and don't accumulate more than one per file.
+The manual `.bak` convention is **over**. The folder had grown to 68 backups against 15 live pages, and the owner twice opened a stale `.bak` in the browser believing it was the live page — that confusion triggered a cleanup, and git replaced the practice entirely. All `.bak` files were deleted after their pre-split states were archived in commit `e0767a3`; `.gitignore` excludes `*bak` so a stray one is never committed.
 
-Two rules about deleting them:
+**Do not create new `.bak` files.** Before a bulk rewrite, `git commit` the current state — that is the safety net now, and unlike a `.bak` it cannot be mistaken for a live page.
+
+Two rules that still apply when the owner asks you to delete something:
 - **"Don't delete backups" is guidance for Claude, not a constraint on the owner.** When they ask for a deletion, confirm which file it is, then delete it. Explaining instead of acting got the reply "لماذا لم تحذفه من الملفات؟؟؟؟".
 - **`rm` via Bash is blocked by the permission classifier**; PowerShell `Remove-Item -Force -Confirm:$false` works. A bulk pipeline is also refused — delete in explicit batches of ~10 named files.
 
@@ -113,7 +120,7 @@ Two rules about deleting them:
 
 The brand mark is **hand-built text + CSS, not an image**. It replaced the Saudi emblem SVG (swords/palm) and the circular seal SVG on every page that had one. This is the house style: **there is not a single image file in this project** — every icon, flag, and logo is inline SVG, CSS, or generated glyphs. When the owner supplies a logo as a picture, the expected move is to rebuild it in markup, not to save the file.
 
-It appears on four pages — `index.html`, `welcome.html`, `user-type.html`, `home.html` — and has three name spans plus a rule:
+It appears on the splash, both welcome pages, `app-user-type.html`, and both home pages — and has three name spans plus a rule:
 
 ```html
 <div class="wm-title"><span class="w-green">Saudi</span> <span class="w-dark">Factories</span> <span class="w-b2b">B2B</span></div>
@@ -176,11 +183,11 @@ The entry sequence is `index.html` → `user-type.html` → `welcome.html` → `
   - Carries a `.contact-btn` ("مراسلة المصنع") linking to `messages.html?factory=<id>`. It is shown to **everyone**, deliberately: an earlier version hid it behind `body.view-only`, which meant factory accounts couldn't message and individuals were the only ones who could — the exact inverse of the intent. Don't re-gate it on `canEdit`.
 - `messages.html` — chat between an individual and a factory; see *Messaging* below.
 
-- `admin.html` — factory-approval console: tabs (pending/approved/rejected) with live counts, a card per factory showing CR number and registration date, expand-for-details, and approve/reject buttons with a reject-reason bottom sheet. It **reads and writes `factories` directly** (`sb.from("factories")` twice) and is gated on `SF_PROFILE.is_admin` — the only page that checks that flag. It is not linked from any nav; reach it by typing the filename.
+- `admin.html` — factory-approval console: tabs (pending/approved/rejected) with live counts, a card per factory showing CR number and registration date, expand-for-details, and approve/reject buttons with a reject-reason bottom sheet. It **reads and writes `factories` directly** (`sb.from("factories")` twice) and is gated on `SF_PROFILE.is_admin` — the only page that checks that flag. It is not linked from any nav; reach it by typing the filename. Both copies exist and both make the same two calls.
 
-All **15** pages are built and nothing is linked-but-missing.
+All **28** pages are built and every link resolves — verified, including links built inside JS strings.
 
-Each page is a fully self-contained `<style>`/markup/`<script>` block in one `.html` file — page-specific styling is never extracted into a shared file. The shared assets are: `i18n.js` (translations) and `mobile.css` (the mobile layer) in every page's `<head>`; `desktop.css` (the wide layer) on the nine pages listed under *Desktop layer*; `regions-geo.js` only in `home.html`; and `supabase-config.js` / `auth-guard.js` on the subsets listed under *Backend*.
+Each page is a fully self-contained `<style>`/markup/`<script>` block in one `.html` file — page-specific styling is never extracted into a shared file. The shared assets are: `i18n.js` (translations) and `mobile.css` (the mobile layer) in every page's `<head>`; `desktop.css` (the wide layer) on the 13 `web-` pages only; `regions-geo.js` only on the home pages; and `supabase-config.js` / `auth-guard.js` on the subsets listed under *Backend*.
 
 ## Account types (`sf_account_type`)
 
@@ -190,7 +197,7 @@ Set on `user-type.html`, read by `welcome.html`, `register.html`, `factory.html`
 
 `sf_account_type` is **not** authentication — it is a UI mode backed by a `localStorage` value any user can edit, and `factory.html` still trusts it. There is no link between a factory account and a specific factory `id`, so a factory-type account can edit *any* factory page. The database has the fix (`factories.owner_id` + an RLS policy scoping updates to the owner), but `factory.html` has not been migrated to use it yet — until it is, don't describe these pages as access-controlled.
 
-## Messaging (`messages.html`)
+## Messaging (`web-messages.html` / `app-messages.html`)
 
 Chat between the two account types, stored entirely in `localStorage` under `sf_messages`. **This page has not been migrated to the backend** — `conversations` and `messages` tables exist in `schema.sql`, but nothing reads or writes them, so both sides of a conversation are still the same browser and there is no second device. Don't describe it as real-time or as delivering anything to a factory; say it's local-only when the owner asks about reach.
 
@@ -218,7 +225,7 @@ Chat between the two account types, stored entirely in `localStorage` under `sf_
 
 The app is designed to be used on phones (iPhone/Android). `mobile.css` is loaded **after** each page's `<style>` block and holds only cross-cutting device concerns — never page-specific styling, which stays inline per the convention above.
 
-- **The bottom nav's height (currently `52px`) is duplicated in ~11 places** and they must all move together: `.bottom-nav { height }` and `body { padding-bottom }` inline in each of `home.html`/`account.html`/`factories.html`/`cart.html`, the two `!important` overrides in `mobile.css` (which add `env(safe-area-inset-bottom)`), and `cart.html`'s `.checkout-bar { bottom: calc(52px + env(...)) }`. Miss one and content hides behind the bar or floats above it. The nav also carries a `border-top: 2px solid #04361b` on all four pages — same rule, same four files.
+- **The bottom nav's height (currently `52px`) is duplicated in ~11 places** and they must all move together: `.bottom-nav { height }` and `body { padding-bottom }` inline in the home/account/factories/cart pages of **both paths**, the two `!important` overrides in `mobile.css` (which add `env(safe-area-inset-bottom)`), and each cart page's `.checkout-bar { bottom: calc(52px + env(...)) }`. Miss one and content hides behind the bar or floats above it. The nav also carries a `border-top: 2px solid #04361b` on the same pages. Since the split this spans ~13 sites across 10 files — grep, don't recall.
 - **Safe-area insets**: `env(safe-area-inset-*)` keeps content clear of the iPhone notch and the gesture bar. Paired with `viewport-fit=cover` in every page's viewport meta (without which `env()` always resolves to `0`). Handled globally for `.page-header` and `.bottom-nav`; the pages with different top/bottom chrome apply their own `env()` math inline: `home.html`'s fixed `.top-bar`, `cart.html`'s `.top-bar` + `.checkout-bar`, and `account.html`'s bare `body` (it has no header at all — see above).
 - **`font-size: 16px !important` on all inputs**: iOS Safari force-zooms the page when a focused input's font is under 16px. This is why the rule is `!important` — pages define higher-specificity selectors like `.field input { font-size: 14px }`, so load order alone can't win. Don't "fix" this by lowering it back.
 - **Native touch feel**: `-webkit-tap-highlight-color: transparent`, `touch-action: manipulation` (kills the 300ms tap delay), `overscroll-behavior-y: none` (no rubber-band/pull-to-refresh), and `user-select: none` on chrome while text content stays selectable.
@@ -237,7 +244,7 @@ The product is **both** a browser site (Alibaba-style, the owner's stated model)
 
 **The whole file lives inside `@media (min-width: 1024px)`, with one closing `@media (max-width: 1023px)` block that hides desktop-only elements.** Nothing sits outside a media query, and that is the core invariant: below 1024px the phone design is untouched, byte for byte. **Never add a bare top-level rule here** — it would leak into the phone layout, which is the original product.
 
-Carried by **all ten** desktop-capable pages: `home`, `account`, `profile`, `settings`, `admin`, `cart`, `help`, `messages`, `factories`, and `factory` (added last; archetype `store-page`).
+Carried by the **13 `web-` pages and nothing else**. Since the split, "desktop-capable" and "`web-` prefixed" are the same set — an `app-` page can never receive a rule from this file.
 
 - **Un-capping `body` is not enough on its own — check the page's own container for a `max-width`.** `factory.html`'s `.content-wrap` carries `max-width: 520px` inline, and that, not `body`, was the real constraint: widening `body` from 1180px to 1500px changed nothing visible while it stood. Three rounds were lost re-widening `body` before grepping `max-width` in the page's `<style>` found it. The `store-page` rule now sets `max-width: none !important; width: 100% !important` on `.content-wrap`. **Grep the page for `max-width` before assuming the cap lives in `mobile.css`.**
 - Phone gutter margins (`margin: 0 14px`) on `.card` / `.contact-btn` also fight grid columns and must be zeroed per archetype.
@@ -251,15 +258,18 @@ Carried by **all ten** desktop-capable pages: `home`, `account`, `profile`, `set
   - **`padding-top: 0 !important` on `body` is load-bearing.** Pages reserve top space for the phone's *fixed* `.top-bar`; on desktop that bar is static in flow, so the reservation becomes an empty gap pushing content down. The owner reported exactly this ("الموقع من فوق نازل"). If a gap reappears at the top of a desktop page, this is the cause — not a margin on the first child.
 - **Five page archetypes**, selected by a class on `<body>`, so `desktop.css` can target them without touching phone rules:
 
-  | `<body>` class | Pages | Desktop shape |
+  | `<body>` class | Pages (all `web-`) | Desktop shape |
   |---|---|---|
   | `account-page` | `account`, `profile`, `settings`, `admin` | dashboard: `grid-template-columns: 250px 1fr` |
   | `cart-page` | `cart` | two columns (items + summary) |
   | `chat-page` | `messages` | thread list and chat side by side |
   | `doc-page` | `help` | centered single column, logo, no sidebar |
   | `store-page` | `factory` | storefront: full-width cover, then narrow info column + wide auto-fill product grid |
+  | `auth-page` | `login`, `register`, `welcome` | un-caps the phone column, centers a 460px form, hides `.back-btn` |
 
-  A new dashboard-style page needs the class, the `.page-logo` anchor, and a copy of the `.dash-side` markup — the sidebar is **duplicated per page** like the bottom nav, not templated, so its active item differs per file and a nav change is a four-file edit.
+  `app-messages.html` and `app-factory.html` still carry `chat-page` / `store-page` from before the split. Those pages load no `desktop.css`, so the classes do nothing — harmless, but not evidence of a desktop layout.
+
+  A new dashboard-style page needs the class, the `.page-logo` anchor, and a copy of the `.dash-side` markup — the sidebar is **duplicated per page** like the bottom nav, not templated, so its active item differs per file. It exists only on the four `web-` dashboard pages (`web-account`, `web-admin`, `web-profile`, `web-settings`), making a sidebar change a four-file edit.
 - **Sidebar flyouts (`.dash-sub`) are RTL-critical.** The sidebar sits at the **right** edge in RTL, so the panel opens leftward via `right: 100%`; the `html[dir="ltr"]` counterpart flips to `left: 100%`. Using `left: 100%` in RTL pushes the panel off-screen — that shipped once and the owner caught it in a screenshot. The caret (`::before`) and the invisible hover bridge flip with it. They open on `:hover`/`:focus-within` of the wrapper so the pointer can travel to the panel.
 - **The logo typing animation is `home.html` only** and deliberately never-ending — the owner iterated on it through roughly a dozen corrections. It is **`clip-path: inset(...)`**, *not* a mask; `@keyframes wmType` runs 4.4s `steps(24, end) infinite` on `.top-bar-logo .wm-title`, and `wmCaret` drives the gold rule on the identical timing so the two move together. **Text stays in the DOM** (clipping, not JS retyping) so it remains selectable and readable by search engines and screen readers. The shape the owner approved: reveal **from the left** (1.4s) → **hold 3s fully visible** → vanish instantly → repeat the same way. The hold is `inset(0 0 0 0)` held from 31.8% to 99.9%; the 99.9%→100% jump restarts it fresh rather than reversing — "ترجع من الخلف" was the rejected version. `prefers-reduced-motion` disables it with `clip-path: none`.
   - **Do not "restore" the `mask-image` version.** It was tried and failed repeatedly: `mask-size: 200% 100%` with a hard `50%` gradient stop meant the mask only ever traveled half the element's width, so `mask-position: 0%` never fully uncovered the name and the hold landed on a **half-revealed** state ("ctories B2B" showing, "Saudi Fa" hidden). Two rounds were lost blaming `steps(24, end)` before an owner screenshot showed the real cause. `clip-path` wins because `inset(0 0 0 0)` is an explicit, unambiguous "fully visible".
@@ -272,7 +282,7 @@ Carried by **all ten** desktop-capable pages: `home`, `account`, `profile`, `set
     - **The general lesson, and the inverse of the project's usual RTL bug:** this file warns repeatedly about *forgetting* an `html[dir="ltr"]` counterpart, which trains a reflex to mirror everything. Ask first whether the element is a mirror (a panel tracking its button, a bar following reading order) or a fixed arrangement (columns, and the dividers and arrows attached to them). Mirroring the second kind is its own bug — it shipped once and the owner caught it with an English screenshot. **After any horizontal-layout edit, ask the owner to check both languages, not just Arabic.**
   - **An earlier version of this file recorded the opposite rule** (that `left: 0` was correct in *both* directions, and mirroring the anchor was the bug). That was true only while the button sat at the *end* of the reading direction; moving it to the start inverted which edge clips. If the panel ever overflows the screen again, check which end the button is on before changing the anchor — the two must always agree.
 
-## Region map (`home.html` + `regions-geo.js`)
+## Region map (the home pages + `regions-geo.js`)
 
 Clicking a region on the home SVG map opens a modal showing **only that region**, clipped to its real administrative boundary. It is a from-scratch slippy map — no Leaflet, no Google, no API key — consistent with the project's self-contained convention.
 
@@ -331,14 +341,18 @@ Project `yhofxryhlrrwzztfowpa`, hosted PostgreSQL + Auth + Storage. Loaded like 
 
 ### Which pages carry which scripts
 
+Identical across both paths — verified by counting `<script>` tags, not name mentions.
+
 | | supabase-js + config | auth-guard | `SF_PUBLIC_PAGE` |
 |---|---|---|---|
-| `index`, `welcome`, `user-type`, `help` | — | — | — |
-| `login`, `register` | ✓ | — (would redirect the visitor away from the page they need) | — |
-| `home`, `factories`, `factory` | ✓ | ✓ | ✓ |
-| `account`, `settings`, `cart`, `messages`, `profile`, `admin` | ✓ | ✓ | — |
+| `index`, `*-welcome`, `app-user-type`, `*-help` | — | — | — |
+| `*-login`, `*-register` | ✓ | — (would redirect the visitor away from the page they need) | — |
+| `*-home`, `*-factories`, `*-factory` | ✓ | ✓ | ✓ |
+| `*-account`, `*-settings`, `*-cart`, `*-messages`, `*-profile`, `*-admin` | ✓ | ✓ | — |
 
-`help.html` is deliberately public and loads neither script. Adding the guard to `login`/`register` would create a redirect loop.
+The help pages are deliberately public and load neither script. Adding the guard to login/register would create a redirect loop — and the welcome pages are the guard's *destination*, so loading it there would loop too.
+
+**Both welcome pages and both register pages mention `auth-guard.js` in their Arabic banner comment** explaining that relationship. They do not load it. Confirm with `grep -c '<script[^>]*auth-guard\.js'` before concluding otherwise.
 
 ### Public browsing (`SF_PUBLIC_PAGE`) and `sfRequireLogin()`
 
@@ -399,12 +413,14 @@ Same IIFE-over-`global` shape as `i18n.js`. Exports `SF_AUTH_READY` (a promise),
 - `perl -0pi -e` has silently no-op'd on these files when inserting `<script>` tags; `sed -i '<line>a ...'` worked. Always grep the file afterward to confirm the insert landed.
 - **A `grep -c` that finds nothing exits non-zero** and will abort a `&&`-chained shell command early, making later checks look like they never ran. Append `|| true` when counting something that may legitimately be absent.
 - **The trigger is named `profiles_guard`, not `guard_profile_columns`** — see the RLS section. Grep before naming.
+- **Grepping a filename counts the Arabic banner comments too.** Every page names the shared assets in its header comment, so `grep -l 'desktop.css' *.html` returns all 28 files and `grep -c 'auth-guard.js'` reports 1 on pages that only *mention* it. This produced two wrong conclusions in one session — that app pages carried `desktop.css`, and that the welcome/register pages had a redirect loop. **Match the tag**: `<link[^>]*desktop\.css` / `<script[^>]*auth-guard\.js`.
+- **`git status` is clean but the working tree is not the whole story on OneDrive.** The folder syncs; a file the owner has open in the browser may be a cached copy. When an edit "doesn't show", confirm it landed with `grep` and ask for **Ctrl + F5** before changing anything else.
 
 ### Current state / deliberate gaps
 
 - **Email confirmation is DISABLED** in the Supabase dashboard — a development convenience, and the first mandatory item in `TODO-BEFORE-LAUNCH.md`. Anyone can currently register with an address they don't own.
-- **`admin.html` now exists and works**, and the owner's account has `is_admin = true`, so factories can be approved. It is reachable only by typing the filename — no nav links to it.
-- **The UI is almost entirely un-wired from the database.** Of the nine pages loading `auth-guard.js`, only `admin.html` makes any data call; `home`, `account`, `settings`, `factories`, `factory`, `cart`, `messages`, `profile` make **zero**. The factory grids, product cards, and bestsellers are all generated placeholders. Don't describe any of them as showing real data.
+- **The admin console exists and works** on both paths, and the owner's account has `is_admin = true`, so factories can be approved. Reachable only by typing the filename — no nav links to it.
+- **The UI is almost entirely un-wired from the database.** Of the 18 pages loading `auth-guard.js`, only the two admin pages make any data call; home, account, settings, factories, factory, cart, messages and profile make **zero** on both paths. Outside those, only the login/register pages touch Supabase (auth + profile writes). The factory grids, product cards, and bestsellers are all generated placeholders. Don't describe any of them as showing real data.
 - `region_id` is never written at signup (no region field on `register.html`), so `home.html`'s map cannot find a region's factories.
 - Images are still base64 in `localStorage`; the storage buckets exist but nothing writes to them.
 - Messaging is still local-only despite `conversations`/`messages` existing in the schema. The `posts` and `custom_prices` tables from `add-posts-prices.sql` are likewise **schema-only** — the factory feed and the private-price-in-chat features were requested by the owner and are the next UI work.
@@ -440,7 +456,7 @@ Learned over many sessions; it will save you rework:
 - **This is an Arabic-first product.** The user communicates in Arabic and all UI copy, code comments in `mobile.css`, and section headers are written in Arabic. Match that: new comments and any user-facing string should be Arabic, with the English translation added to `dict.en`.
 - Default document is Arabic/RTL (`<html lang="ar" dir="rtl">`); pages that need to look correct when flipped to LTR use rules like `html[dir="ltr"] .top-bar { flex-direction: row-reverse; }` (see `home.html`) to preserve intentionally RTL-ordered DOM/flex layouts. When adding any horizontally-asymmetric layout, add the `html[dir="ltr"]` counterpart in the same edit — `i18n.js` flips `dir` for 26 of the 30 translated languages, so forgetting it breaks the majority case.
 - Arabic text in SVG (`welcome.html`'s seal) renders with **system fonts** — there is no embedded webfont, so letterforms and metrics shift between Windows/iOS/Android. Don't tune SVG text positioning to pixel precision against one machine's rendering.
-- Bottom nav is duplicated across **five** pages (`home.html`, `account.html`, `factories.html`, `cart.html`, `messages.html`) rather than templated; it has 6 items (`nav_home`, `nav_categories`, `nav_factories`, `nav_messages`, `nav_account`, `nav_cart`), each with a `data-i18n` label. Keep new pages' nav in sync with this set — and treat any nav styling change as a five-file edit, since changing one page alone makes its bar visibly inconsistent with the rest.
+- Bottom nav is duplicated across **ten** files — home/account/factories/cart/messages × both paths — rather than templated; it has 6 items (`nav_home`, `nav_categories`, `nav_factories`, `nav_messages`, `nav_account`, `nav_cart`), each with a `data-i18n` label. Keep new pages' nav in sync with this set — and treat any nav styling change as a ten-file edit, since changing one page alone makes its bar visibly inconsistent with the rest.
 - Flag emoji (country-code picker in `profile.html` and `register.html`) are generated at runtime from ISO codes via Unicode regional-indicator math (`String.fromCodePoint(127397 + c.charCodeAt(0))`) rather than image/SVG assets — reuse this instead of adding flag images.
 - Bottom-sheet modal pattern (used for the language picker in `account.html`, the country-code picker in `profile.html`/`register.html`, and the protection-detail sheet in `cart.html`): overlay + `.open` class toggling opacity/pointer-events, `translateY(100%→0)` sheet transform, close via Escape/backdrop-click/×-button, and `document.body.style.overflow` locked while open. Picker variants (language/country) add a live-filtering search input; content sheets (protection detail) omit it. Reuse this pattern for any new picker/sheet UI rather than introducing a different modal style.
 - Password fields (`login.html`, `register.html`) use a show/hide eye-icon toggle that swaps the input's `type` between `password`/`text` and swaps the SVG icon's inner path — not a separate library/component.
