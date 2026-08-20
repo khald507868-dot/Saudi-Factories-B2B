@@ -2,55 +2,54 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+> **Two companion files, and you should know when to open them:**
+> **`قرارات-سابقة.md`** — the *why* behind rules that look arbitrary: exact
+> measurements, failed approaches, and decisions already litigated with the
+> owner. Sections below say "see the archive" where it matters; read that
+> section **before** editing the thing it describes.
+> **`الصفحات.md`** — the page map, written in Arabic for the owner. Keep it in
+> sync when pages are added or renamed.
+
 ## What this is
 
-A no-build multi-page web app: an **Alibaba-style B2B marketplace** for Saudi Arabian factories. There is no `package.json`, no bundler, no framework, and no Node.js — everything is hand-authored HTML/CSS/JS. It is no longer purely static: the login, register, and admin pages talk to a hosted Supabase backend over the network (see *Backend* below), but the dependency is still just a `<script>` tag from a CDN, not a toolchain.
+A no-build multi-page web app: an **Alibaba-style B2B marketplace** for Saudi Arabian factories. There is no `package.json`, no bundler, no framework, and no Node.js — everything is hand-authored HTML/CSS/JS. It is no longer purely static: the login, register, and admin pages talk to a hosted Supabase backend, but the dependency is still just a `<script>` tag from a CDN, not a toolchain.
 
-Development is roughly two-thirds interface: the database and its security are solid and tested, while most pages still render placeholder data (see *Current state / deliberate gaps*).
+Development is roughly two-thirds interface: the database and its security are solid and tested, while most pages still render placeholder data (see *Current state*).
 
-## The two paths — read this before editing any page
+**This is an Arabic-first product.** The owner communicates in Arabic; all UI copy and code comments are Arabic. Match that — new comments and user-facing strings in Arabic, with the English translation added to `dict.en`.
 
-On 2026-08-20 the owner split the codebase into **two independent paths**. This is the single most important structural fact here, and it changes what "edit a page" means.
+## The two paths — read before editing any page
+
+The codebase is split into **two independent paths**. This is the most important structural fact here, and it changes what "edit a page" means.
 
 | | prefix | carries `desktop.css` | on a wide screen |
 |---|---|---|---|
 | Browser site | **`web-`** | yes | wide desktop layout |
 | Phone app | **`app-`** | **no** | stays a phone column |
 
-**13 web pages and 15 app pages**, verified: exactly 13 files contain a real `<link>` to `desktop.css`, and they are exactly the `web-` ones.
+**13 web pages and 15 app pages.** Both paths have: `home`, `factories`, `factory`, `messages`, `cart`, `account`, `login`, `register`, `welcome`, `settings`, `profile`, `help`, `admin`. The app path adds `index.html` (splash) and `app-user-type.html` (account-type gate).
 
-| | browser | app |
-|---|---|---|
-| home / factories / factory | `web-home` `web-factories` `web-factory` | `app-home` `app-factories` `app-factory` |
-| messages / cart / account | `web-messages` `web-cart` `web-account` | `app-messages` `app-cart` `app-account` |
-| login / register / welcome | `web-login` `web-register` `web-welcome` | `app-login` `app-register` `app-welcome` |
-| settings / profile / help / admin | `web-settings` `web-profile` `web-help` `web-admin` | `app-settings` `app-profile` `app-help` `app-admin` |
-| splash | — | **`index.html`** |
-| account-type gate | — | `app-user-type.html` |
-
-**`index.html` is the one exception with no prefix.** It holds the *app* splash content and redirects to `app-user-type.html`. The name is reserved: servers serve it automatically at a bare domain, so renaming it to `app-index.html` would break the site's root URL. Do not rename it.
+**`index.html` is the one exception with no prefix.** It holds the *app* splash and redirects to `app-user-type.html`. The name is reserved — servers serve it automatically at a bare domain, so renaming it would break the site's root URL. **Do not rename it.**
 
 ### What the split changes
 
-- **The two paths never link to each other.** A `web-` page links only to `web-` pages; an `app-` page only to `app-` pages. Verified with zero cross-links in either direction, including links built inside JS strings (`'href="app-factory.html?id=' + i + '"'`) — those are easy to miss in a rename, and 11 such sites exist. Preserve this when adding any link.
-- **A change to a shared component is a two-file edit**, not one. The bottom nav now lives in **10** files (`home`/`account`/`factories`/`cart`/`messages` × both paths); the desktop sidebar in 4.
-- **`desktop.css` only ever reaches `web-` pages.** A rule added there cannot affect the app path. Conversely `mobile.css`, `i18n.js`, `auth-guard.js`, and `supabase-config.js` are shared by both.
-- **Creating a new `app-` copy: deleting the `desktop.css` link is not enough.** The rule that *hides* desktop-only markup (`.dt-bar`, `.dt-catbar`, `.dt-actions`, `.page-logo`, `.dash-side`, `.dash-stats`) lives inside `desktop.css` itself — so dropping the link also drops the hiding, and that markup renders unstyled as black boxes and bare links. This shipped once on `app-home.html` and the owner caught it in a screenshot. Grep the source page for those six class names first; if any are present, delete the markup **and its scripts**, not just the link.
-- **Some `app-` pages still carry a body archetype class** (`chat-page` on `app-messages`, `store-page` on `app-factory`). They are inert — no `desktop.css` reads them — but harmless. Don't take their presence as evidence a page has a desktop layout.
+- **The two paths never link to each other.** Verified zero cross-links in both directions, including links built inside JS strings (`'href="app-factory.html?id=' + i + '"'`) — those are easy to miss in a rename, and 11 such sites exist.
+- **A change to a shared component is a two-file edit.** The bottom nav lives in **10** files (home/account/factories/cart/messages × both paths); the desktop sidebar in **4** (`web-account`, `web-admin`, `web-profile`, `web-settings`).
+- **`desktop.css` only reaches `web-` pages.** A rule added there cannot affect the app path. `mobile.css`, `i18n.js`, `auth-guard.js`, `supabase-config.js` are shared by both.
+- **Creating a new `app-` copy: deleting the `desktop.css` link is not enough.** The rule that *hides* desktop-only markup (`.dt-bar`, `.dt-catbar`, `.dt-actions`, `.page-logo`, `.dash-side`, `.dash-stats`) lives inside `desktop.css` itself — so dropping the link also drops the hiding, and that markup renders as black boxes. This shipped once on `app-home.html` and the owner caught it in a screenshot. Grep for those six class names first; if present, delete the markup **and its scripts**.
+- Some `app-` pages still carry a body archetype class (`chat-page`, `store-page`) from before the split. They are inert — no `desktop.css` reads them.
 
-### Unprefixed page names in the sections below
+### Unprefixed page names below
 
-Sections after this one were written before the split and say `home.html`, `account.html`, `factory.html` and so on. **Read every such name as *both* copies** — `web-home.html` *and* `app-home.html` — unless the point is specifically about the desktop layer, in which case it is the `web-` one only. The behaviour described is accurate; only the filenames are shorthand. `index.html` always means the literal file of that name.
+Sections after this one predate the split and say `home.html`, `account.html`, etc. **Read every such name as *both* copies** unless the point is specifically about the desktop layer, in which case it is the `web-` one. `index.html` always means the literal file.
 
-**`الصفحات.md`** (Arabic, written for the owner) holds the same map plus a "where do I edit?" table. Keep the two in sync when pages are added or renamed.
+### The grep trap: banner comments name the shared assets
 
-### Every page carries an Arabic banner comment saying which path it belongs to
-
-This is how a page self-identifies, and it is also a **grep trap**: `grep -l 'desktop.css' *.html` matches all 28 files, because the app pages contain the sentence "لا يوجد desktop.css". The same bites `auth-guard.js` and `web-app`. **Always grep for the tag, not the name** — `grep -c '<link[^>]*desktop\.css'` or `grep -c '<script[^>]*auth-guard\.js'`. Counting comment text produced two false conclusions while writing this file.
+Every page carries an Arabic header comment naming its path and assets — so `grep -l 'desktop.css' *.html` matches **all 28 files**, and `grep -c 'auth-guard.js'` reports 1 on pages that only *mention* it. This produced two wrong conclusions in a single session: that app pages carried `desktop.css`, and that the welcome/register pages had a redirect loop. **Match the tag, not the name:** `<link[^>]*desktop\.css` / `<script[^>]*auth-guard\.js`.
 
 ## Running / testing
 
-There is no dev server, build step, lint step, or test suite — no `package.json`, no `node`. "Running" the app means opening a file in a browser. The checks below are the closest thing to a test suite this project has; run the relevant ones after every edit.
+No dev server, build, lint, or test suite — no `package.json`, no `node`. "Running" means opening a file in a browser. The checks below are the closest thing to a test suite; run the relevant ones after every edit.
 
 ```bash
 # open a page for the owner (plain Windows path — no query string, no file:/// URL)
@@ -70,7 +69,7 @@ grep -oh 'href="[a-z][a-z0-9._-]*\.html' *.html | sed 's/href="//' | sort -u \
 grep -o 'href="app-[a-z-]*\.html' web-*.html | sort -u
 grep -o 'href="web-[a-z-]*\.html' app-*.html index.html | sort -u
 
-# which pages really load a shared asset (tag, not name — see the grep trap above)
+# which pages really load a shared asset (tag, not name — see the grep trap)
 grep -c '<link[^>]*desktop\.css' web-home.html
 grep -c '<script[^>]*auth-guard\.js' app-home.html
 
@@ -78,266 +77,152 @@ grep -c '<script[^>]*auth-guard\.js' app-home.html
 grep -c '^      btn_update: ' i18n.js     # -> 30
 ```
 
-To "run" the app, open `index.html` (app path) or `web-home.html` (browser path) directly, or serve the folder with any static file server.
+The environment is Windows with **both PowerShell and Git Bash**. There is no `node` and no headless browser — **you cannot render the app yourself.**
 
-The environment is Windows with **both PowerShell and Git Bash** available. There is no `node` and no headless-browser CLI — so **you cannot execute or render the app yourself**.
+### Editing these files safely
 
-**`python` *is* available (3.12.10) — but `python3` is not.** `python3` hits the Windows Store stub and fails; the working interpreter is plain `python`, at `~/AppData/Local/Programs/Python/Python312/`. This matters for editing: precise multi-line replacements in these large UTF-8 Arabic files are far safer through a short Python script (read → `str.replace` with an `assert` → write back with `encoding="utf-8"`) than through `sed`/`perl`, both of which have mangled these files before. Note Python resolves Windows paths, not Git Bash's `/tmp` — write temp files to the scratchpad's **real Windows path**, spelled out in full. **`$TMPDIR` is unset in this Git Bash**, so `"$TMPDIR/fix.py"` silently collapses to `/fix.py`: the heredoc dies on `Permission denied` and Python then looks in Git's own install directory. Assign the path to a shell variable in the same command instead.
+**`python` is available (3.12.10) — but `python3` is not** (it hits the Windows Store stub). For precise multi-line replacements in these large UTF-8 Arabic files, a short Python script (read → `str.replace` with an `assert` → write with `encoding="utf-8"`) is far safer than `sed`/`perl`, both of which have mangled these files before.
 
-Three traps inside that Python-script workflow, all hit in practice:
+Four traps, all hit in practice:
+
 - **Always `assert s.count(old) == 1` before replacing.** A zero-match rewrites the file unchanged and looks like success; a two-match corrupts a second site you never inspected.
-- **Backslashes in the replacement text are escape sequences.** A Windows path like `C:\\Program Files` inside a normal `'''...'''` literal raises `SyntaxError: truncated \\uXXXX escape`. Use a **raw** literal (r-prefix) or double the backslashes. Note `ur"..."` is Python-2 syntax and a hard `SyntaxError` in 3.12 — for a path that also needs Arabic, use `r"..."` alone (str is already Unicode) and write the Arabic as `\uXXXX` escapes. This bit again while editing this very file.
-- **Printing Arabic to stdout raises `UnicodeEncodeError`** — the Windows console is cp1252. Keep `print()` ASCII (`print("OK: replaced")`); never echo the matched Arabic back.
+- **Arabic parentheses break Bash heredocs.** `(` and `)` in Arabic text cause `unexpected EOF while looking for matching`. Write the script with the Write tool, then execute it — or build the string with `chr(92)` where backslashes are involved.
+- **Backslashes are escape sequences.** A Windows path in a normal literal raises `SyntaxError: truncated \UXXXXXXXX escape`. Use a **raw** literal (`r"..."`). Note `ur"..."` is Python-2 syntax and a hard `SyntaxError` in 3.12 — for a path that also needs Arabic, use `r"..."` alone and write Arabic as `\uXXXX` escapes.
+- **Printing Arabic to stdout raises `UnicodeEncodeError`** — the Windows console is cp1252. Keep `print()` ASCII; never echo matched Arabic back.
 
-Two consequences of not being able to render:
+`$TMPDIR` is unset in this Git Bash, so `"$TMPDIR/fix.py"` silently collapses to `/fix.py`. Assign the scratchpad's **full Windows path** to a shell variable in the same command.
 
-- **Syntax checking**: with no interpreter to parse the file, check delimiter balance after every edit, e.g.
-  ```bash
-  awk '{o+=gsub(/{/,"{"); c+=gsub(/}/,"}")} END{print o, c}' page.html
-  ```
-  Counts must match. This catches the most common editing error but proves nothing about behavior.
-- **Visual verification is the user's job, and you must ask for it.** Open the page for them with
-  `powershell Start-Process "welcome.html"` (launches their real default browser), then *ask what they see*. Never report a UI change as confirmed working off a balance check — that check cannot see layout, z-index, animation, or runtime errors. State plainly that you can't see the rendered page.
+### You cannot see the page — the owner must look
 
-**There is a git repository** (`git init` was run 2026-08-20, branch `master`, 4 commits). Use it for history and diffing, and **commit instead of creating `.bak` files** — see *Backups are retired* below.
+**Visual verification is the owner's job, and you must ask for it.** Open the page with `powershell Start-Process "web-home.html"`, then *ask what they see*. Never report a UI change as confirmed off a balance check — that check cannot see layout, z-index, animation, or runtime errors. Say plainly that you can't see the rendered page.
 
-**Database changes are applied by the owner, not by you.** There is no `psql` and no Supabase CLI here. The workflow is: edit `schema.sql` (or write a focused one-off `.sql`), then tell the owner to open Supabase → SQL Editor → New query → paste the file → Run. Everything in `schema.sql` is written to be safely re-runnable, so a full re-paste is always the safe instruction. Check `.sql` balance with comments stripped, since Arabic comment numbering (`1)`, `2)`) produces false positives:
-```bash
-sed 's/--.*$//' schema.sql | awk '{o+=gsub(/\(/,"("); c+=gsub(/\)/,")")} END{print o, c}'
-```
+Several bugs passed review and were caught only by the owner looking: the `.auth-btn:active` fill-mode issue, the drawer escaping the phone column, `.composer` doing the same, missing account data.
 
-### Backups are retired — commit instead
+### git, and no more `.bak` files
 
-The manual `.bak` convention is **over**. The folder had grown to 68 backups against 15 live pages, and the owner twice opened a stale `.bak` in the browser believing it was the live page — that confusion triggered a cleanup, and git replaced the practice entirely. All `.bak` files were deleted after their pre-split states were archived in commit `e0767a3`; `.gitignore` excludes `*bak` so a stray one is never committed.
+There **is** a git repository (branch `master`). The manual `.bak` convention is **retired**: the folder had grown to 68 backups against 15 live pages, and the owner twice opened a stale `.bak` believing it was the live page. All were deleted after archiving their pre-split states in commit `e0767a3`; `.gitignore` excludes `*bak`.
 
-**Do not create new `.bak` files.** Before a bulk rewrite, `git commit` the current state — that is the safety net now, and unlike a `.bak` it cannot be mistaken for a live page.
+**Do not create `.bak` files — `git commit` before a bulk rewrite instead.** Unlike a `.bak`, a commit cannot be mistaken for a live page.
 
-Two rules that still apply when the owner asks you to delete something:
-- **"Don't delete backups" is guidance for Claude, not a constraint on the owner.** When they ask for a deletion, confirm which file it is, then delete it. Explaining instead of acting got the reply "لماذا لم تحذفه من الملفات؟؟؟؟".
-- **`rm` via Bash is blocked by the permission classifier**; PowerShell `Remove-Item -Force -Confirm:$false` works. A bulk pipeline is also refused — delete in explicit batches of ~10 named files.
+Two rules when the owner asks you to delete something:
+- **"Don't delete backups" is guidance for Claude, not a constraint on the owner.** Confirm which file, then delete it. Explaining instead of acting got "لماذا لم تحذفه من الملفات؟؟؟؟".
+- **`rm` via Bash is blocked by the permission classifier**; PowerShell `Remove-Item -Force -Confirm:$false` works. Bulk pipelines are refused — delete in explicit batches of ~10 named files.
 
-## The wordmark logo
+### Database changes are applied by the owner, not by you
 
-The brand mark is **hand-built text + CSS, not an image**. It replaced the Saudi emblem SVG (swords/palm) and the circular seal SVG on every page that had one. This is the house style: **there is not a single image file in this project** — every icon, flag, and logo is inline SVG, CSS, or generated glyphs. When the owner supplies a logo as a picture, the expected move is to rebuild it in markup, not to save the file.
+There is no `psql` and no Supabase CLI here. Edit `schema.sql` (or a focused one-off `.sql`), then tell the owner: Supabase → SQL Editor → New query → paste → Run. Everything in `schema.sql` is re-runnable, so a full re-paste is always safe.
 
-It appears on the splash, both welcome pages, `app-user-type.html`, and both home pages — and has three name spans plus a rule:
+## Architecture
 
-```html
-<div class="wm-title"><span class="w-green">Saudi</span> <span class="w-dark">Factories</span> <span class="w-b2b">B2B</span></div>
-<div class="wm-rule"></div>
-```
+Each page is a **fully self-contained** `<style>`/markup/`<script>` block in one `.html` file — page-specific styling is never extracted into a shared file. The shared assets are `i18n.js` and `mobile.css` (every page), `desktop.css` (the 13 `web-` pages), `regions-geo.js` (home pages only), and `supabase-config.js` / `auth-guard.js` (the subsets under *Backend*).
 
-- **`index.html` uses different class names for the same thing**: `.wordmark` / `.title` (an `<h1>`) / `.rule`, not `.wm-title` / `.wm-rule`. Grepping for `wm-title` finds only the other three pages. It is also the only **animated** copy (`@keyframes titleIn` + `ruleIn`, with `transform-origin: right center` flipped to `left center` under `html[dir="ltr"]`).
-- **The tagline is gone from every page.** `.wm-sub` / `splash_tagline` no longer appears in any HTML file — the key survives in all 30 `i18n.js` blocks but is orphaned (see *Orphaned i18n keys*).
-- **The name is fixed English on every page and does not follow the UI language** — a deliberate choice by the owner. Don't wire it to `data-i18n`.
-- **`direction: ltr` on `.wm-title` is load-bearing.** The pages are RTL, so without it the spans render as "B2B Factories Saudi". Every copy of the rule carries it — keep it on any new one.
-- **`.w-dark` flips with the background**: white (`#ffffff`) on the green `index.html` and `home.html` header; dark green (`#04361b`) on the white `welcome.html` / `user-type.html`. `.w-green` is `#45a06a` everywhere.
-- **`.w-b2b` is gold (`#c9a227`) and raised**, sized in `em` so it tracks the title: `font-size: 0.52em; vertical-align: 0.68em` on the three full-page copies, `0.62em / 0.58em` on `home.html`'s smaller header copy. Because both are relative, resizing the title needs no change here.
-- `.wm-rule` is a gradient (`#1f6b42 → #45a06a → #c9a227`) running **`to left`** by default, with an `html[dir="ltr"]` counterpart flipping it `to right`. Both directions must be edited together.
-- Per-page sizes: 33px title / 260px max-width, dropping to 26px / 215px at `@media (max-width: 480px)` on the three full-page copies. `home.html`'s header copy is much smaller (11px, `width: 108px`) — the top bar is only 58px tall. That width grew 72px → 88px → 108px as the Latin text and then "B2B" were added; Arabic fit in less.
-- `welcome.html` previously had an animated twelve-factory SVG scene behind this; it was deleted because the wordmark was illegible over it. The page now has **zero SVGs**. Its `@keyframes sealIn` was corrected at the same time to drop a `translate(-50%, -50%)` left over from when `.brand-seal` was absolutely positioned — it is in normal flow now.
+**There is not a single image file in this project** — every icon, flag, and logo is inline SVG, CSS, or generated glyphs. When the owner supplies a logo as a picture, the expected move is to rebuild it in markup, not save the file.
 
-## Page flow
+### Page flow
 
-The entry sequence is `index.html` → `user-type.html` → `welcome.html` → `login.html`/`register.html`. The account type chosen on `user-type.html` is written to `sf_account_type` and then **branches the three pages after it** — see *Account types* below.
+`index.html` → `app-user-type.html` → `welcome` → `login`/`register` → `home`. The account type chosen at the gate is written to `sf_account_type` and **branches the three pages after it**.
 
-- `index.html` — pure splash screen: the wordmark (see above) over the green background, nothing else. Auto-redirects to `user-type.html` via `<meta http-equiv="refresh">` + a `setTimeout` fallback. **The two intentionally disagree**: the JS is `1500`ms (the owner's chosen 1.5s) while the meta stays at `2` seconds, because `content` officially takes an **integer** — a fractional `1.5` risks being truncated to `0` and redirecting instantly. The JS wins in every browser that runs it; the meta is only the no-JS floor. Keep the meta an integer ≥ the JS value, and still change both together if the *target page* moves.
-  - The title/rule/subtitle each have **two** sizes — a base rule and a `@media (max-width: 480px)` override. Phones read the media-query values, so changing only the base rule has no visible effect on the target device. The same base + `480px` pairing recurs on `welcome.html` and `user-type.html` (`.brand-seal`); check for it before tuning any size.
-- `user-type.html` — the account-type gate: two `.type-card` links, "الأفراد" and "المصانع". Clicking either writes `sf_account_type` (`individual` / `factory`) then continues to `welcome.html`. Carries the wordmark above the cards.
-- `welcome.html` — **white** background (not green like `index.html`): the wordmark and the two entry actions "تسجيل دخول" (`login.html`) and "حساب جديد" (`register.html`), both layers animating in via staggered `animation-delay`. No auto-redirect — this is where the 5s splash timer lands and waits for user choice.
-  - When `sf_account_type === "factory"`, the signup button (`#signup-btn`) is relabeled to `splash_signup_factory_btn` ("تسجيل مصنع جديد"). The script sets **both** `data-i18n` and `textContent` — the attribute alone is not enough, since `applyTranslations()` has already run by then.
-  - `.auth-btn:active { opacity: 0.85 !important }` needs the `!important`: the entrance animation uses `animation-fill-mode: both`, which pins `opacity: 1` after it finishes and would otherwise swallow the press-dim. `user-type.html`'s `.type-card:active` carries the same `!important` for the same reason.
-  - This page **used to** host an animated twelve-factory SVG scene (hand-written paths, rising smoke, `viewBox`-based scaling). It was deleted wholesale — the wordmark placed over it was unreadable. Along with it went `.factory-scene`, `.factory-illustration`, `.smoke`, `@keyframes sceneIn`, and `@keyframes smokeRise`. **That scene is now gone for good** — its only surviving copy, `welcome.html.bak`, was deleted at the owner's request. Don't offer to restore it, and don't reconstruct it from scratch.
-- `login.html` — email + password fields, submit disabled until both are filled, password show/hide toggle, footer link to `register.html`. Back button returns to `welcome.html`. Reached via "تسجيل دخول" on `welcome.html`.
-- `register.html` — a **company image uploader** plus name, gender, phone (with the same country-code picker as `profile.html`), email, password; submit disabled until all are filled; footer link to `login.html`. Back button returns to `welcome.html`. Reached via "حساب جديد" on `welcome.html`.
-  - Saves to `sf_account` **continuously** — on `input`, `blur`, `change`, and country pick — not on submit. This is deliberate: the submit button may never enable, and an earlier version that saved only on submit lost everything the user typed. Keep any new field on that same continuous-save path.
-  - The password is deliberately **never stored** in `sf_account`.
-  - **Branches on `isFactory`** (register.html:830). For factories: the gender field is removed, "الاسم" is relabeled "اسم الشركة", and a commercial-registration field plus an address bottom-sheet appear. For individuals those three are **removed from the DOM entirely**, not just hidden — so `crInput` is set to `null` and `checkFilled()` guards with `!crInput ||`. The whole address-modal script is wrapped in `if (isFactory)`, because `addressTrigger` would otherwise be `null` and throw at load.
-  - Address sheet validation: short national address `/^[A-Z]{4}[0-9]{4}$/` (forced LTR), building/secondary `/^[0-9]{4}$/`, postal `/^[0-9]{5}$/`.
-- `home.html` — top bar carrying the wordmark (`.top-bar-logo`, the small variant) plus a search bar, bottom nav, interactive SVG map of the 13 Saudi regions (click a region to open a map modal), categories drawer (20 industry categories), and the **bestsellers grid** below the map. The region modal is a **hand-built slippy map** — see *Region map* below.
-  - `.ksa-map` is `width: 100%; max-width: 240px`. Unlike the wordmark it has **no** `480px` override, so this one rule is the whole story. It was shrunk 400 → 320 → 240px specifically so the first two product cards are visible without scrolling — the map's size is now **coupled to that requirement**, not free.
-  - **Bestsellers** (`.bestsellers-section`): 1000 cards, two per row, generated by the same one-string-`innerHTML` technique as `factories.html`. Cards read `sf_factories` and emit the name/price lines **conditionally** — an empty `.product-name` div still occupies its `max-height: 33px`, which is what produced the "white space" the owner complained about, so the fix was omitting the element rather than adjusting padding. The "years" and "reorder rate" badges are cosmetic values derived from the index (`i % 17`, `i % 61`) so they stay stable across visits instead of reshuffling on every load.
-  - `.product-name` needs **both** `-webkit-line-clamp: 2` and the standard `line-clamp: 2`; the editor flags the file otherwise.
-  - **Closing the map modal must clear the selection.** `closeMapModal()` removes `.active` from every region *and* `blur()`s the focused path — regions carry `tabindex="0"`, so `.region:focus` kept painting the highlight even after `.active` was gone. Two separate causes, both required. `selectedRegionName` is deliberately **not** cleared: the modal's search button reads it.
-  - The page has **no heading or intro text**: the welcome title moved to `index.html` and the subtitle plus the "المنطقة المختارة" result bar (`.region-info`) were deleted outright at the owner's request. The selected region now lives only in the JS variable `selectedRegionName`, which the **map modal's search button still reads** (`factories.html?city=…`) — that coupling is why the bar couldn't just be deleted without rerouting it, and why the variable must survive any future cleanup that looks like dead code.
-  - `.map-section` is transparent — it has no card background. If a white panel ever appears behind the map again, note that `body { background: #f3f5f3 }` is a *page-level* tint, not a panel, and no amount of editing `.map-section` will remove it.
-  - **The green outer border of the country is faked by layering, not geometry.** A `<g class="ksa-outline">` of 13 `<use href="#region-id">` copies is drawn *beneath* the real region paths with a wide green stroke; each region's own fill then covers every interior stroke, leaving only the national perimeter visible. This requires the outline group to stay **before** the region paths in document order (SVG has no z-index). Adding a region means adding its `<use>` here too.
-- `account.html` — account hub, deliberately **stripped down**: on desktop it is the Alibaba-style dashboard (logo + `.dash-side` sidebar + `.dash-stats`); on phones it collapses to a single row linking to `settings.html`. It has **no header** — the green `.profile-header` with the greeting was deleted at the owner's request, following the `.quick-actions` row, the menu rows, and finally the factory card. **Four** separate "احذفها" requests have landed here; don't re-add chrome to this page.
-  - Because the header is gone, the page has **no `.page-header`**, which is what `mobile.css` hangs its top safe-area inset on. That inset now lives on `body` (`padding-top: env(safe-area-inset-top)`) — deleting it re-breaks the iPhone notch, invisibly on desktop.
-  - **The factory card is gone** (markup, script, and CSS all removed; backup at `account.html.fcbak`). It was the last DB-backed UI outside the auth pages, so **`account.html` now makes zero Supabase data calls** — it loads `auth-guard.js` and nothing more. With it went the only direct route to `factory.html`; reaching a factory page now means the "المصانع" tab.
-  - `.dash-stats`' three numbers (**رسائل غير مقروءة / عروض أسعار / الطلبات**) are **hardcoded `0`**, not queries. The ids `stat-messages`, `stat-offers`, `stat-orders` exist for when they are wired up.
-  - The sidebar's submenu headings and links **are** wired to `data-i18n`, as is `.dash-stat-label`. This took 15 new keys × 30 language blocks; 8 existing keys (`section_account`, `section_other`, `row_settings`, `row_help`, `row_profile`, `row_security`, `nav_factories`, `nav_messages`) were reused rather than duplicated. The account-type line is set from JS via `I18N.t("dash_account_factory" / "dash_account_individual")`, not a literal string — a `data-i18n` attribute cannot reach it because the script overwrites `textContent` after `applyTranslations()` has run.
-  - **The duplicate "الإعدادات" row is hidden on desktop only**, by `#mobile-settings-row { display: none }` in `desktop.css`. The id is on `account.html`'s `<section>` deliberately: `settings.html` has **4** sections and **17** rows sharing the same `.account-section` / `.account-row` classes, so a class-based rule would blank that page. It stays visible on phones — the sidebar is desktop-only, making this the sole route to `settings.html` there.
-- `settings.html` — everything `account.html` used to hold, in three sections (الحساب / التفضيلات / أخرى): profile, preferences, invite, invoices, the **90-language picker**, help, and the logout row. Has a sticky `.page-header` with a back button and **no bottom nav** — it is a sub-page of `account.html`, not a tab.
-  - It was assembled by **moving the exact CSS/markup/script blocks out of `account.html`**, not by retyping them, so the language modal and its IIFE are the same code that used to live there. Grepping for `var languages` finds it here now.
-- `profile.html` — personal info form (company image, name, gender, phone with country-code picker, email, birthdate); field ids are `f-name`, `f-phone`, `f-email`, `f-birthdate`, `f-cr`. **Prefills from `sf_account`** so data entered at registration shows up here. **Mirrors `register.html`'s `isFactory` branch** — see *Account types*. Reached via "ملفي الشخصي" in `account.html`.
-  - **Saving is the one place that deliberately diverges from `register.html`**: this page saves **only on the "تحديث" submit button**, never continuously. The user asked for this explicitly. There is exactly one `saveAccountData()` call site (the `submit` handler, profile.html:1073) — the field `input`/`blur`/`change`/country-pick/address-save listeners call only `checkFilled()`. Don't "restore consistency" with `register.html` by re-adding save-on-input.
-  - A successful save pops `.confirm-overlay` — a centered box with an SVG checkmark drawn by animating `stroke-dashoffset` — which auto-hides after 1.8s. Its string is the `profile_updated` i18n key.
-  - **Birthdate field**: the native `<input type="date">` is a *transparent full-cover overlay* (`position: absolute; inset: 0; opacity: 0`) over the styled `.date-field`, which therefore **must keep `position: relative`**. This replaced an earlier version that gave the input `pointer-events: none` and drove it entirely from a `showPicker()` call on the wrapper — that field was simply not enterable. `showPicker()` remains, try/catch-guarded, on the input's own click as a desktop nicety only; the overlay is what actually works. The selected date is rendered by splitting the ISO value into parts (`new Date(y, m - 1, d)`) rather than `new Date(value)`, which parses as UTC and shows the previous day east of Greenwich. `dateInput.max` blocks future dates.
-- `help.html` — help/support contact page (main phone, technical support phone, email as `tel:`/`mailto:` links). Reached via "المساعدة والدعم" in `account.html`.
-- `cart.html` — shopping cart: empty-cart state, an "Order Protection by Saudi Factories" row (payment/delivery/refund assurances, modeled on Alibaba's cart-page pattern but with this app's own branding, not Alibaba's) that opens a bottom-sheet detail modal on click (reuses the modal pattern below), and a disabled checkout bar. Reached via the bottom nav's cart icon.
-- `factories.html` — factory directory grid: 1000 cards (generated client-side via a JS loop building one HTML string and setting it via `innerHTML` once, not 1000 individual DOM calls). Each card is an `<a href="factory.html?id=<i>">` showing that factory's saved cover, logo, and name — read-only here; all editing happens on `factory.html`. Reached via the bottom nav's "المصانع" tab.
-  - **Two per row**, and the grid's `row-gap: 24px` is larger than its `column-gap: 10px` on purpose: `.logo-placeholder` is absolutely positioned at `bottom: -14px` and overhangs the card, so a symmetric gap lets it collide with the row beneath. `.factory-card` must keep `overflow: visible` for that overhang — clipping it is the other way to "fix" the collision and it is the wrong one.
-  - `.card-footer` reserves space for that logo with an asymmetric `padding: 0 9px 0 52px`, which has an `html[dir="ltr"]` counterpart flipping it. Edit both.
-- `factory.html` — per-factory storefront/editor, Alibaba-style, keyed off the `?id=<n>` query param. Owner can set a cover image, a logo, the factory name, an "about" description, and a product grid (each product = image + name + price). Everything saves to `localStorage` on input/change (no submit button), consistent with the rest of the app. **Editing is gated on `canEdit`** — see *Account types*.
-  - Carries a `.contact-btn` ("مراسلة المصنع") linking to `messages.html?factory=<id>`. It is shown to **everyone**, deliberately: an earlier version hid it behind `body.view-only`, which meant factory accounts couldn't message and individuals were the only ones who could — the exact inverse of the intent. Don't re-gate it on `canEdit`.
-- `messages.html` — chat between an individual and a factory; see *Messaging* below.
+The rest: `home` (map + categories + bestsellers), `factories` (1000-card grid), `factory` (per-factory storefront, `?id=<n>`), `messages`, `cart`, `account` (hub), `settings` (everything the hub used to hold, incl. the 90-language picker), `profile`, `help`, `admin` (factory approval, gated on `SF_PROFILE.is_admin`, not linked from any nav).
 
-- `admin.html` — factory-approval console: tabs (pending/approved/rejected) with live counts, a card per factory showing CR number and registration date, expand-for-details, and approve/reject buttons with a reject-reason bottom sheet. It **reads and writes `factories` directly** (`sb.from("factories")` twice) and is gated on `SF_PROFILE.is_admin` — the only page that checks that flag. It is not linked from any nav; reach it by typing the filename. Both copies exist and both make the same two calls.
+Per-page implementation details — save-on-input vs save-on-submit, the `isFactory` DOM branch, the date-field overlay, the bestsellers grid, the faked map border — are in **`قرارات-سابقة.md`**. Read the relevant section before touching any of them; several encode a fix that a "cleanup" would silently undo.
 
-All **28** pages are built and every link resolves — verified, including links built inside JS strings.
+### Account types (`sf_account_type`)
 
-Each page is a fully self-contained `<style>`/markup/`<script>` block in one `.html` file — page-specific styling is never extracted into a shared file. The shared assets are: `i18n.js` (translations) and `mobile.css` (the mobile layer) in every page's `<head>`; `desktop.css` (the wide layer) on the 13 `web-` pages only; `regions-geo.js` only on the home pages; and `supabase-config.js` / `auth-guard.js` on the subsets listed under *Backend*.
+Value is `"individual"` or `"factory"`; **absent/empty is treated as read-only**, so a visitor who never passed the gate cannot edit.
 
-## Account types (`sf_account_type`)
+`factory.html` computes `canEdit = accountType === "factory"` and, when false, adds `.view-only` to `<body>` and **skips registering every edit listener**. The `.view-only` CSS is cosmetic; the absent listeners are the real enforcement.
 
-Set on `user-type.html`, read by `welcome.html`, `register.html`, `factory.html`, and `messages.html`. Value is `"individual"` or `"factory"`; **absent/empty is treated as non-factory**, i.e. read-only — so a visitor who never passed through `user-type.html` cannot edit.
+**`sf_account_type` is not authentication** — it is a UI mode backed by a `localStorage` value any user can edit, and `factory.html` still trusts it. There is no link between a factory account and a specific factory `id`, so a factory-type account can edit *any* factory page. The database has the fix (`factories.owner_id` + an RLS policy), but the page hasn't been migrated. **Until it is, don't describe these pages as access-controlled.**
 
-`factory.html` computes `var canEdit = accountType === "factory"` (factory.html:520) and, when false, adds `.view-only` to `<body>` and **skips registering every edit listener** — cover/logo pickers, name/about `input` handlers, product image picker, add-product button (guarded at :612, :629, :679, :762). The `.view-only` CSS is only cosmetic; the real enforcement is the absent listeners. `showAsText()` swaps the name/about inputs for `.read-text` divs and products render as static text via an early `return` (:692).
+### Messaging
 
-`sf_account_type` is **not** authentication — it is a UI mode backed by a `localStorage` value any user can edit, and `factory.html` still trusts it. There is no link between a factory account and a specific factory `id`, so a factory-type account can edit *any* factory page. The database has the fix (`factories.owner_id` + an RLS policy scoping updates to the owner), but `factory.html` has not been migrated to use it yet — until it is, don't describe these pages as access-controlled.
+Stored entirely in `localStorage` under `sf_messages`. **Not migrated to the backend** — `conversations` and `messages` tables exist but nothing reads or writes them, so both sides of a conversation are the same browser. Don't describe it as real-time or as delivering anything to a factory; say it's local-only.
 
-## Messaging (`web-messages.html` / `app-messages.html`)
+### Mobile layer (`mobile.css`)
 
-Chat between the two account types, stored entirely in `localStorage` under `sf_messages`. **This page has not been migrated to the backend** — `conversations` and `messages` tables exist in `schema.sql`, but nothing reads or writes them, so both sides of a conversation are still the same browser and there is no second device. Don't describe it as real-time or as delivering anything to a factory; say it's local-only when the owner asks about reach.
+Loaded **after** each page's `<style>`, holds only cross-cutting device concerns — never page-specific styling.
 
-- One page, two views toggled by a `body.in-chat` class: the thread list and the chat itself. There is no routing — `openChat(id)` / `closeChat()` just flip the class.
-- **Role comes from `sf_account_type`**: `myRole = accountType === "factory" ? "factory" : "individual"`. Bubbles are `.mine` (green, sent by `myRole`) or `.theirs` (white). Because one browser holds both roles, switching account type on `user-type.html` re-colors the *existing* history — that is expected, not a bug.
-- **Two ways in**, and both are needed: `messages.html?factory=<id>` from `factory.html`'s contact button, and a "+" button on the page itself that opens a factory-picker sheet. The picker is also surfaced inside the empty state. The deep-link alone was the original design and it stranded anyone who arrived from the bottom nav with no threads.
-- **Attachments**: images are downscaled to 640px through the same `resizeImage` canvas helper the other pages carry a copy of. Video is **not** downscaled (no canvas path for it) and is hard-rejected over **2MB** — the ~5MB `localStorage` quota is the whole reason. `pushMessage` rolls back with `t.messages.pop()` when `saveThreads()` throws, so a quota failure loses the attachment rather than corrupting the thread.
-- **Four file inputs, not two.** `capture="environment"` is what opens the camera directly on a phone, but it *prevents* choosing an existing file — so each media type has a gallery input and a capture input, chosen from the `.source-sheet` bottom sheet:
-  ```html
-  <input type="file" id="image-input"   accept="image/*">                        <!-- المعرض -->
-  <input type="file" id="image-capture" accept="image/*" capture="environment">  <!-- الكاميرا -->
-  ```
-  `capture` is ignored on desktop browsers, so both paths open a file dialog there — this cannot be verified anywhere but a real phone.
-- `.composer` is `position: fixed` and therefore **must** appear in `mobile.css`'s phone-column cap list, or it spans the whole window on desktop. It was missing at first and the owner caught it.
+- **The bottom nav's height (`52px`) is duplicated in ~13 places across 10 files** and they must all move together. Miss one and content hides behind the bar or floats above it. **Grep, don't recall.**
+- **Safe-area insets**: `env(safe-area-inset-*)` paired with `viewport-fit=cover` in every viewport meta — without which `env()` always resolves to `0`.
+- **`font-size: 16px !important` on all inputs**: iOS Safari force-zooms when a focused input's font is under 16px. The `!important` is required because pages define higher-specificity selectors. Don't "fix" this by lowering it.
+- **Phone column on wide screens** (`@media (min-width: 520px)`): the app is portrait-only, so `body` is capped at 430px and centered. **Any new fixed element must be added to that cap list** — this has been missed twice (`.composer`, `.map-watermark`) and the owner caught both.
+  - `margin: auto` only centers elements the cap can shrink. An element with `inset: 0` is stretched by its own offsets and ignores the margin — those need explicit `right`/`left: calc(50% - 215px)`.
+- **The page frame** (`body::after`) draws a border inside every page; add `class="dark-page"` for dark backgrounds or the frame is invisible. **Its corners are square, deliberately** — see the archive before changing that; four attempts failed.
 
-## Map watermark
+### Desktop layer (`desktop.css`)
 
-`login.html`, `register.html`, `welcome.html`, `user-type.html`, and `messages.html` carry a decorative Saudi map behind their content: a `.map-watermark` div holding an inline SVG of the 13 region paths (ids prefixed `deco-`) at `opacity: 0.07`, with `pointer-events: none` and `aria-hidden="true"`. Region **names are deliberately omitted** — it is a shape, not a map, and it is not interactive.
+**The whole file lives inside `@media (min-width: 1024px)`**, with one closing `@media (max-width: 1023px)` block that hides desktop-only elements. Nothing sits outside a media query, and that is the core invariant: below 1024px the phone design is untouched. **Never add a bare top-level rule here.**
 
-- It is `position: fixed; inset: 0`, so it needs the same phone-column treatment as any fixed element: an `@media (min-width: 520px)` block pinning `right`/`left` to `calc(50% - 215px)`. **`margin: auto` does not center a fixed element with `inset: 0`** — that was the first attempt and it failed.
-- **Any bordered field sitting over it needs an explicit `background`.** The watermark showed *through* `.password-row` on `login.html`/`register.html` because those rules set a border but no fill. `.phone-row` had the identical defect. When adding a field to these pages, give it `background: #ffffff`.
-- Content above it needs `position: relative; z-index: 1` (see `.form-wrap`) — the watermark is `z-index: 0`, not negative.
+Carried by the **13 `web-` pages and nothing else**.
 
-## Mobile layer (`mobile.css`)
+- **Desktop-only markup is always in the DOM**, hidden below 1024px by that closing block. Adding a desktop-only element means **adding it to the hide list too**.
+- **Un-capping the phone column is the first thing the file does** — `body`'s `max-width`/`margin`/`box-shadow` are overridden with `!important`, `body::after` is killed, and `.bottom-nav` hidden.
+- **`html` carries the page tint, not just `body`.** `html { background: #f6f7f6 }` matches the shared `body` background. It was `#ffffff`, producing a white band below `messages.html`, and the owner asked twice to remove it. **The first fix targeted the wrong thing** — it read as a layout gap, so height rules went onto `body.chat-page`; the answer was "لم تتغير". **Telling them apart: a layout gap moves the content when fixed; an `html` background leaves content exactly where it is and only the color changes.**
 
-The app is designed to be used on phones (iPhone/Android). `mobile.css` is loaded **after** each page's `<style>` block and holds only cross-cutting device concerns — never page-specific styling, which stays inline per the convention above.
+**Six page archetypes**, selected by a class on `<body>`:
 
-- **The bottom nav's height (currently `52px`) is duplicated in ~11 places** and they must all move together: `.bottom-nav { height }` and `body { padding-bottom }` inline in the home/account/factories/cart pages of **both paths**, the two `!important` overrides in `mobile.css` (which add `env(safe-area-inset-bottom)`), and each cart page's `.checkout-bar { bottom: calc(52px + env(...)) }`. Miss one and content hides behind the bar or floats above it. The nav also carries a `border-top: 2px solid #04361b` on the same pages. Since the split this spans ~13 sites across 10 files — grep, don't recall.
-- **Safe-area insets**: `env(safe-area-inset-*)` keeps content clear of the iPhone notch and the gesture bar. Paired with `viewport-fit=cover` in every page's viewport meta (without which `env()` always resolves to `0`). Handled globally for `.page-header` and `.bottom-nav`; the pages with different top/bottom chrome apply their own `env()` math inline: `home.html`'s fixed `.top-bar`, `cart.html`'s `.top-bar` + `.checkout-bar`, and `account.html`'s bare `body` (it has no header at all — see above).
-- **`font-size: 16px !important` on all inputs**: iOS Safari force-zooms the page when a focused input's font is under 16px. This is why the rule is `!important` — pages define higher-specificity selectors like `.field input { font-size: 14px }`, so load order alone can't win. Don't "fix" this by lowering it back.
-- **Native touch feel**: `-webkit-tap-highlight-color: transparent`, `touch-action: manipulation` (kills the 300ms tap delay), `overscroll-behavior-y: none` (no rubber-band/pull-to-refresh), and `user-select: none` on chrome while text content stays selectable.
-- **Page frame**: a `body::after` fixed overlay draws a border inside every page — green (`#04361b`) by default for the light pages, flipped to white by adding `class="dark-page"` to `<body>` (currently only `index.html`, the one green-background page). It's `pointer-events: none` and sits at `z-index: 100` (above the modals, which top out at 30), and its edges are inset by the safe-area values so it isn't clipped by the notch or gesture bar. Any new page with a dark background needs the `dark-page` class or its frame will be invisible.
-  - **The frame's corners are square** (`border-radius: 0`), and that is deliberate. The fixed bars it meets — `.top-bar`, `.page-header`, `.bottom-nav`, `.checkout-bar` — are all square-cornered, so any radius on the frame shows up as a curve that doesn't line up with them. This was arrived at through four rejected attempts, the first three on `home.html`, whose `.top-bar` (`#04361b`) is the same green as the frame and swallowed its top edge: a white `border-top-color` (read as a detached white line), rounding the header's own corners to `15px` = `18 − 3` to sit concentric with the frame, then squaring only the frame's top two corners (the bottom pair still curved against the bottom nav). The fourth squared the corners via a `body.dark-header` class — which fixed only the two pages carrying it and left `factories.html`/`cart.html` curved. **The fix that worked was squaring the shared `body::after` rule itself, for every page at once**; `dark-header` was then deleted. Don't reintroduce a radius here, and don't re-attempt this per-page — a per-page class is exactly the approach that failed.
-- **Phone column on wide screens** (`@media (min-width: 520px)`): the app is portrait-only by design, so on anything wider than a phone the whole `body` is capped at 430px and centered on a gray backdrop instead of stretching. Fixed-position bars (`.top-bar`, `.bottom-nav`, `.checkout-bar`, `.composer`) get the same cap plus `margin: auto` so they track the column rather than the viewport. Two gotchas this creates, both already handled: `home.html`'s `.categories-drawer` is repositioned to the column edge and its *closed* transform extended by `50vw` (the screen edge no longer hides it once centered), and the bottom-sheet modals — including `.pick-modal` and `.source-sheet` — are capped at 430px to match. **Any new fixed element must be added to that cap list**; this has now been missed twice (`.composer`, `.map-watermark`) and the owner caught both.
-  - `margin: auto` only works for elements the cap can shrink. An element with `inset: 0` (like `.map-watermark`) is stretched by its own offsets and ignores the margin — those need explicit `right`/`left: calc(50% - 215px)` instead.
-  - **The drawer's `50vw` closed transform is deliberate and has already survived one revert.** It was changed to a right-anchored-in-both-directions scheme to fix "the drawer appears from outside the frame", and the owner asked for it back (`اعدها مثل قبل`). Leave `translateX(calc(100% + 50vw))` and its `html[dir="ltr"]` counterpart alone unless asked again — and note the complaint was about *where the animation starts*, not the final position.
-- Every page also carries `theme-color` and the `apple-mobile-web-app-*` / `mobile-web-app-capable` metas. The green (`#04361b`) tint is on exactly `index.html`, `home.html`, `account.html`; the other ten are `#ffffff`. Note `cart.html` has a dark `.top-bar` but a **white** `theme-color` — an inconsistency with `home.html`, which has the same bar and tints green. If you touch `cart.html`'s header, make the two agree.
+| `<body>` class | Pages (all `web-`) | Desktop shape |
+|---|---|---|
+| `account-page` | `account`, `profile`, `settings`, `admin` | dashboard: `250px 1fr` |
+| `cart-page` | `cart` | items + summary |
+| `chat-page` | `messages` | thread list beside chat |
+| `doc-page` | `help` | centered single column |
+| `store-page` | `factory` | full-width cover, info column + product grid |
+| `auth-page` | `login`, `register`, `welcome` | centered 460px form, `.back-btn` hidden |
 
-This is a **mobile-styled web app, not a packaged app** — there's no `manifest.json`, no service worker, and no native wrapper. Adding a real installable PWA (offline support, home-screen install) or an APK is a separate, larger change; the APK route additionally needs Node.js + Android Studio, neither of which is installed here.
+A new dashboard page needs the class, the `.page-logo` anchor, and a copy of the `.dash-side` markup — the sidebar is **duplicated per page**, not templated.
 
-## Desktop layer (`desktop.css`)
+**Sidebar flyouts (`.dash-sub`) are RTL-critical.** The sidebar sits at the **right** edge in RTL, so panels open leftward via `right: 100%`, flipped to `left: 100%` under `html[dir="ltr"]`. Using `left: 100%` in RTL pushes the panel off-screen — that shipped once and the owner caught it.
 
-The product is **both** a browser site (Alibaba-style, the owner's stated model) and a phone app. Rather than duplicate every page, there is **one file per page with two layouts**, switched by width. `desktop.css` loads *after* `mobile.css` and is the wide layer.
+Grid/column gotchas (explicit ids not `nth-of-type`, `minmax(0, 1fr)`, narrow column first, the `.content-wrap` cap, `padding-top: 0 !important`) and the whole categories-panel anchoring story are in **`قرارات-سابقة.md`** — read it before laying out a new archetype.
 
-**The whole file lives inside `@media (min-width: 1024px)`, with one closing `@media (max-width: 1023px)` block that hides desktop-only elements.** Nothing sits outside a media query, and that is the core invariant: below 1024px the phone design is untouched, byte for byte. **Never add a bare top-level rule here** — it would leak into the phone layout, which is the original product.
+### RTL is the project's most repeated bug class
 
-Carried by the **13 `web-` pages and nothing else**. Since the split, "desktop-capable" and "`web-` prefixed" are the same set — an `app-` page can never receive a rule from this file.
+`i18n.js` flips `dir` for 26 of 30 languages, so a missing counterpart breaks the majority case. **When adding any horizontally-asymmetric layout, add the `html[dir="ltr"]` counterpart in the same edit.**
 
-- **Un-capping `body` is not enough on its own — check the page's own container for a `max-width`.** `factory.html`'s `.content-wrap` carries `max-width: 520px` inline, and that, not `body`, was the real constraint: widening `body` from 1180px to 1500px changed nothing visible while it stood. Three rounds were lost re-widening `body` before grepping `max-width` in the page's `<style>` found it. The `store-page` rule now sets `max-width: none !important; width: 100% !important` on `.content-wrap`. **Grep the page for `max-width` before assuming the cap lives in `mobile.css`.**
-- Phone gutter margins (`margin: 0 14px`) on `.card` / `.contact-btn` also fight grid columns and must be zeroed per archetype.
-- **Assign grid positions with explicit ids, never `nth-of-type`.** It counts by *tag name*, and `.cover-block` / `.storage-warning` are `<div>`s too — so the cards' numbering shifts and every card lands in the wrong column. `factory.html` uses `#card-name` / `#card-about` / `#card-products`.
-- **`1fr` does not shrink below its content.** A product grid inside a `1fr` column pushes the column wider and distorts everything in it; use `minmax(0, 1fr)`.
-- **Put the narrow column *first* in `grid-template-columns`.** Column numbers are logical and flip under RTL, so a narrow-column-second layout lands on the wrong side in Arabic. Ordering it first makes it fall right in RTL and left in LTR automatically, with no `html[dir="ltr"]` counterpart needed.
+**But the inverse error is just as real.** Ask first whether the element is a **mirror** (a panel tracking its button, a bar following reading order) or a **fixed arrangement** (columns the owner chose visually, and the dividers and arrows attached to them). Mirroring the second kind shipped once and the owner caught it with an English screenshot.
 
-- **Desktop-only markup is always in the DOM**, hidden below 1024px by the `max-width: 1023px` block: `.dt-bar`, `.dt-catbar`, `.dt-actions`, `.page-logo`, `.dash-side`, `.dash-stats`. Adding a desktop-only element means **adding it to that hide list too**, or it appears on phones.
-- **Un-capping the phone column is the first thing the file does.** `mobile.css` pins `body` to 430px and centers it; desktop overrides `max-width`/`margin`/`box-shadow` with `!important`, kills `body::after` (the green frame — phone decoration), and hides `.bottom-nav` since navigation moves to the top bar.
-  - **`html` carries the page tint, not just `body` — and it is what paints any strip `body` does not cover.** `desktop.css` sets `html { background: #f6f7f6 }` to match the shared `body` background. It was `#ffffff`, which produced a white band below `messages.html` (the one page whose `body` is pinned to `100vh`), and the owner asked twice to remove it. **The first fix targeted the wrong thing**: it read as a layout gap, so `min-height: 0` / `max-height: 100vh` went onto `body.chat-page` — correct in themselves, but the answer was "لم تتغير". The band was a *color*, not a space. Telling them apart: a layout gap moves the content when fixed; an `html` background leaves the content exactly where it is and only the color behind it changes. Same lesson as `body { background: #f3f5f3 }` on the phone — a page-level tint is not a panel.
-  - **`padding-top: 0 !important` on `body` is load-bearing.** Pages reserve top space for the phone's *fixed* `.top-bar`; on desktop that bar is static in flow, so the reservation becomes an empty gap pushing content down. The owner reported exactly this ("الموقع من فوق نازل"). If a gap reappears at the top of a desktop page, this is the cause — not a margin on the first child.
-- **Five page archetypes**, selected by a class on `<body>`, so `desktop.css` can target them without touching phone rules:
+Direction-relative CSS silently flips, and physical values don't:
+- `border-inline-end` flips with `dir`; `border-right` does not.
+- `transform-origin: left center` produced a **right**-side sweep under RTL; `0% center` is safe.
+- `inset()` offsets don't respond to writing direction — which is why the logo animation uses `clip-path`, not a mask (see archive; the mask version failed repeatedly).
+- Flexbox `order` under `row-reverse` is counter-intuitive: the **lowest** order sits visually **left**.
 
-  | `<body>` class | Pages (all `web-`) | Desktop shape |
-  |---|---|---|
-  | `account-page` | `account`, `profile`, `settings`, `admin` | dashboard: `grid-template-columns: 250px 1fr` |
-  | `cart-page` | `cart` | two columns (items + summary) |
-  | `chat-page` | `messages` | thread list and chat side by side |
-  | `doc-page` | `help` | centered single column, logo, no sidebar |
-  | `store-page` | `factory` | storefront: full-width cover, then narrow info column + wide auto-fill product grid |
-  | `auth-page` | `login`, `register`, `welcome` | un-caps the phone column, centers a 460px form, hides `.back-btn` |
+**After any horizontal-layout edit, ask the owner to check both languages, not just Arabic.**
 
-  `app-messages.html` and `app-factory.html` still carry `chat-page` / `store-page` from before the split. Those pages load no `desktop.css`, so the classes do nothing — harmless, but not evidence of a desktop layout.
+### i18n (`i18n.js`)
 
-  A new dashboard-style page needs the class, the `.page-logo` anchor, and a copy of the `.dash-side` markup — the sidebar is **duplicated per page** like the bottom nav, not templated, so its active item differs per file. It exists only on the four `web-` dashboard pages (`web-account`, `web-admin`, `web-profile`, `web-settings`), making a sidebar change a four-file edit.
-- **Sidebar flyouts (`.dash-sub`) are RTL-critical.** The sidebar sits at the **right** edge in RTL, so the panel opens leftward via `right: 100%`; the `html[dir="ltr"]` counterpart flips to `left: 100%`. Using `left: 100%` in RTL pushes the panel off-screen — that shipped once and the owner caught it in a screenshot. The caret (`::before`) and the invisible hover bridge flip with it. They open on `:hover`/`:focus-within` of the wrapper so the pointer can travel to the panel.
-- **The logo typing animation is `home.html` only** and deliberately never-ending — the owner iterated on it through roughly a dozen corrections. It is **`clip-path: inset(...)`**, *not* a mask; `@keyframes wmType` runs 4.4s `steps(24, end) infinite` on `.top-bar-logo .wm-title`, and `wmCaret` drives the gold rule on the identical timing so the two move together. **Text stays in the DOM** (clipping, not JS retyping) so it remains selectable and readable by search engines and screen readers. The shape the owner approved: reveal **from the left** (1.4s) → **hold 3s fully visible** → vanish instantly → repeat the same way. The hold is `inset(0 0 0 0)` held from 31.8% to 99.9%; the 99.9%→100% jump restarts it fresh rather than reversing — "ترجع من الخلف" was the rejected version. `prefers-reduced-motion` disables it with `clip-path: none`.
-  - **Do not "restore" the `mask-image` version.** It was tried and failed repeatedly: `mask-size: 200% 100%` with a hard `50%` gradient stop meant the mask only ever traveled half the element's width, so `mask-position: 0%` never fully uncovered the name and the hold landed on a **half-revealed** state ("ctories B2B" showing, "Saudi Fa" hidden). Two rounds were lost blaming `steps(24, end)` before an owner screenshot showed the real cause. `clip-path` wins because `inset(0 0 0 0)` is an explicit, unambiguous "fully visible".
-  - **Direction-relative CSS silently flips under RTL, and this is the project's most repeated bug** — it caused three separate failures in one session alone. Flipping the mask gradient `to left`→`to right` did *nothing*, because `.wm-title` carries its own `direction: ltr`. `transform-origin: left center` on the gold rule produced a **right**-side sweep. Both were fixed by physical values: `transform-origin: 0% center`, and `inset()` offsets, which do not respond to writing direction. Reach for a percentage or reason explicitly about which screen edge the element sits at — don't assume a keyword means the same thing in both directions.
-- Bottom-sheet modals are re-centered as ordinary dialogs on desktop, and `.categories-drawer` / `.drawer-overlay` are hidden — the `.dt-catbar` mega-menu replaces the drawer above 1024px.
-  - **The "الفئات" button sits at the *start* of the reading direction, and `.dt-catpanel` anchors to the button's own side.** `.dt-catbar-inner` is `flex-direction: row-reverse` (`row` under LTR), and the button is its **first child** — so `order` decides where it lands, and the sign is counter-intuitive: under `row-reverse` the **lowest** order sits at the visually-**left** end. The button therefore takes `order: 1` in RTL (far right, beside "الكيماويات والمواد الأولية") and `order: -1` under `html[dir="ltr"]` (far left). Do **not** flip the container's `flex-direction` to move it — the eight category links are appended in order by JS (`cats.slice(0, 8).forEach`, home.html:1322), so reversing the container reverses the visible category order too.
-  - The 780px panel is then pinned to the same edge the button sits on and grows *inward*: `right: 0` in RTL, and `right: auto; left: 0` under `html[dir="ltr"]`. **The `right: auto` is load-bearing** — without it both offsets stay active and the panel is stretched between them instead of keeping its width.
-  - **Inside the panel, the two columns do *not* mirror.** `.dt-catlist` (names) sits **left** and `.dt-catpreview` (circles) **right** in every language — the owner picked that arrangement visually, so it is a fixed design choice, not a consequence of reading direction. The `html[dir="ltr"]` rule therefore **omits `flex-direction` entirely** (inheriting the base `row`) and flips only `right`/`left`, which genuinely must follow the button. Writing the same value into both rules would work but lets a later edit to one drift from the other.
-    - Two things silently follow that column and broke only in English: the divider was `border-inline-end`, a *logical* value that flips with `dir`, so the line landed on the panel's outer edge — it is now the physical `border-right`. And `.dt-catlist li a::after` had an LTR counterpart swapping `‹`/`›`; with the preview fixed on the right, the Arabic `‹` pointed away from it, so the arrow is now `›` in both directions and the counterpart is deleted.
-    - **The general lesson, and the inverse of the project's usual RTL bug:** this file warns repeatedly about *forgetting* an `html[dir="ltr"]` counterpart, which trains a reflex to mirror everything. Ask first whether the element is a mirror (a panel tracking its button, a bar following reading order) or a fixed arrangement (columns, and the dividers and arrows attached to them). Mirroring the second kind is its own bug — it shipped once and the owner caught it with an English screenshot. **After any horizontal-layout edit, ask the owner to check both languages, not just Arabic.**
-  - **An earlier version of this file recorded the opposite rule** (that `left: 0` was correct in *both* directions, and mirroring the anchor was the bug). That was true only while the button sat at the *end* of the reading direction; moving it to the start inverted which edge clips. If the panel ever overflows the screen again, check which end the button is on before changing the anchor — the two must always agree.
+Dependency-free IIFE loaded synchronously in `<head>` so `dir`/`lang` are set before body parse. The IIFE takes `window` as `global` and ends with `global.I18N = {...}` — **grepping for `window.I18N` finds nothing.** Exported surface: `getLang`, `setLang`, `t`, `regionName`, `categories`, `categoryName`, `applyTranslations`.
 
-## Region map (the home pages + `regions-geo.js`)
+- **Declarative markup**: `data-i18n="key"` sets `textContent`; `data-i18n-placeholder="key"` sets the placeholder. Prefer these over setting text in page JS.
+- **Fallback chain**: `dict[lang][key] → dict.en[key] → dict.ar[key] → key`.
+- **RTL whitelist**: `RTL_LANGS = ["ar", "fa", "ur", "he"]`.
+- **Language switching is always `I18N.setLang(code); window.location.reload();`** — a full reload, never live re-rendering.
+- **30 languages × 191 keys** in `dict`; the 90-entry picker lives in the settings pages, not `i18n.js`. Adding a language means touching both.
+- **Adding a key means adding it to all 30 blocks.** Verify with `grep -c "^      <key>: " i18n.js` = 30 — anchor the pattern, or substrings of longer key names match too.
 
-Clicking a region on the home SVG map opens a modal showing **only that region**, clipped to its real administrative boundary. It is a from-scratch slippy map — no Leaflet, no Google, no API key — consistent with the project's self-contained convention.
+Coverage tiers, the `awk` insertion technique, and the orphaned keys (which must **not** be cleaned up) are in the archive.
 
-- `regions-geo.js` holds `SA_REGION_BOUNDS`, all 13 regions as `[[[lat, lon], ...]]` rings (note **`[lat, lon]`**, Leaflet order, not GeoJSON's `[lon, lat]`). Source is OpenStreetMap via Nominatim, **ODbL-licensed**, simplified by perpendicular-distance filtering at tolerance **`0.0015`** and capped at the **8** largest rings per region (~234KB). It is a **static file, not a runtime fetch** — Overpass timed out repeatedly during the build, and the app must work without network calls at load.
-  - **These numbers were tuned to fix a real complaint** ("الحدود غير متطابقة") and shouldn't be loosened casually. The previous values (`0.012`, 3 rings, 48KB) left **11.8 km** between adjacent boundary points, so at the zoom levels a large region opens at, straight segments visibly cut across the coastline. `0.0015` brings that to **3.2 km**. The 3-ring cap was separately discarding the Red Sea / Gulf islands of coastal regions, which have 119–256 rings apiece; raising it to 8 cost only ~6KB.
-  - **Regenerating**: query Nominatim with `polygon_geojson=1`, filter on `addresstype ∈ {state, province}`, re-simplify. Two traps, both hit during the last regeneration:
-    - **Free-text search silently matches the wrong record.** `ryiadh` and `hail` both returned a Zain telecom office (`addresstype: office`, ~630 bytes). Use the **structured** parameters instead — `state=Ha'il&country=Saudi Arabia` — rather than fighting the free-text query; four attempts at rewording it failed first.
-    - **Don't parse the JSON in awk.** Char-by-char scanning of a 1.5MB response takes 3+ minutes and times out. Pre-extract to plain `"lon lat"` lines with `sed`/`tr` first (0.8s), then let awk see only clean numeric input. Same lesson as the i18n awk work: give awk small, already-structured input.
-  - Nominatim's usage policy requires ≤1 request/sec and an identifying User-Agent — the build script sleeps 1.2s between the 13 queries.
-- The map is built from Web Mercator math (`lonToX`/`latToY`, home.html:744) over raw OSM tiles at `https://tile.openstreetmap.org/{z}/{x}/{y}.png`. `TILE = 256`, `MIN_Z = 5`, `MAX_Z = 12` (12 is enough for main streets and keeps tile counts polite). `fitZoom()` picks the largest zoom whose bounding box still fits the frame.
-- **Isolation is done with a CSS mask**, not cropping: `renderMap()` writes an inline SVG `data:` URI of the region polygon into `--region-mask`, and `.tile-layer` applies it via `mask-image`. The visible boundary line is a separate `.region-outline` SVG on top. Both come from `ringsToPath()`, so they always agree.
-- Panning is pointer-drag (`dragStart`/`dragMove`/`dragEnd`); the wrapper needs `touch-action: none` or the browser scrolls the page instead.
-- **Do not attempt "white land with green streets" via CSS filters.** This was requested, attempted, and proven impossible: OSM raster streets are *lighter* than the land around them, so any global filter that whitens land also whitens streets — inverting produces black land. Verified by simulating the sepia/hue-rotate/saturate/brightness matrix chain. Achieving it requires a vector-tile provider with a custom style (MapTiler/Mapbox), i.e. an API key and a new dependency. The current tint is the accepted outcome.
-- OSM tile usage policy is satisfied for a project this size, and the attribution link (`.map-attrib`) is required — don't remove it.
-
-## i18n system (`i18n.js`)
-
-Shared, dependency-free, IIFE-based translation module. Loaded synchronously in `<head>` (before body parse) so `dir`/`lang` are set immediately with no flash of wrong direction — `applyDirection()` runs at load time, and `applyTranslations()` runs on `DOMContentLoaded`.
-
-The IIFE takes `window` as `global` and ends with `global.I18N = {...}` — so grepping for the literal `window.I18N` finds nothing. The exported surface is exactly: `getLang`, `setLang`, `t`, `regionName`, `categories`, `categoryName`, `applyTranslations`. Note the asymmetry: `categories` (the 20-item array) is exported as data, but `regionNames` is **not** — regions are only reachable through the `regionName(id)` lookup.
-
-- **Language persistence**: `localStorage` key `sf_lang`, read/written through try/catch-guarded `getLang()`/`setLang()` (default `"ar"`).
-- **Declarative markup**: `data-i18n="key"` sets `el.textContent`; `data-i18n-placeholder="key"` sets the `placeholder` attribute. Add both attributes to any new translatable element rather than setting text in page-specific JS.
-- **Translation fallback chain** (`t(key)`): `dict[lang][key] → dict.en[key] → dict.ar[key] → key`.
-- **RTL**: `RTL_LANGS = ["ar", "fa", "ur", "he"]` is the explicit whitelist driving `document.documentElement.dir`. Everything else is LTR (including Kurdish, which uses Latin script here).
-- **Language switching**: always implemented as `I18N.setLang(code); window.location.reload();` — a full reload, not live DOM re-rendering. Follow this pattern for any new language-dependent state.
-- **Coverage tiers** — this is a deliberate, disclosed scope trade-off, not an oversight:
-  - `dict` has full UI-string translations for **30 major languages** (ar, en, fr, es, de, it, pt, ru, tr, fa, ur, hi, zh, ja, ko, id, ms, th, vi, he, nl, pl, sv, el, bn, pa, ta, sw, am, ku), each with the same **191 keys**. `i18n.js` is almost entirely this `dict` — the actual logic is the last ~100 lines, from `regionNames`. To confirm a new key landed everywhere, `grep -c "^      <key>: " i18n.js` must equal 30 (anchor the pattern; a bare `grep -c "<key>:"` also matches substrings of longer key names).
-  - The language picker is a `[arabicName, nativeName, code]` triple array declared inline in **`settings.html`** (`var languages`, settings.html:570) with **90 entries**. It moved there with the rest of the account rows, so the picker is *not* in `account.html` despite being reached from it. It is also *not* exported from `i18n.js`, so adding a language means touching both files. All 90 have real ISO-ish codes and perform a real switch; the 60 outside the 30-language tier fall back to English UI text via the `t()` fallback chain rather than doing nothing.
-  - `regionNames` (13 Saudi regions) and `categories` (20 industry categories) are translated into **Arabic/English only** (`regionName(id)` / `categoryName(cat)` fall back `[lang] → en → ar`), regardless of the 30-language UI tier — proper nouns/technical vocabulary were judged higher mistranslation risk than general UI chrome. Keep this scope in mind before "completing" translation coverage elsewhere; don't silently expand it without flagging the same trade-off.
-- **Adding a new UI string**: add the key to *every* language block in `dict` (not just `ar`/`en`) to keep the 30-language tier consistent, then reference it via `data-i18n`/`data-i18n-placeholder` or `I18N.t(key)`.
-  - 30 hand-edits is slow and easy to get wrong. The technique that works: write the 30 translations to a file **in `dict`'s language order**, then `awk` over `i18n.js` anchoring on an existing key that appears exactly once per block (`/^      btn_update: /`) and print the new line after each hit. Have the `END` block compare the insertion count to the translation count and `exit 1` on mismatch — without that guard a drifted anchor silently writes a shifted, garbled file. Write to a temp file and copy over the original only on success, and keep a `.bak` until the count is verified.
-- **Adding a new page**: add `<script src="i18n.js"></script>` in `<head>`, mark translatable elements with `data-i18n`, and call `I18N.applyTranslations()`/rely on the automatic `DOMContentLoaded` hook. Also carry over the rest of the shared `<head>`: `mobile.css` (loaded *after* the page's own `<style>`), `viewport-fit=cover` in the viewport meta, `theme-color`, and the `apple-mobile-web-app-*` metas — the safe-area insets silently resolve to `0` without `viewport-fit=cover`.
-- **Orphaned keys**: `splash_tagline`, `usertype_title`, `usertype_subtitle`, the four `quick_*` keys (`quick_coupons`, `quick_rewards`, `quick_wallet`, `quick_subscription`), and `account_greeting_label` / `account_guest_name` are present in all 30 blocks but referenced by **no** HTML file — the elements that used them were deleted at the owner's request. The `quick_*` four went when the `.quick-actions` row was removed from `account.html`; the two `account_*` greeting keys went when its whole `.profile-header` was deleted, leaving that page with no header at all (its safe-area inset moved onto `body`). They are left in place deliberately (removing a key from 30 blocks is the same risky bulk edit as adding one, for no gain). Don't "clean them up" unprompted, and don't take their presence as evidence the elements still render.
+**Wire new UI to i18n immediately.** Hardcoding Arabic into new buttons produced a visibly mixed interface and the question "لماذا يوجد بالعربي والانقليزي". Check for an existing key first.
 
 ## Backend (Supabase)
 
-The app got a real backend partway through its life, so **the codebase is mid-migration**: auth is on the server, everything else still runs on `localStorage`. Assume any given page is *not* yet wired to the database unless you've checked.
+The app got a real backend partway through its life, so **the codebase is mid-migration**: auth is on the server, everything else runs on `localStorage`. **Assume any page is *not* wired to the database unless you've checked.**
 
-Project `yhofxryhlrrwzztfowpa`, hosted PostgreSQL + Auth + Storage. Loaded like every other dependency here — a plain `<script>` tag, no npm, no build:
+Project `yhofxryhlrrwzztfowpa`. Loaded as plain script tags:
 
 ```html
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="supabase-config.js"></script>   <!-- defines the global `sb` client -->
+<script src="supabase-config.js"></script>   <!-- defines the global `sb` -->
 <script src="auth-guard.js"></script>        <!-- internal pages only -->
 ```
 
-**Script order is load-bearing** and goes after `i18n.js`: the CDN must define `window.supabase` before `supabase-config.js` runs `createClient`, and `sb` must exist before `auth-guard.js` calls `sb.auth.getSession()`. On `home.html`, `regions-geo.js` comes last.
+**Script order is load-bearing** and goes after `i18n.js`: the CDN must define `window.supabase` before `createClient` runs, and `sb` must exist before `auth-guard.js` calls `getSession()`.
 
-- **`supabase-config.js`** — two globals (`SUPABASE_URL`, `SUPABASE_KEY`) and the shared `sb` client. The key is the **publishable** key (`sb_publishable_…`) and is *meant* to be public; RLS is the protection, not key secrecy. The **secret** key (`sb_secret_…`) and the database password must never enter any file in this folder — there is no server-side code here to use them from.
-- **`schema.sql`** — the whole schema in one re-runnable file (`create ... if not exists`, `drop policy if exists` before each `create policy`). Run it via Supabase → SQL Editor → paste → Run. Five tables: `profiles`, `factories`, `products`, `conversations`, `messages`, plus two storage buckets (`factory-media` public, `chat-media` private).
-- **`add-posts-prices.sql`** — a **second applied migration**, not merged into `schema.sql`. Adds `posts` (factory feed) and `custom_prices` (a per-customer price a factory offers on one product, `unique (product_id, customer_id)`), plus a `custom_price_id` column on `messages` so a price offer can be attached to a chat message. Already run against the live database and verified by attack. **Both tables are schema-only — no page reads or writes them yet.**
-  - `custom_prices_write_factory` scopes writes to `owns_factory(factory_id)`, so a customer cannot grant themselves a discount, and `guard_custom_price_columns` / `guard_post_columns` pin the ownership columns the same way §8.5 does for profiles/factories.
-  - Because this file is separate, "re-run `schema.sql`" does **not** restore these tables. Anyone rebuilding the database from scratch must run both files.
-- Postgres functions are dollar-quoted with the named delimiter **`$fn$`**, not bare `$$` — bare `$$` collides with shell expansion when the file is manipulated from Bash.
+- **`supabase-config.js`** — the key is the **publishable** key and is *meant* to be public; RLS is the protection, not key secrecy. The **secret** key and DB password must never enter any file here — there is no server-side code to use them from.
+- **`schema.sql`** — five tables (`profiles`, `factories`, `products`, `conversations`, `messages`) plus two storage buckets, all re-runnable.
+- **`add-posts-prices.sql`** — a **second applied migration**, not merged. Adds `posts` and `custom_prices` plus a `custom_price_id` column on `messages`. Already run and verified by attack. **Both tables are schema-only — no page reads them.** "Re-run `schema.sql`" does **not** restore them; a rebuild needs both files.
+- Postgres functions are dollar-quoted with **`$fn$`**, not bare `$$`, which collides with shell expansion.
 
 ### Which pages carry which scripts
 
@@ -346,17 +231,15 @@ Identical across both paths — verified by counting `<script>` tags, not name m
 | | supabase-js + config | auth-guard | `SF_PUBLIC_PAGE` |
 |---|---|---|---|
 | `index`, `*-welcome`, `app-user-type`, `*-help` | — | — | — |
-| `*-login`, `*-register` | ✓ | — (would redirect the visitor away from the page they need) | — |
+| `*-login`, `*-register` | ✓ | — | — |
 | `*-home`, `*-factories`, `*-factory` | ✓ | ✓ | ✓ |
 | `*-account`, `*-settings`, `*-cart`, `*-messages`, `*-profile`, `*-admin` | ✓ | ✓ | — |
 
-The help pages are deliberately public and load neither script. Adding the guard to login/register would create a redirect loop — and the welcome pages are the guard's *destination*, so loading it there would loop too.
-
-**Both welcome pages and both register pages mention `auth-guard.js` in their Arabic banner comment** explaining that relationship. They do not load it. Confirm with `grep -c '<script[^>]*auth-guard\.js'` before concluding otherwise.
+Adding the guard to login/register would create a redirect loop, and the welcome pages are the guard's *destination*. Their banner comments mention `auth-guard.js` for that reason — they do not load it.
 
 ### Public browsing (`SF_PUBLIC_PAGE`) and `sfRequireLogin()`
 
-Modeled on Alibaba at the owner's request: someone arriving from a search engine must **see the storefront without an account**, and be asked to register only when they act on it.
+Modeled on Alibaba at the owner's request: someone arriving from a search engine must **see the storefront without an account**, and be asked to register only when they act.
 
 A page opts in by declaring the flag **before** `auth-guard.js` loads:
 
@@ -365,107 +248,75 @@ A page opts in by declaring the flag **before** `auth-guard.js` loads:
 <script src="auth-guard.js"></script>
 ```
 
-The guard then skips the redirect when there's no session, but **still reads the session if one exists** — so a public page knows whether the visitor is signed in (`SF_USER`) and can render a "create account" button or the account icon accordingly. On `home.html` the `#dt-auth` slot is filled this way.
+The guard then skips the redirect when there's no session, but **still reads the session if one exists** — so the page knows whether the visitor is signed in (`SF_USER`).
 
-`sfRequireLogin(nextPage)` is the other half: it returns `true` when signed in, otherwise presets `sf_account_type` to `individual` and sends the visitor to `register.html?next=<page>`. **It is defined but not yet called anywhere** — buy/cart/message buttons still don't gate. Wiring them is the unfinished half of the owner's Alibaba flow.
-
-### RLS is the real enforcement — and `with check` alone is not enough
-
-This is the single most important thing to understand before touching `schema.sql`.
-
-`with check (id = auth.uid())` validates **who** is editing, **not what they are editing**. Both holes below were live in an earlier version of this schema, found by actually attacking the running API (`PATCH` with curl), not by reading the policies:
-
-- a factory `PATCH`ing `{"status":"approved"}` onto **its own row** → self-approval succeeded, making the whole review workflow decorative
-- any user `PATCH`ing `{"is_admin":true}` onto **their own profile** → full admin, including reading every profile
-
-The fix is section **8.5** of `schema.sql`: `BEFORE UPDATE` trigger guards (`guard_profile_columns`, `guard_factory_columns`) that silently revert protected columns to `old.<col>` unless `public.is_admin()`. Protected: `is_admin`, `account_type`, `id` on profiles; `status`, `rejection_reason`, `owner_id` on factories. They revert rather than raise, so a malicious write succeeds with no effect.
-
-**Any new column a user must not set for themselves needs a line in the relevant guard — a policy alone will not do it.** And re-test by attack: issue the actual `PATCH` and confirm the value is unchanged.
-
-**Trigger names are not function names, and guessing costs a round trip.** The functions are `guard_profile_columns` / `guard_factory_columns`, but the triggers that fire them are **`profiles_guard`** and **`factories_guard`**. Writing `guard_profile_columns_trg` in an `alter table ... disable trigger` produced `ERROR: 42704 trigger does not exist` — grep `schema.sql` for `create trigger` before naming one.
-
-**Granting the first admin requires disabling `profiles_guard`**, because the guard reverts `is_admin` for everyone who is not already an admin — including edits made in the Table Editor, which is why toggling the checkbox there silently snaps back to `false`. The working recipe is one transaction that disables the trigger, updates the row, and re-enables it in the same paste. Never leave the trigger disabled.
-
-Helper functions `is_admin()`, `owns_factory(fid)`, `in_conversation(cid)` are `security definer ... set search_path = public` — they're called from inside the policies of the same tables they query, so without `security definer` RLS recurses infinitely.
-
-### Signup flow
-
-`register.html` → `sb.auth.signUp()` with `options.data.account_type` and `full_name` in the user metadata. An `after insert on auth.users` trigger (`handle_new_user`) reads `raw_user_meta_data->>'account_type'` and creates the `profiles` row — **plus**, for factories, a `factories` row at `status = 'pending'` in the same statement. The page then `update`s both with the remaining form fields; it never `insert`s them.
-
-So a factory account **always** has a factory row from the moment it exists, and it is invisible to the public until an admin approves it. `account_type` cannot be changed afterward (the guard reverts it) — a mistake at signup means a new account.
+`sfRequireLogin(nextPage)` is the other half: returns `true` when signed in, otherwise sends the visitor to the register page. **It is defined but not yet called anywhere** — buy/cart/message buttons don't gate. Wiring them is the unfinished half of the owner's Alibaba flow.
 
 ### Session guard (`auth-guard.js`)
 
-Same IIFE-over-`global` shape as `i18n.js`. Exports `SF_AUTH_READY` (a promise), `SF_USER`, `SF_PROFILE`, `sfSignOut`. No session → `location.replace("welcome.html?next=<page>")`.
+Same IIFE-over-`global` shape as `i18n.js`. Exports `SF_AUTH_READY` (a promise), `SF_USER`, `SF_PROFILE`, `sfSignOut`.
 
-- It reads `account_type` **from `profiles`**, not from localStorage, then writes it back to `sf_account_type` so the existing pages that read that key keep working. That's a compatibility shim for the un-migrated pages, not the source of truth.
-- **A network failure does not sign the user out** — the `.catch` returns `null` rather than redirecting, because a dropped connection is not an invalid session.
-- **This is a UX guard, not data protection**, and the file says so in its own header. Disabling JavaScript opens the page — but it renders empty, because RLS refuses the data. Don't present the guard as the security boundary.
-- Pages consuming it must await `SF_AUTH_READY`; `SF_USER` is `null` at parse time.
-- The profile `select` list is explicit — `account_type, full_name, phone, email, is_admin, company_image`. **A page needing another column must add it here**, or `SF_PROFILE` simply won't have the field.
-- **No session no longer always redirects**: a page declaring `SF_PUBLIC_PAGE = true` is allowed through (see *Public browsing* above).
+- **Path-aware.** `LOGIN_PAGE` is gone; `currentPage()` / `isWebPath()` / `loginPage()` / `registerPage()` pick the destination from the current filename, used in three places (session expiry, `sfRequireLogin()`, sign-out). `index.html` has no prefix so it falls into the "not web-" branch — the app path, which is correct.
+- It reads `account_type` **from `profiles`**, then writes it back to `sf_account_type` — a compatibility shim for un-migrated pages, not the source of truth.
+- **A network failure does not sign the user out** — the `.catch` returns `null` rather than redirecting.
+- **This is a UX guard, not data protection.** Disabling JavaScript opens the page — but it renders empty, because RLS refuses the data. Don't present the guard as the security boundary.
+- Pages must await `SF_AUTH_READY`; `SF_USER` is `null` at parse time.
+- The profile `select` list is explicit. **A page needing another column must add it here**, or `SF_PROFILE` won't have the field.
 
-### Things that bite
+### RLS is the real enforcement — `with check` alone is not enough
 
-- **`Start-Process` also fails on percent-encoded `file:///` URLs**, not just query strings (the existing note covers only the latter). Pass the plain Windows path.
-- **Verifying a user exists via an anon REST count proves nothing** — RLS hides non-approved factories and other people's profiles from the anon key, so an empty result is the *expected* success case. Check Supabase → Authentication → Users instead, or ask the owner for a screenshot.
-- **Balance-checking `.sql` files gives false positives**: Arabic comment numbering like `1)` / `2)` counts as an unmatched paren. Strip comments first — `sed 's/--.*$//' schema.sql | awk ...`.
-- `perl -0pi -e` has silently no-op'd on these files when inserting `<script>` tags; `sed -i '<line>a ...'` worked. Always grep the file afterward to confirm the insert landed.
-- **A `grep -c` that finds nothing exits non-zero** and will abort a `&&`-chained shell command early, making later checks look like they never ran. Append `|| true` when counting something that may legitimately be absent.
-- **The trigger is named `profiles_guard`, not `guard_profile_columns`** — see the RLS section. Grep before naming.
-- **Grepping a filename counts the Arabic banner comments too.** Every page names the shared assets in its header comment, so `grep -l 'desktop.css' *.html` returns all 28 files and `grep -c 'auth-guard.js'` reports 1 on pages that only *mention* it. This produced two wrong conclusions in one session — that app pages carried `desktop.css`, and that the welcome/register pages had a redirect loop. **Match the tag**: `<link[^>]*desktop\.css` / `<script[^>]*auth-guard\.js`.
-- **`git status` is clean but the working tree is not the whole story on OneDrive.** The folder syncs; a file the owner has open in the browser may be a cached copy. When an edit "doesn't show", confirm it landed with `grep` and ask for **Ctrl + F5** before changing anything else.
+`with check (id = auth.uid())` validates **who** is editing, **not what**. Two privilege-escalation holes were live in an earlier schema, written by a previous session, reviewed as correct, and found only by attacking the running API:
+
+- a factory `PATCH`ing `{"status":"approved"}` onto its own row → self-approval, making the review workflow decorative
+- any user `PATCH`ing `{"is_admin":true}` onto their own profile → full admin
+
+The fix is section **8.5**: `BEFORE UPDATE` trigger guards that silently revert protected columns unless `is_admin()`. **Any new column a user must not set for themselves needs a line in the relevant guard — a policy alone will not do it.**
+
+**Security claims must be tested by attack, not by reading the policy.** When you add or change an RLS policy, run the attack it is supposed to stop and show the result. Details, trigger names (they differ from the function names), and the first-admin recipe are in the archive.
+
+### Signup flow
+
+`register.html` → `sb.auth.signUp()` with `account_type` and `full_name` in user metadata. An `after insert on auth.users` trigger creates the `profiles` row — **plus**, for factories, a `factories` row at `status = 'pending'`. The page then `update`s both; it never `insert`s them.
+
+So a factory account **always** has a factory row from the moment it exists, invisible to the public until an admin approves it. `account_type` cannot be changed afterward (the guard reverts it) — a mistake at signup means a new account.
 
 ### Current state / deliberate gaps
 
-- **Email confirmation is DISABLED** in the Supabase dashboard — a development convenience, and the first mandatory item in `TODO-BEFORE-LAUNCH.md`. Anyone can currently register with an address they don't own.
-- **The admin console exists and works** on both paths, and the owner's account has `is_admin = true`, so factories can be approved. Reachable only by typing the filename — no nav links to it.
-- **The UI is almost entirely un-wired from the database.** Of the 18 pages loading `auth-guard.js`, only the two admin pages make any data call; home, account, settings, factories, factory, cart, messages and profile make **zero** on both paths. Outside those, only the login/register pages touch Supabase (auth + profile writes). The factory grids, product cards, and bestsellers are all generated placeholders. Don't describe any of them as showing real data.
-- `region_id` is never written at signup (no region field on `register.html`), so `home.html`'s map cannot find a region's factories.
-- Images are still base64 in `localStorage`; the storage buckets exist but nothing writes to them.
-- Messaging is still local-only despite `conversations`/`messages` existing in the schema. The `posts` and `custom_prices` tables from `add-posts-prices.sql` are likewise **schema-only** — the factory feed and the private-price-in-chat features were requested by the owner and are the next UI work.
-- **Commercial-register verification is deferred by explicit owner decision.** It cannot be done client-side — the Ministry of Commerce API needs a formal contract and a secret key that cannot live in an HTML page. The agreed plan is manual review of `pending` factories. Don't re-litigate this; the reasoning is recorded in `TODO-BEFORE-LAUNCH.md`.
+- **Email confirmation is DISABLED** in the dashboard — a dev convenience, and the first mandatory item in `TODO-BEFORE-LAUNCH.md`. Anyone can register with an address they don't own.
+- **The UI is almost entirely un-wired from the database.** Of the 18 pages loading `auth-guard.js`, only the two admin pages make a data call; home, account, settings, factories, factory, cart, messages, profile make **zero** on both paths. Outside those, only login/register touch Supabase. The factory grids, product cards, and bestsellers are generated placeholders. **Don't describe any of them as showing real data.**
+- `region_id` is never written at signup (no region field), so the map cannot find a region's factories.
+- Images are base64 in `localStorage`; the storage buckets exist but nothing writes to them.
+- `posts` and `custom_prices` are schema-only — the factory feed and private-price-in-chat are the next UI work.
+- **Commercial-register verification is deferred by explicit owner decision.** It cannot be done client-side; the agreed plan is manual review of `pending` factories. **Don't re-litigate this.**
 
-`fix-privileges.sql` and `cleanup-test-data.sql` are one-off scripts that have already been run. Their content is merged into `schema.sql` (§8.5); they're kept as a record.
+## Working with the owner
 
-## Working with the owner of this project
+Learned over many sessions; it will save you rework.
 
-Learned over many sessions; it will save you rework:
+- **The owner is not a programmer, and asks to be taught** ("علمني ايش فعلنا"). Terms like "backend", "RLS", "email confirmation" need defining the first time. For dashboard tasks give literal click-by-click steps — "Supabase → Authentication → Providers → Email → Confirm email → Save" — not a description of the goal. **"مافهمت" means slow down and define, not repeat.**
+- **Requests arrive in Arabic, short and visual** ("اجعلها أعرض", "ليست جميلة"). They describe an *outcome*, not an implementation. Styling asks often arrive as successive nudges in one direction — **make the single change asked for and stop.**
+- **A one-word follow-up continues the previous request.** "زياده" after "ارفعها قليلاً" means *more of that same nudge*, not a fresh instruction.
+- **"لا لا" / "انت لم تفهم" means the goal was misread, not that the code is buggy.** Re-read the original wording literally before editing again.
+- **"لاتزال موجودة" means your fix targeted the wrong element, not that it was too weak.** Don't repeat the same change harder — find what *actually* paints the pixels. Twice it was a second rule the element carried; once it was `body`'s background rather than any panel.
+- **An ambiguous Arabic verb is worth one question.** "ابعدها" can mean *move it away* or *get rid of it*. Two rounds went into spacing, each answered "لاتزال موجوده", before one question with concrete options got "نعم شيله" — remove it.
+- **Screenshots are marked up.** A red line is a target measurement, not decoration — read the drawing before editing.
+- **If a screenshot looks identical after your edit, suspect browser caching first.** Grep to confirm the edit landed, say so, and suggest Ctrl+F5 — don't pile on a larger change.
+- **Open the page in the browser after every change, without being asked.** A standing instruction ("افتحلي دايم الصفحه بعد اي تغيير اطلبه"). Remind them to press **Ctrl + F5** — a plain reload serves cached CSS and makes a landed edit look like it failed.
+- **Do exactly what was asked and nothing adjacent.** "حط الشعار حقي" was answered with a whole top bar — search box, icons, the lot — which rendered broken. The reply was **"ماذا فعلت"** then **"اعدها انت خربتها قلتلك ضيف الشعار على اليسار فقط"**, and the page had to be restored. Add the logo; stop.
+- **When a request would change a shared component, say which pages it touches before editing.** The bottom nav lives in 10 files; "change the text to green" on one page may or may not mean all ten. This is the ambiguity most worth one targeted question.
+- **Never run a blanket `sed` across a shared CSS file.** One meant for a single dashboard rule silently rewrote `.bestsellers-section` and `.cart-page .checkout-bar`. Prefer an anchored Python replacement with an `assert`, and grep afterward.
+- **`Start-Process` chokes on a query string**, and on percent-encoded `file:///` URLs too — this folder's name is Arabic, so it usually is encoded. Use the plain Windows path with no query string.
+- **Do not ask for, and do not accept, the `service_role` / `sb_secret_` key or the database password.** The publishable key is the only credential that belongs here. If offered a secret one, decline and explain why.
+- When a request is genuinely ambiguous, ask **one** targeted question with concrete options rather than guessing broadly.
 
-- **Requests arrive in Arabic and are often short and visual** ("اجعلها أعرض", "ليست جميلة"). They describe an *outcome*, not an implementation. Sizing/styling asks frequently arrive as a run of successive nudges in the same direction — make the single change asked for and stop; don't batch several steps ahead or refactor around it.
-- **A correction like "لا لا" or "انت لم تفهم" means the goal was misread, not that the code is buggy.** Re-read the original wording literally before editing again. Twice this has meant undoing work and restructuring, e.g. the splash → `welcome.html` split, and the portrait phone-column layout.
-- **"لاتزال موجودة" ("it's still there") means your fix targeted the wrong element, not that it was too weak.** Don't repeat the same change harder. Find what *actually* paints the pixels — twice this was a second rule the element carried in its own right, and once it was `body`'s background rather than any panel. If you genuinely can't locate it, ask one targeted question with concrete options instead of guessing again.
-- **Screenshots are marked up.** A red line drawn across one is a target measurement ("اجعلها اقصر الى الحد الاحمر" = narrow it to that line), not decoration — read the drawing before editing.
-- **If a screenshot looks identical to the previous one after you edited the file, suspect browser caching first.** Grep the file to confirm your edit landed, say so, and suggest Ctrl+F5 — don't assume the change failed and pile on a larger one.
-- **Open the page in the browser after every change, without being asked.** A standing instruction from the owner ("افتحلي دايم الصفحه بعد اي تغيير اطلبه"). Use `powershell Start-Process "account.html"`, and remind them to press **Ctrl + F5** — plain reload serves the cached CSS and makes a landed edit look like it failed.
-- **"Verify in the browser" is not optional here.** You cannot render the page (see *Running / testing*). Several bugs got through review and were caught only by the user looking: the `.auth-btn:active` fill-mode issue, the drawer escaping the phone column, the `.composer` doing the same, missing account data. Open the page, then ask what they see.
-- **A one-word follow-up continues the previous request; it does not start a new one.** "زياده" after "ارفعها قليلاً" means *more of that same nudge*. Apply another step in the same direction rather than re-reading it as a fresh instruction.
-- **When a request would change a shared component, say which pages it touches before editing.** The bottom nav lives in five files and colors were deliberately left as state signals in earlier passes; "change the text to green" on one page may or may not mean all five. This is the ambiguity most worth one targeted question.
-- **Do exactly what was asked and nothing adjacent.** "حط الشعار حقي" (add my logo) was answered with a whole top bar — search box, icons, the lot — which rendered broken because the CSS it needed lives inside `home.html`'s own `<style>` block, not in a shared file. The reply was **"ماذا فعلت"** then **"اعدها انت خربتها قلتلك ضيف الشعار على اليسار فقط"**, and the page had to be restored from a backup. Add the logo; stop.
-- **Never run a blanket `sed` across a shared CSS file.** `sed -i 's/grid-column: 2;/grid-column: main-end;/'` was meant for one dashboard rule and silently rewrote `.bestsellers-section` and `.cart-page .checkout-bar`, which use numeric grids where the named line doesn't exist. A line-range `sed -i '589,590d'` separately left a selector with a trailing comma and no name. Prefer an anchored Python replacement with an `assert`, and grep the file afterward.
-- **An ambiguous Arabic verb is worth one question.** "ابعدها" can mean *move it away* (add spacing) or *get rid of it*. Two rounds went into spacing, each answered "لاتزال موجوده", before one question with concrete options got "نعم شيله" — remove it. When a fix "doesn't work" twice, re-read the request rather than applying the same change harder.
-- **Wire new UI to i18n immediately.** Hardcoding Arabic strings into new buttons produced a visibly mixed Arabic/English interface and the question "لماذا يوجد بالعربي والانقليزي". Check for an existing key first (`splash_signup_btn`, `splash_login_btn`, `nav_categories` all already existed) before adding one to 30 blocks.
-- When a request is genuinely ambiguous, ask **one** targeted question with concrete options rather than guessing broadly or asking several at once.
-- **`Start-Process` chokes on a query string.** `Start-Process "…\factory.html?id=1"` fails with "system cannot find the file specified". A `file:///` URL is the usual workaround, but it fails too once anything in the path is percent-encoded — and this project's folder name is Arabic, so it usually is. The reliable form is the plain Windows path with no query string.
-- **The owner is not a programmer, and asks to be taught** ("علمني ايش فعلنا"). Terms like "backend", "RLS", "email confirmation" need defining the first time. When they ask how to do something in a dashboard, give literal click-by-click steps — "Supabase → Authentication → Providers → Email → Confirm email → Save" — not a description of the goal. Several rounds were lost this session to answers that assumed too much; "مافهمت" means slow down and define, not repeat.
-- **Do not ask for, and do not accept, the `service_role` / `sb_secret_` key or the database password.** The publishable key is the only credential that belongs in this codebase. If the owner offers a secret one, decline and explain why — there is no server-side code here that could even use it.
-- **Security claims must be tested by attack, not by reading the policy.** Two privilege-escalation holes in this schema were written by a previous session, reviewed as correct, and only found by issuing the actual malicious `PATCH`. When you add or change an RLS policy, run the attack it is supposed to stop and show the result.
+## Conventions
 
-## Conventions observed in existing pages
-
-- **This is an Arabic-first product.** The user communicates in Arabic and all UI copy, code comments in `mobile.css`, and section headers are written in Arabic. Match that: new comments and any user-facing string should be Arabic, with the English translation added to `dict.en`.
-- Default document is Arabic/RTL (`<html lang="ar" dir="rtl">`); pages that need to look correct when flipped to LTR use rules like `html[dir="ltr"] .top-bar { flex-direction: row-reverse; }` (see `home.html`) to preserve intentionally RTL-ordered DOM/flex layouts. When adding any horizontally-asymmetric layout, add the `html[dir="ltr"]` counterpart in the same edit — `i18n.js` flips `dir` for 26 of the 30 translated languages, so forgetting it breaks the majority case.
-- Arabic text in SVG (`welcome.html`'s seal) renders with **system fonts** — there is no embedded webfont, so letterforms and metrics shift between Windows/iOS/Android. Don't tune SVG text positioning to pixel precision against one machine's rendering.
-- Bottom nav is duplicated across **ten** files — home/account/factories/cart/messages × both paths — rather than templated; it has 6 items (`nav_home`, `nav_categories`, `nav_factories`, `nav_messages`, `nav_account`, `nav_cart`), each with a `data-i18n` label. Keep new pages' nav in sync with this set — and treat any nav styling change as a ten-file edit, since changing one page alone makes its bar visibly inconsistent with the rest.
-- Flag emoji (country-code picker in `profile.html` and `register.html`) are generated at runtime from ISO codes via Unicode regional-indicator math (`String.fromCodePoint(127397 + c.charCodeAt(0))`) rather than image/SVG assets — reuse this instead of adding flag images.
-- Bottom-sheet modal pattern (used for the language picker in `account.html`, the country-code picker in `profile.html`/`register.html`, and the protection-detail sheet in `cart.html`): overlay + `.open` class toggling opacity/pointer-events, `translateY(100%→0)` sheet transform, close via Escape/backdrop-click/×-button, and `document.body.style.overflow` locked while open. Picker variants (language/country) add a live-filtering search input; content sheets (protection detail) omit it. Reuse this pattern for any new picker/sheet UI rather than introducing a different modal style.
-- Password fields (`login.html`, `register.html`) use a show/hide eye-icon toggle that swaps the input's `type` between `password`/`text` and swaps the SVG icon's inner path — not a separate library/component.
-- **Image uploads** start the same way everywhere: a hidden `<input type="file" accept="image/*">` triggered by clicking a styled placeholder, then `FileReader.readAsDataURL`. But the two implementations diverge after that, and the difference matters:
-  - `factory.html` — **downscales through a `<canvas>` before storage** via `resizeImage(dataUrl, maxSize, done)` (factory.html:563). Callers pass the cap: `pickImage(640)` cover, `pickImage(180)` logo, `pickImage(400)` product, all re-encoded `toDataURL("image/jpeg", 0.8)`. Failures surface in a visible `.storage-warning` banner.
-  - `register.html` / `profile.html` — the company image also downscales, via a **local copy** of the same `resizeImage` helper in each page's script (`pickImage`-free; called directly from the file input's `change` handler with `maxSize = 400`). The three copies are independent by the "each page is self-contained" convention — there is no shared image module. Don't add new upload UI without downscaling it.
-    - This was a live bug until fixed: `register.html` used to assign `e.target.result` straight to `companyImageData`, so a multi-MB phone photo blew the ~5MB quota and — because its `setItem` `catch` is empty — silently lost the **whole** `sf_account` record, not just the image. The empty `catch` is still there, so a quota failure remains silent; downscaling is what keeps it from being hit.
-- **localStorage keys in use**: `sf_lang` (i18n), `sf_account_type` (`individual`/`factory`, see *Account types*), `sf_account` (registration data — now also `accountType`, `commercialRegister`, and `address`), `sf_factories` (per-factory `{name, about, cover, logo, products[]}` keyed by id), `sf_messages` (chat threads, see *Messaging*), and the legacy `sf_factory_images` (`img-<i>`/`logo-<i>`) which `factory.html`/`factories.html` still read as a fallback so images saved before `factory.html` existed aren't lost. The ~5MB quota is the real ceiling here — a few dozen photos, not 1000 factories' worth, and chat attachments now compete for the same budget. Any "make this hold real data" request needs a backend or IndexedDB, not more localStorage.
-- **`profile.html` mirrors `register.html`'s `isFactory` branch.** Both pages branch the same way (factories: "اسم الشركة" + `f-cr` + address sheet, gender removed; individuals: CR field, address field, and address overlay removed from the DOM, `crInput = null`), and both write the identical `sf_account` shape — so anything added to one form must be added to the other, including the `saveAccountData()` payload. `profile.html` resolves the type from `savedAccount.accountType` **first**, falling back to the `sf_account_type` key, so a saved account keeps its form even if the global key is later changed on `user-type.html`.
-  - `profile.html` adds `birthdate` to the `sf_account` record; `register.html` has no birthdate field and so never writes that key.
-- **Authentication is real now, but only on the two auth pages.** `login.html` and `register.html` call Supabase Auth (see *Backend* below). The rest of the app has **not** been migrated: `factory.html` still gates editing on the spoofable `sf_account_type` localStorage value, and `messages.html` is still browser-local. So "who you are" is enforced at the server, while "what you may edit" mostly still is not. Don't describe the app as uniformly access-controlled — say which layer you mean.
-- **The old fake-submit pattern is gone from `login.html`/`register.html`** — they no longer `setTimeout(..., 5000)` and redirect. That 5s stand-in survives nowhere; if you see it referenced, it's stale. `profile.html`'s update button still just enables/disables on field-fill and writes only to localStorage.
+- Default document is `<html lang="ar" dir="rtl">`; see *RTL* above for the counterpart rule.
+- Arabic text in SVG renders with **system fonts** — no embedded webfont, so letterforms shift between platforms. Don't tune SVG text positioning to pixel precision against one machine.
+- Bottom nav has 6 items, each with a `data-i18n` label; keep new pages in sync.
+- **Flag emoji are generated at runtime** from ISO codes via regional-indicator math (`String.fromCodePoint(127397 + c.charCodeAt(0))`) — reuse this rather than adding flag images.
+- **Bottom-sheet modal pattern** (language picker, country picker, cart protection detail): overlay + `.open` class, `translateY(100%→0)`, close via Escape/backdrop/×, `body.style.overflow` locked while open. Picker variants add a filtering search input. Reuse this rather than introducing another modal style.
+- Password fields use a show/hide eye toggle swapping the input `type` and the SVG's inner path — not a library.
+- **Image uploads must downscale.** A hidden `<input type="file">` triggered by a styled placeholder, then `FileReader.readAsDataURL`, then a `<canvas>` resize before storage. `factory.html` uses `resizeImage(dataUrl, maxSize, done)` with per-use caps (640 cover, 180 logo, 400 product); register/profile carry local copies. **This was a live bug**: `register.html` once stored the raw result, so a phone photo blew the ~5MB quota and — because its `setItem` catch is empty — silently lost the **whole** `sf_account` record. The empty catch is still there; downscaling is what keeps it from being hit.
+- **localStorage keys**: `sf_lang`, `sf_account_type`, `sf_account`, `sf_factories`, `sf_messages`, and legacy `sf_factory_images`. **The ~5MB quota is the real ceiling** — a few dozen photos, not 1000 factories' worth, and chat attachments compete for the same budget. Any "make this hold real data" request needs a backend or IndexedDB, not more localStorage.
+- **`profile.html` mirrors `register.html`'s `isFactory` branch** and both write the identical `sf_account` shape — anything added to one form must be added to the other, including the save payload. But **their save triggers deliberately differ** (see archive).
