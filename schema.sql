@@ -56,7 +56,8 @@ create table if not exists public.factories (
   cover               text default '',      -- رابط تخزين
   logo                text default '',      -- رابط تخزين
 
-  commercial_register text not null default '',
+  commercial_register text not null default '',   -- 10 أرقام حدّاً أقصى
+  industrial_license  text not null default '',   -- 10 أرقام حدّاً أقصى
   region_id           text default '',      -- يقابل معرّفات مناطق regions-geo.js
 
   -- العنوان الوطني — مفكوك إلى أعمدة بدل كائن JSON

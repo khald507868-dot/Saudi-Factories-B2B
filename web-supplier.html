@@ -909,10 +909,17 @@
         <input type="text" id="f-name" data-i18n-placeholder="field_name_placeholder" placeholder="أدخل اسمك الكامل">
       </div>
 
-      <!-- السجل التجاري: للمصانع فقط، يُحذف من النموذج عند التسجيل كفرد -->
+      <!-- السجل التجاري: للمصانع فقط، يُحذف من النموذج عند التسجيل كفرد.
+           عشرة أرقام حدّاً أقصى — يفرضها maxlength والترشيح في السكربت. -->
       <div class="field" id="cr-field">
         <label for="f-cr" data-i18n="field_cr">السجل التجاري</label>
-        <input type="text" id="f-cr" inputmode="numeric" data-i18n-placeholder="field_cr_placeholder" placeholder="أدخل رقم السجل التجاري">
+        <input type="text" id="f-cr" inputmode="numeric" maxlength="10" autocomplete="off" data-i18n-placeholder="field_cr_placeholder" placeholder="أدخل رقم السجل التجاري">
+      </div>
+
+      <!-- الترخيص الصناعي: للمصانع فقط، عشرة أرقام حدّاً أقصى -->
+      <div class="field" id="il-field">
+        <label for="f-il" data-i18n="field_industrial_license">رقم الترخيص الصناعي</label>
+        <input type="text" id="f-il" inputmode="numeric" maxlength="10" autocomplete="off" data-i18n-placeholder="field_industrial_license_placeholder" placeholder="أدخل رقم الترخيص الصناعي">
       </div>
 
       <!-- عنوان المصنع: يفتح نافذة سفلية بتفاصيل العنوان -->
@@ -1239,6 +1246,7 @@
       var isFactory = true;
 
       var crInput = document.getElementById("f-cr");
+      var ilInput = document.getElementById("f-il");
 
       if (isFactory) {
         /* حذف حقل الجنس نهائياً من النموذج */
@@ -1261,6 +1269,10 @@
         if (crField) crField.parentNode.removeChild(crField);
         crInput = null;
 
+        var ilField = document.getElementById("il-field");
+        if (ilField) ilField.parentNode.removeChild(ilField);
+        ilInput = null;
+
         var addressFieldEl = document.getElementById("address-field");
         if (addressFieldEl) addressFieldEl.parentNode.removeChild(addressFieldEl);
 
@@ -1274,6 +1286,7 @@
           emailInput.value.trim().length > 0 &&
           passwordInput.value.trim().length > 0 &&
           (!crInput || crInput.value.trim().length > 0) &&
+          (!ilInput || ilInput.value.trim().length > 0) &&
           (!isFactory || addressData.city.length > 0);
         btn.disabled = !filled;
         btn.classList.toggle("enabled", filled);
@@ -1285,6 +1298,7 @@
           accountType: accountType,
           name: nameInput.value.trim(),
           commercialRegister: crInput ? crInput.value.trim() : "",
+          industrialLicense: ilInput ? ilInput.value.trim() : "",
           address: isFactory ? addressData : null,
           gender: checkedGender ? checkedGender.value : "",
           countryFlag: document.getElementById("country-flag").textContent,
@@ -1298,8 +1312,20 @@
         } catch (err) {}
       }
 
+      /* السجل التجاري والترخيص الصناعي: أرقام فقط وعشرة حدّاً أقصى.
+         maxlength يحدّ الطول لكنه يقبل الحروف، فيُرشَّح المدخل هنا —
+         ويغطّي هذا اللصق أيضاً، لا الكتابة وحدها. */
+      [crInput, ilInput].forEach(function (el) {
+        if (!el) return;
+        el.addEventListener("input", function () {
+          var digits = el.value.replace(/[^0-9]/g, "").slice(0, 10);
+          if (digits !== el.value) el.value = digits;
+        });
+      });
+
       var fields = [nameInput, phoneInput, emailInput, passwordInput];
       if (crInput) fields.push(crInput);
+      if (ilInput) fields.push(ilInput);
 
       fields.forEach(function (el) {
         el.addEventListener("input", checkFilled);
@@ -1448,6 +1474,7 @@
               return sb.from("factories").update({
                 name: nameInput.value.trim(),
                 commercial_register: crInput ? crInput.value.trim() : "",
+                industrial_license: ilInput ? ilInput.value.trim() : "",
                 address_city: addressData.city,
                 address_district: addressData.district,
                 address_short: addressData.shortAddress,
