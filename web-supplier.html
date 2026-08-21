@@ -747,6 +747,25 @@
   .sharp-corners .country-item,
   .sharp-corners .address-save-btn { border-radius: 0; }
 
+  /* رابط "نسيت كلمة المرور؟" أسفل حقل كلمة المرور.
+     يقع في نهاية اتجاه القراءة — مرآة حقيقية تتبع اللغة،
+     فله نظير html[dir="ltr"] أدناه. */
+  .forgot-row {
+    margin: -8px 0 20px;
+    text-align: left;
+    font-size: 13px;
+  }
+
+  html[dir="ltr"] .forgot-row { text-align: right; }
+
+  .forgot-row a {
+    color: #1f6b42;
+    font-weight: 700;
+    text-decoration: none;
+  }
+
+  .forgot-row a:hover { text-decoration: underline; }
+
   /* ممرّ بين بوّابتَي الأفراد والمصانع */
   .auth-switch {
     margin: -8px 0 22px;
@@ -882,6 +901,11 @@
             </button>
           </div>
         </div>
+
+        <!-- استعادة كلمة المرور: صفحة مستقلّة web-reset.html -->
+        <p class="forgot-row">
+          <a href="web-reset.html" data-i18n="forgot_password_link">نسيت كلمة المرور؟</a>
+        </p>
 
         <button type="submit" class="btn-update" id="login-btn" disabled data-i18n="splash_login_btn">تسجيل دخول</button>
       </form>
