@@ -1337,6 +1337,43 @@
 }
 
 /* عناصر سطح المكتب مخفية تماماً على الجوال */
+  /* ===== صفحة المنتج =====
+     تشارك store-page في الشكل العام، لكنّ شبكة
+     store-page تضع عناصر web-factory بـ grid-row صريحة
+     (#card-name و#card-about و#card-products) — وهي معدومة هنا،
+     فكانت بطاقات المنتج تتدفّق إلى صفوف فارغة
+     فيظهر فراغ طويل وتهبط الأزرار إلى أسفل الصفحة. */
+  .product-page .content-wrap {
+    grid-template-columns: 420px minmax(0, 1fr);
+    align-content: start;
+    padding-bottom: 40px !important;
+  }
+
+  /* الصورة في العمود الضيّق، وكلّ ما عداها في الواسع */
+  .product-page .product-hero {
+    grid-column: 1;
+    grid-row: 1;
+    margin: 0 !important;
+    aspect-ratio: 1 / 1;
+    height: auto;
+  }
+
+  .product-page .card,
+  .product-page .actions {
+    grid-column: 2;
+    margin: 0 0 16px !important;
+  }
+
+  /* الأزرار تلي البطاقات مباشرة لا في قعر الصفحة */
+  .product-page .actions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-width: 520px;
+  }
+
+  .product-page .act-btn { margin: 0 !important; }
+
 @media (max-width: 1023px) {
   .dt-bar,
   .dt-catbar,
