@@ -1347,14 +1347,21 @@
     padding-bottom: 40px !important;
   }
 
-  /* الصورة في العمود الضيّق، وكلّ ما عداها في الواسع */
+  /* الصورة تمتدّ على كلّ الصفوف لا على الأوّل وحده:
+     بحجز grid-row: 1 كان الصفّ الأوّل يتمدّد إلى ارتفاع
+     الصورة (قرابة 420px) بينما البطاقة المقابلة قصيرة،
+     فيبقى الفرق فراغاً داخل الصفّ نفسه. */
   .product-page .product-hero {
     grid-column: 1;
-    grid-row: 1;
+    grid-row: 1 / -1;
+    align-self: start;
     margin: 0 !important;
     aspect-ratio: 1 / 1;
     height: auto;
   }
+
+  /* صفّ مستقلّ لكلّ بطاقة، وصفّ أخير يبتلع الفائض */
+  .product-page .content-wrap { grid-auto-rows: min-content; }
 
   .product-page .card,
   .product-page .actions {
