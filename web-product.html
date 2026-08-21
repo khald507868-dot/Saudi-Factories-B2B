@@ -268,17 +268,6 @@
 
   .act-btn.outline:active { background: #f0f4f1; }
 
-  /* ===== المنتج غير موجود ===== */
-  .not-found {
-    margin: 40px 14px;
-    padding: 26px 18px;
-    background: #ffffff;
-    border-radius: 14px;
-    text-align: center;
-    font-size: 14px;
-    color: #5c6b62;
-    line-height: 1.8;
-  }
 </style>
 <link rel="stylesheet" href="mobile.css">
 <link rel="stylesheet" href="desktop.css">
@@ -357,12 +346,10 @@
 
       var factoryName = factory.name || (I18N.t("msg_role_factory") + " " + factoryId);
 
-      /* لا اسم ولا صورة ولا مصنع بهذا الرقم: لا شيء نعرضه */
-      if (!name && !image && !factory.name) {
-        wrap.innerHTML =
-          '<div class="not-found">' + escapeHTML(I18N.t("product_not_found")) + '</div>';
-        return;
-      }
+      /* لا رسالة "غير موجود" هنا عمداً: بطاقات الرئيسية
+         تُولَّد لألف مصنع سواء أدخل أصحابها بيانات أم لا،
+         فرفض العرض كان يناقض البطاقة التي قادت إلى هنا.
+         والصفحة تعرض ما توفّر، وتُخفي ما غاب. */
 
       /* ===== نصوص الرسائل الجاهزة =====
          تُمرَّر إلى صفحة المحادثات عبر ‎?draft=‎ فتُملأ خانة
@@ -384,13 +371,17 @@
         : '<div class="prod-price on-request">' +
           escapeHTML(I18N.t("product_price_on_request")) + '</div>';
 
+      /* اسم المعروض: اسم المنتج، وإلا اسم المصنع، وإلا
+         تسمية المصنع برقمه — فلا يبقى العنوان فارغاً. */
+      var displayName = name || factoryName;
+
       wrap.innerHTML =
         '<div class="product-hero">' +
           (image ? '<img alt="" src="' + escapeHTML(image) + '">' : imageIcon) +
         '</div>' +
 
         '<div class="card">' +
-          (name ? '<div class="prod-name">' + escapeHTML(name) + '</div>' : '') +
+          '<div class="prod-name">' + escapeHTML(displayName) + '</div>' +
           priceBlock +
           '<div class="prod-moq">' + escapeHTML(I18N.t("product_reorder_rate")) +
             ' ' + reorder + '%</div>' +
