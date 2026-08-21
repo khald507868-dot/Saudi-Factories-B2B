@@ -130,7 +130,7 @@ There is no `psql` and no Supabase CLI here. Edit `schema.sql` (or a focused one
 
 ## Architecture
 
-Each page is a **fully self-contained** `<style>`/markup/`<script>` block in one `.html` file — page-specific styling is never extracted into a shared file. The shared assets are `i18n.js` and `mobile.css` (every page), `desktop.css` (the 13 `web-` pages), `regions-geo.js` (home pages only), and `supabase-config.js` / `auth-guard.js` (the subsets under *Backend*).
+Each page is a **fully self-contained** `<style>`/markup/`<script>` block in one `.html` file — page-specific styling is never extracted into a shared file. The shared assets are `i18n.js` and `mobile.css` (every page), `desktop.css` (the 14 `web-` pages), `regions-geo.js` (home pages only), and `supabase-config.js` / `auth-guard.js` (the subsets under *Backend*).
 
 **There is not a single image file in this project** — every icon, flag, and logo is inline SVG, CSS, or generated glyphs. When the owner supplies a logo as a picture, the expected move is to rebuild it in markup, not save the file.
 
@@ -178,7 +178,26 @@ Loaded **after** each page's `<style>`, holds only cross-cutting device concerns
 
 **The whole file lives inside `@media (min-width: 1024px)`**, with one closing `@media (max-width: 1023px)` block that hides desktop-only elements. Nothing sits outside a media query, and that is the core invariant: below 1024px the phone design is untouched. **Never add a bare top-level rule here.**
 
-Carried by the **13 `web-` pages and nothing else**.
+**A brace-balance check does not prove a rule landed in the right block.** A rule inserted between the two media blocks — after the first one's closing brace, before the second opens — balances perfectly and applies at **no** screen size at all. That happened here and cost a round. After inserting into this file, verify containment, not just balance:
+
+```bash
+# which media block does each new rule sit in?
+python - <<'EOF'
+import io, re
+d = io.open("desktop.css", encoding="utf-8").read()
+depth, stack = 0, []
+for n, ln in enumerate(d.split("
+"), 1):
+    m = re.search(r'@media\s*\(([^)]*)\)', ln)
+    if m: stack.append((depth, m.group(1).strip()))
+    if ".your-new-class" in ln and "{" in ln:
+        print(n, "->", stack[-1][1] if stack else "TOP LEVEL - BAD")
+    depth += ln.count("{") - ln.count("}")
+    while stack and depth <= stack[-1][0]: stack.pop()
+EOF
+```
+
+Carried by the **14 `web-` pages and nothing else**.
 
 - **Desktop-only markup is always in the DOM**, hidden below 1024px by that closing block. Adding a desktop-only element means **adding it to the hide list too**.
 - **Un-capping the phone column is the first thing the file does** — `body`'s `max-width`/`margin`/`box-shadow` are overridden with `!important`, `body::after` is killed, and `.bottom-nav` hidden.
@@ -373,4 +392,4 @@ Learned over many sessions; it will save you rework.
 - Password fields use a show/hide eye toggle swapping the input `type` and the SVG's inner path — not a library.
 - **Image uploads must downscale.** A hidden `<input type="file">` triggered by a styled placeholder, then `FileReader.readAsDataURL`, then a `<canvas>` resize before storage. `factory.html` uses `resizeImage(dataUrl, maxSize, done)` with per-use caps (640 cover, 180 logo, 400 product); the register tabs and profile carry local copies. **This was a live bug**: the register form once stored the raw result, so a phone photo blew the ~5MB quota and — because its `setItem` catch is empty — silently lost the **whole** `sf_account` record. The empty catch is still there; downscaling is what keeps it from being hit.
 - **localStorage keys**: `sf_lang`, `sf_account_type`, `sf_account`, `sf_factories`, `sf_messages`, and legacy `sf_factory_images`. **The ~5MB quota is the real ceiling** — a few dozen photos, not 1000 factories' worth, and chat attachments compete for the same budget. Any "make this hold real data" request needs a backend or IndexedDB, not more localStorage.
-- **`profile.html` mirrors `register.html`'s `isFactory` branch** and both write the identical `sf_account` shape — anything added to one form must be added to the other, including the save payload. But **their save triggers deliberately differ** (see archive).
+- **`profile.html` mirrors the register tab's `isFactory` branch** and both write the identical `sf_account` shape — anything added to one form must be added to the other, including the save payload. But **their save triggers deliberately differ** (see archive).
