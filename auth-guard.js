@@ -35,7 +35,9 @@
   }
 
   function loginPage() {
-    return isWebPath() ? "web-welcome.html" : "app-welcome.html";
+    /* مسار الموقع: حُذفت web-welcome.html، وصفحة الدخول الموحّدة
+       بتبويبيها صارت الوجهة المباشرة. ومسار التطبيق بلا تغيير. */
+    return isWebPath() ? "web-login.html" : "app-welcome.html";
   }
 
   function registerPage() {
