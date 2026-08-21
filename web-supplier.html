@@ -1,11 +1,14 @@
 <!DOCTYPE html>
-<!-- نوع الصفحة: متصفّح | تسجيل الدخول وإنشاء الحساب معاً
+<!-- نوع الصفحة: متصفّح | بوّابة المصانع (الموردين)
      البادئة web- تعني نسخة الموقع؛ والبادئة app- نسخة التطبيق.
      desktop.css محمّل — التصميم العريض يعمل فوق ١٠٢٤ بكسل.
-     صفحة واحدة بتبويبين: "تسجيل دخول" و"حساب جديد".
-     والرابط ‎web-login.html#register‎ يفتحها على تبويب التسجيل.
-     دمجت web-register.html التي حُذفت؛ ومقابلاهما في التطبيق
-     app-login.html و app-register.html ما زالتا منفصلتين.
+     صفحة واحدة بتبويبين: "تسجيل دخول" و"تسجيل مصنع جديد".
+     والرابط ‎web-supplier.html#register‎ يفتحها على تبويب التسجيل.
+
+     الفرق عن web-login.html نظيرتها للأفراد: هنا accountType
+     مثبّت على "factory"، فيُظهر النموذج السجل التجاري وعنوان
+     المصنع وصورة الشركة، ويحذف حقل الجنس. أمّا web-login.html
+     فمثبّتة على "individual" بالعكس تماماً.
      الدليل الكامل: الصفحات.md -->
 
 <html lang="ar" dir="rtl">
@@ -16,7 +19,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<title data-i18n="login_page_title">تسجيل الدخول - المصانع السعودية</title>
+<title data-i18n="supplier_page_title">بوّابة المصانع - المصانع السعودية</title>
 <script src="i18n.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase-config.js"></script>
@@ -838,9 +841,9 @@
               data-i18n="splash_signup_btn">حساب جديد</button>
     </div>
 
-    <!-- ممرّ إلى بوّابة المصانع: هذه الصفحة للأفراد وحدهم -->
+    <!-- ممرّ إلى صفحة الأفراد: هذه الصفحة للمصانع وحدها -->
     <p class="auth-switch">
-      <a href="web-supplier.html" data-i18n="auth_switch_supplier">هل أنت مصنع؟ ادخل من هنا</a>
+      <a href="web-login.html" data-i18n="auth_switch_individual">هل أنت مشترٍ؟ ادخل من هنا</a>
     </p>
 
     <!-- ===== لوحة تسجيل الدخول ===== -->
@@ -1048,8 +1051,10 @@
       /* عنوان الترويسة يتبع التبويب النشط. ونصّ تبويب "حساب جديد"
          وعنوانه يصيران "تسجيل مصنع" حين يكون نوع الحساب مصنعاً —
          وهو ما كانت صفحة التسجيل تفعله بعنوانها وحده. */
-      /* صفحة الأفراد: نصّ التبويب ثابت "حساب جديد" */
-      var signupKey = "splash_signup_btn";
+      /* صفحة المصانع: نصّ التبويب "تسجيل مصنع جديد" دائماً */
+      var signupKey = "splash_signup_factory_btn";
+      tabs.register.setAttribute("data-i18n", signupKey);
+      tabs.register.textContent = I18N.t(signupKey);
 
       var titleKey = { login: "splash_login_btn", register: signupKey };
 
@@ -1063,7 +1068,8 @@
         /* الصفة والنص معاً: applyTranslations() تكون قد عملت قبل هذا */
         heading.setAttribute("data-i18n", titleKey[name]);
         heading.textContent = I18N.t(titleKey[name]);
-        document.title = I18N.t(name === "login" ? "login_page_title" : "register_page_title");
+        /* عنوان المستند واحد في التبويبين: هذه بوّابة المصانع */
+        document.title = I18N.t("supplier_page_title");
       }
 
       tabs.login.addEventListener("click", function () { show("login"); });
@@ -1206,12 +1212,12 @@
         building: "", secondary: "", postal: "", street: ""
       };
 
-      /* ===== هذه الصفحة للأفراد وحدهم =====
-         النوع مثبّت هنا ولا يُقرأ من localStorage: المصانع لها
-         صفحتها web-supplier.html. وهذا ما يجعل الصفحتين مختلفتين
-         فعلياً — النموذج نفسه يتفرّع على isFactory. */
-      var accountType = "individual";
-      var isFactory = false;
+      /* ===== هذه الصفحة للمصانع وحدها =====
+         النوع مثبّت هنا ولا يُقرأ من localStorage: الأفراد لهم
+         صفحتهم web-login.html. فيحذف الفرع أدناه حقل الجنس،
+         ويُظهر السجل التجاري والعنوان، ويجعل الاسم اسم الشركة. */
+      var accountType = "factory";
+      var isFactory = true;
 
       var crInput = document.getElementById("f-cr");
 
