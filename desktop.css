@@ -1328,6 +1328,10 @@
   /* البطاقة تبقى موسّطة تحت الشريط */
   .auth-page .form-wrap { margin-top: auto !important; }
 
+  /* بطاقة بزوايا قائمة في بوّابتَي الدخول وحدهما — والصنف
+     sharp-corners هو ما يقصرها عليهما دون بقية صفحات auth. */
+  .auth-page.sharp-corners .form-wrap { border-radius: 0; }
+
   /* الترويسة القديمة يغنِي عنها التبويبان */
   .auth-page .page-header { display: none !important; }
 }

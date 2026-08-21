@@ -728,6 +728,25 @@
   /* اللوحة المخفية: hidden وحدها لا تكفي مع display الموروث */
   .auth-panel[hidden] { display: none; }
 
+  /* ===== زوايا حادّة =====
+     بطلب المالك: الحقول والأزرار والبطاقة بزوايا قائمة.
+     الصنف sharp-corners على body يقصر هذا على بوّابتَي
+     الدخول — فـ .field و .btn-update وغيرها أصناف مشتركة
+     مع صفحات أخرى، وقاعدة بلا الصنف كانت ستربّعها كلّها.
+
+     ويُستثنى المستديران عمداً: .back-btn و .image-upload
+     دائرتان بـ50% لا زوايا لهما، والنوافذ السفلية تبقى
+     بحوافّها العليا المستديرة كنمط النوافذ في المشروع. */
+  .sharp-corners .field input,
+  .sharp-corners .gender-option,
+  .sharp-corners .phone-row,
+  .sharp-corners .password-row,
+  .sharp-corners .btn-update,
+  .sharp-corners .address-trigger,
+  .sharp-corners .country-search,
+  .sharp-corners .country-item,
+  .sharp-corners .address-save-btn { border-radius: 0; }
+
   /* ممرّ بين بوّابتَي الأفراد والمصانع */
   .auth-switch {
     margin: -8px 0 22px;
@@ -792,7 +811,7 @@
 <link rel="stylesheet" href="mobile.css">
 <link rel="stylesheet" href="desktop.css">
 </head>
-<body class="auth-page">
+<body class="auth-page sharp-corners">
   <!-- خريطة المملكة كعلامة مائية خلف النموذج: شكل فقط، بلا أسماء مناطق وبلا تفاعل -->
   <div class="map-watermark" aria-hidden="true">
     <svg viewBox="-14 -14 758 628" xmlns="http://www.w3.org/2000/svg">
@@ -1125,7 +1144,7 @@
       /* رسالة خطأ أسفل النموذج */
       var errBox = document.createElement("div");
       errBox.style.cssText = "display:none;margin:12px 0;padding:12px 14px;" +
-        "border-radius:10px;background:#fdecea;color:#a32020;" +
+        "border-radius:0;background:#fdecea;color:#a32020;" +
         "font-size:14px;line-height:1.6;text-align:center;";
       btn.parentNode.insertBefore(errBox, btn);
 
@@ -1348,7 +1367,7 @@
       /* رسالة خطأ أسفل النموذج */
       var errBox = document.createElement("div");
       errBox.style.cssText = "display:none;margin:12px 0;padding:12px 14px;" +
-        "border-radius:10px;background:#fdecea;color:#a32020;" +
+        "border-radius:0;background:#fdecea;color:#a32020;" +
         "font-size:14px;line-height:1.6;text-align:center;";
       btn.parentNode.insertBefore(errBox, btn);
 
