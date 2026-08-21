@@ -39,7 +39,8 @@
   }
 
   function registerPage() {
-    return isWebPath() ? "web-register.html" : "app-register.html";
+    /* مسار الموقع: صفحة واحدة بتبويبين، والوسم ‎#register‎ يفتح تبويب التسجيل */
+    return isWebPath() ? "web-login.html#register" : "app-register.html";
   }
 
   /* تُملأ عند التحقق، وتستخدمها الصفحات بدل localStorage */

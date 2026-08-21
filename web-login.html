@@ -1,8 +1,11 @@
 <!DOCTYPE html>
-<!-- نوع الصفحة: متصفّح | تسجيل الدخول
+<!-- نوع الصفحة: متصفّح | تسجيل الدخول وإنشاء الحساب معاً
      البادئة web- تعني نسخة الموقع؛ والبادئة app- نسخة التطبيق.
      desktop.css محمّل — التصميم العريض يعمل فوق ١٠٢٤ بكسل.
-     مقابلها في التطبيق: app-login.html
+     صفحة واحدة بتبويبين: "تسجيل دخول" و"حساب جديد".
+     والرابط ‎web-login.html#register‎ يفتحها على تبويب التسجيل.
+     دمجت web-register.html التي حُذفت؛ ومقابلاهما في التطبيق
+     app-login.html و app-register.html ما زالتا منفصلتين.
      الدليل الكامل: الصفحات.md -->
 
 <html lang="ar" dir="rtl">
@@ -75,6 +78,41 @@
     stroke-width: 2.2;
   }
 
+  /* ===== خريطة المملكة كعلامة مائية خلف النموذج =====
+     القصّ على الطبقة الخارجية وحدها، حتى لا يدور مستطيل القصّ مع أي تحويل داخلي،
+     والحصر داخل عمود الجوال بإزاحات صريحة لأن margin: auto لا يوسّط عنصراً ثابتاً */
+  .map-watermark {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    overflow: hidden;
+    pointer-events: none;
+    user-select: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .map-watermark svg {
+    width: 118%;
+    max-width: none;
+    height: auto;
+    opacity: 0.07;
+  }
+
+  .map-watermark .deco-region {
+    fill: #04361b;
+    stroke: #04361b;
+    stroke-width: 1.5;
+  }
+
+  @media (min-width: 520px) {
+    .map-watermark {
+      right: calc(50% - 215px);
+      left: calc(50% - 215px);
+    }
+  }
+
   /* ===== النموذج ===== */
   .form-wrap {
     max-width: 480px;
@@ -124,6 +162,147 @@
   }
 
   .field input::placeholder {
+    color: #9aa8a0;
+  }
+
+  /* صورة الشركة */
+  .company-image-field {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 26px;
+  }
+
+  .image-upload {
+    width: 96px;
+    height: 96px;
+    border-radius: 50%;
+    border: 1.5px dashed #c7d0ca;
+    background: #fafbfa;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+
+  .image-upload img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .image-upload svg {
+    width: 30px;
+    height: 30px;
+    stroke: #04361b;
+    fill: none;
+    stroke-width: 1.6;
+  }
+
+  .company-image-field .upload-label {
+    font-size: 13px;
+    color: #04361b;
+    font-weight: 600;
+  }
+
+  /* الجنس */
+  .gender-row {
+    display: flex;
+    gap: 12px;
+  }
+
+  .gender-option {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border: 1px solid #e2e6e3;
+    border-radius: 10px;
+    padding: 14px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #04361b;
+    cursor: pointer;
+    background: #ffffff;
+  }
+
+  .gender-option input {
+    display: none;
+  }
+
+  .gender-option .icon {
+    font-size: 16px;
+    line-height: 1;
+  }
+
+  .gender-option:has(input:checked) {
+    border-color: #04361b;
+    border-width: 1.5px;
+  }
+
+  /* رقم الجوال */
+  .phone-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border: 1px solid #e2e6e3;
+    border-radius: 10px;
+    padding: 12px 14px;
+    /* خلفية بيضاء حتى لا تظهر خريطة الخلفية داخل الحقل */
+    background: #ffffff;
+  }
+
+  .phone-row .country {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+    padding-left: 10px;
+    border-left: 1px solid #e2e6e3;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-family: inherit;
+  }
+
+  .phone-row .flag {
+    font-size: 20px;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+
+  .phone-row .code {
+    font-size: 14px;
+    font-weight: 600;
+    color: #04361b;
+    direction: ltr;
+  }
+
+  .phone-row .country-chevron {
+    width: 12px;
+    height: 12px;
+    stroke: #04361b;
+    fill: none;
+    stroke-width: 2.2;
+    flex-shrink: 0;
+  }
+
+  .phone-row input {
+    flex: 1;
+    border: none;
+    outline: none;
+    font-size: 14px;
+    font-family: inherit;
+    color: #04361b;
+    text-align: right;
+    direction: ltr;
+  }
+
+  .phone-row input::placeholder {
     color: #9aa8a0;
   }
 
@@ -216,40 +395,335 @@
     margin-inline-start: 4px;
   }
 
-  /* ===== خريطة المملكة كعلامة مائية في الخلف =====
-     القصّ على الطبقة الخارجية وحدها، حتى لا يدور مستطيل القصّ مع أي تحويل داخلي،
-     والحصر داخل عمود الجوال بإزاحات صريحة لأن margin: auto لا يوسّط عنصراً ثابتاً */
-  .map-watermark {
+  /* ===== نافذة اختيار الدولة ===== */
+  .country-modal-overlay {
     position: fixed;
     inset: 0;
-    z-index: 0;
-    overflow: hidden;
+    background: rgba(4,54,27,0.45);
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    opacity: 0;
     pointer-events: none;
-    user-select: none;
+    transition: opacity 0.2s;
+    z-index: 30;
+  }
+
+  .country-modal-overlay.open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .country-modal {
+    width: 100%;
+    max-width: 480px;
+    max-height: 78vh;
+    background: #ffffff;
+    border-radius: 18px 18px 0 0;
+    display: flex;
+    flex-direction: column;
+    transform: translateY(100%);
+    transition: transform 0.25s ease;
+  }
+
+  .country-modal-overlay.open .country-modal {
+    transform: translateY(0);
+  }
+
+  .country-modal-header {
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: space-between;
+    padding: 16px 18px 10px;
   }
 
-  .map-watermark svg {
-    width: 118%;
-    max-width: none;
-    height: auto;
-    opacity: 0.07;
+  .country-modal-header h2 {
+    font-size: 16px;
+    font-weight: 700;
   }
 
-  .map-watermark .deco-region {
-    fill: #04361b;
+  .country-modal-close {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: none;
+    background: #f1f3f1;
+    color: #04361b;
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+  }
+
+  .country-search {
+    margin: 0 18px 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #f3f5f3;
+    border-radius: 10px;
+    padding: 10px 12px;
+  }
+
+  .country-search svg {
+    width: 18px;
+    height: 18px;
     stroke: #04361b;
-    stroke-width: 1.5;
+    fill: none;
+    stroke-width: 2;
+    flex-shrink: 0;
   }
 
-  @media (min-width: 520px) {
-    .map-watermark {
-      right: calc(50% - 215px);
-      left: calc(50% - 215px);
-    }
+  .country-search input {
+    flex: 1;
+    border: none;
+    outline: none;
+    background: transparent;
+    font-size: 14px;
+    font-family: inherit;
+    color: #04361b;
+    text-align: right;
   }
+
+  .country-list {
+    overflow-y: auto;
+    padding: 0 8px 18px;
+  }
+
+  .country-item {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 10px;
+    border: none;
+    background: none;
+    font-family: inherit;
+    text-align: right;
+    cursor: pointer;
+    border-radius: 10px;
+  }
+
+  .country-item:hover,
+  .country-item:focus {
+    background: #f3f5f3;
+  }
+
+  .country-item .flag {
+    font-size: 22px;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+
+  .country-item .name {
+    flex: 1;
+    font-size: 14px;
+    color: #04361b;
+  }
+
+  .country-item .dial {
+    font-size: 13px;
+    color: #04361b;
+    direction: ltr;
+  }
+
+  .country-empty {
+    text-align: center;
+    color: #9aa8a0;
+    font-size: 14px;
+    padding: 24px 0;
+  }
+
+  /* ===== خانة عنوان المصنع ===== */
+  .address-trigger {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    border: 1px solid #e2e6e3;
+    border-radius: 10px;
+    background: #ffffff;
+    padding: 13px 12px;
+    font-family: inherit;
+    font-size: 14px;
+    color: #04361b;
+    text-align: right;
+    cursor: pointer;
+  }
+
+  html[dir="ltr"] .address-trigger {
+    text-align: left;
+  }
+
+  .address-trigger .value {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .address-trigger .value.empty {
+    color: #9aa8a0;
+  }
+
+  .address-trigger svg {
+    width: 18px;
+    height: 18px;
+    stroke: #04361b;
+    fill: none;
+    stroke-width: 2;
+    flex-shrink: 0;
+  }
+
+  /* السهم يشير لليسار في RTL ولليمين في LTR */
+  html[dir="ltr"] .address-trigger svg {
+    transform: scaleX(-1);
+  }
+
+  /* ===== نافذة العنوان السفلية ===== */
+  .address-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(4,54,27,0.45);
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+    z-index: 30;
+  }
+
+  .address-modal-overlay.open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .address-modal {
+    width: 100%;
+    max-width: 480px;
+    max-height: 78vh;
+    background: #ffffff;
+    border-radius: 18px 18px 0 0;
+    display: flex;
+    flex-direction: column;
+    transform: translateY(100%);
+    transition: transform 0.25s ease;
+  }
+
+  .address-modal-overlay.open .address-modal {
+    transform: translateY(0);
+  }
+
+  .address-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 18px 10px;
+    flex-shrink: 0;
+  }
+
+  .address-modal-header h2 {
+    font-size: 16px;
+    font-weight: 700;
+  }
+
+  .address-modal-close {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: none;
+    background: #f1f3f1;
+    color: #04361b;
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+  }
+
+  .address-body {
+    overflow-y: auto;
+    padding: 4px 18px 18px;
+  }
+
+  .address-body .field {
+    margin-bottom: 14px;
+  }
+
+  /* الحقول ذات الصيغة الإنجليزية تُكتب من اليسار إلى اليمين دائماً */
+  .address-body input.ltr-field {
+    direction: ltr;
+    text-align: left;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .address-body input.invalid {
+    border-color: #d93025;
+  }
+
+  .field-hint {
+    display: block;
+    font-size: 11.5px;
+    color: #9aa8a0;
+    margin-top: 5px;
+  }
+
+  .field-hint.error {
+    color: #d93025;
+  }
+
+  .address-save-btn {
+    width: 100%;
+    border: none;
+    border-radius: 999px;
+    background: #04361b;
+    color: #ffffff;
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 700;
+    padding: 14px;
+    margin-top: 4px;
+    cursor: pointer;
+  }
+
+  .address-save-btn:disabled {
+    background: #c2ccc6;
+    cursor: default;
+  }
+
+  /* ===== شريط التبويبين: تسجيل الدخول / حساب جديد ===== */
+  /* تبويبان متساويان يعلوان البطاقة، والنشط منهما أبيض بخط سفلي أخضر.
+     مبنيان بـ role="tab" ليقرأهما قارئ الشاشة كتبويبين لا كزرّين. */
+  .auth-tabs {
+    display: flex;
+    border-bottom: 1px solid #e6ebe8;
+    margin: 0 0 26px;
+  }
+
+  .auth-tab {
+    flex: 1;
+    padding: 16px 8px;
+    border: none;
+    background: #f3f5f3;
+    color: #6b7a70;
+    font-family: inherit;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+  }
+
+  .auth-tab:hover { color: #2c5f3f; }
+
+  .auth-tab[aria-selected="true"] {
+    background: #ffffff;
+    color: #2c5f3f;
+    border-bottom-color: #2c5f3f;
+  }
+
+  /* اللوحة المخفية: hidden وحدها لا تكفي مع display الموروث */
+  .auth-panel[hidden] { display: none; }
 </style>
 <link rel="stylesheet" href="mobile.css">
 <link rel="stylesheet" href="desktop.css">
@@ -283,7 +757,104 @@
   </header>
 
   <div class="form-wrap">
-    <form id="login-form">
+
+    <!-- ===== التبويبان ===== -->
+    <div class="auth-tabs" role="tablist">
+      <button type="button" class="auth-tab" id="tab-login" role="tab"
+              aria-selected="true" aria-controls="panel-login"
+              data-i18n="splash_login_btn">تسجيل دخول</button>
+      <button type="button" class="auth-tab" id="tab-register" role="tab"
+              aria-selected="false" aria-controls="panel-register"
+              data-i18n="splash_signup_btn">حساب جديد</button>
+    </div>
+
+    <!-- ===== لوحة تسجيل الدخول ===== -->
+    <div class="auth-panel" id="panel-login">
+      <form id="login-form">
+        <div class="field">
+          <label for="l-email" data-i18n="field_email">البريد الإلكتروني</label>
+          <input type="email" id="l-email" data-i18n-placeholder="field_email_placeholder" placeholder="ادخل بريدك الالكتروني هنا">
+        </div>
+
+        <div class="field">
+          <label for="l-password" data-i18n="field_password">كلمة المرور</label>
+          <div class="password-row">
+            <input type="password" id="l-password" data-i18n-placeholder="field_password_placeholder" placeholder="أدخل كلمة المرور">
+            <button type="button" class="password-toggle" id="l-password-toggle" aria-label="إظهار كلمة المرور">
+              <svg id="l-eye-icon" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+            </button>
+          </div>
+        </div>
+
+        <button type="submit" class="btn-update" id="login-btn" disabled data-i18n="splash_login_btn">تسجيل دخول</button>
+      </form>
+
+      <p class="form-footer">
+        <span data-i18n="login_footer_text">ليس لديك حساب؟</span>
+        <a href="#" class="tab-jump" data-go="register" data-i18n="splash_signup_btn">حساب جديد</a>
+      </p>
+    </div>
+
+    <!-- ===== لوحة إنشاء الحساب ===== -->
+    <div class="auth-panel" id="panel-register" hidden>
+    <form id="register-form">
+      <div class="company-image-field">
+        <div class="image-upload" id="image-upload-trigger">
+          <img id="image-preview" alt="" style="display:none;">
+          <svg id="image-upload-icon" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M4 16l4.586-4.586a2 2 0 0 1 2.828 0L16 16"></path><path d="M14 14l1.586-1.586a2 2 0 0 1 2.828 0L20 14"></path><rect x="2" y="4" width="20" height="16" rx="2"></rect><circle cx="8" cy="9" r="1.5"></circle></svg>
+        </div>
+        <span class="upload-label" data-i18n="field_company_image">إضافة صورة الشركة</span>
+        <input type="file" id="f-company-image" accept="image/*" style="display:none;">
+      </div>
+
+      <div class="field">
+        <label for="f-name" id="name-label" data-i18n="field_name">الاسم</label>
+        <input type="text" id="f-name" data-i18n-placeholder="field_name_placeholder" placeholder="أدخل اسمك الكامل">
+      </div>
+
+      <!-- السجل التجاري: للمصانع فقط، يُحذف من النموذج عند التسجيل كفرد -->
+      <div class="field" id="cr-field">
+        <label for="f-cr" data-i18n="field_cr">السجل التجاري</label>
+        <input type="text" id="f-cr" inputmode="numeric" data-i18n-placeholder="field_cr_placeholder" placeholder="أدخل رقم السجل التجاري">
+      </div>
+
+      <!-- عنوان المصنع: يفتح نافذة سفلية بتفاصيل العنوان -->
+      <div class="field" id="address-field">
+        <label data-i18n="field_address">عنوان المصنع</label>
+        <button type="button" class="address-trigger" id="address-trigger">
+          <span class="value empty" id="address-value" data-i18n="field_address_placeholder">اضغط لإدخال العنوان</span>
+          <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"></path></svg>
+        </button>
+      </div>
+
+      <div class="field" id="gender-field">
+        <label data-i18n="field_gender">الجنس</label>
+        <div class="gender-row">
+          <label class="gender-option">
+            <input type="radio" name="gender" value="female">
+            <span data-i18n="gender_female">أنثى</span>
+            <span class="icon">♀</span>
+          </label>
+          <label class="gender-option">
+            <input type="radio" name="gender" value="male">
+            <span data-i18n="gender_male">ذكر</span>
+            <span class="icon">♂</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="f-phone" data-i18n="field_phone">رقم الجوال*</label>
+        <div class="phone-row">
+          <button type="button" class="country" id="country-trigger">
+            <span class="flag" id="country-flag">🇸🇦</span>
+            <span class="code" id="country-code">+966</span>
+            <svg class="country-chevron" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg>
+          </button>
+          <input type="tel" id="f-phone" data-i18n-placeholder="field_phone_placeholder" placeholder="5xxxxxxxx" maxlength="10">
+        </div>
+      </div>
+
       <div class="field">
         <label for="f-email" data-i18n="field_email">البريد الإلكتروني</label>
         <input type="email" id="f-email" data-i18n-placeholder="field_email_placeholder" placeholder="ادخل بريدك الالكتروني هنا">
@@ -299,21 +870,162 @@
         </div>
       </div>
 
-      <button type="submit" class="btn-update" id="login-btn" disabled data-i18n="splash_login_btn">تسجيل دخول</button>
+      <button type="submit" class="btn-update" id="register-btn" disabled data-i18n="splash_signup_btn">حساب جديد</button>
     </form>
 
     <p class="form-footer">
-      <span data-i18n="login_footer_text">ليس لديك حساب؟</span>
-      <a href="web-register.html" data-i18n="splash_signup_btn">حساب جديد</a>
+      <span data-i18n="register_footer_text">لديك حساب بالفعل؟</span>
+      <a href="#" class="tab-jump" data-go="login" data-i18n="splash_login_btn">تسجيل دخول</a>
     </p>
+    </div>
+
   </div>
+
+  <!-- نافذة عنوان المصنع -->
+  <div class="address-modal-overlay" id="address-modal-overlay">
+    <div class="address-modal">
+      <div class="address-modal-header">
+        <h2 data-i18n="addr_modal_title">عنوان المصنع</h2>
+        <button type="button" class="address-modal-close" id="address-modal-close" aria-label="إغلاق">&times;</button>
+      </div>
+      <div class="address-body">
+
+        <div class="field">
+          <label for="a-city" data-i18n="addr_city">المدينة</label>
+          <input type="text" id="a-city">
+        </div>
+
+        <div class="field">
+          <label for="a-district" data-i18n="addr_district">الحي</label>
+          <input type="text" id="a-district">
+        </div>
+
+        <!-- العنوان الوطني المختصر: 4 أحرف إنجليزية + 4 أرقام -->
+        <div class="field">
+          <label for="a-short" data-i18n="addr_short">العنوان الوطني المختصر</label>
+          <input type="text" id="a-short" class="ltr-field" maxlength="8" placeholder="ABCD1234" autocomplete="off" spellcheck="false">
+          <span class="field-hint" id="hint-short">ABCD1234</span>
+        </div>
+
+        <!-- رقم المبنى: 4 أرقام -->
+        <div class="field">
+          <label for="a-building" data-i18n="addr_building">رقم المبنى</label>
+          <input type="text" id="a-building" class="ltr-field" inputmode="numeric" maxlength="4" placeholder="1234" autocomplete="off">
+          <span class="field-hint" id="hint-building">1234</span>
+        </div>
+
+        <!-- الرقم الفرعي: 4 أرقام -->
+        <div class="field">
+          <label for="a-secondary" data-i18n="addr_secondary">الرقم الفرعي</label>
+          <input type="text" id="a-secondary" class="ltr-field" inputmode="numeric" maxlength="4" placeholder="1234" autocomplete="off">
+          <span class="field-hint" id="hint-secondary">1234</span>
+        </div>
+
+        <!-- الرمز البريدي: 5 أرقام -->
+        <div class="field">
+          <label for="a-postal" data-i18n="addr_postal">الرمز البريدي</label>
+          <input type="text" id="a-postal" class="ltr-field" inputmode="numeric" maxlength="5" placeholder="12345" autocomplete="off">
+          <span class="field-hint" id="hint-postal">12345</span>
+        </div>
+
+        <div class="field">
+          <label for="a-street" data-i18n="addr_street">اسم الشارع</label>
+          <input type="text" id="a-street">
+        </div>
+
+        <button type="button" class="address-save-btn" id="address-save-btn" disabled data-i18n="addr_save">حفظ العنوان</button>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- نافذة اختيار كود الدولة -->
+  <div class="country-modal-overlay" id="country-modal-overlay">
+    <div class="country-modal">
+      <div class="country-modal-header">
+        <h2>اختر الدولة</h2>
+        <button type="button" class="country-modal-close" id="country-modal-close" aria-label="إغلاق">&times;</button>
+      </div>
+      <div class="country-search">
+        <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="m21 21-4.3-4.3"></path></svg>
+        <input type="text" id="country-search-input" placeholder="ابحث عن دولة أو كود...">
+      </div>
+      <div class="country-list" id="country-list"></div>
+    </div>
+  </div>
+
+
+  <!-- ===== مبدّل التبويبين =====
+       يجب أن يسبق سكربتَي الدخول والتسجيل، لأن سكربت التسجيل
+       يقرأ عنوان الصفحة ويكتب فوقه عند حساب المصنع. -->
+  <script>
+    (function () {
+      var tabs = {
+        login: document.getElementById("tab-login"),
+        register: document.getElementById("tab-register")
+      };
+      var panels = {
+        login: document.getElementById("panel-login"),
+        register: document.getElementById("panel-register")
+      };
+      var heading = document.querySelector(".page-header h1");
+
+      /* عنوان الترويسة يتبع التبويب النشط. ونصّ تبويب "حساب جديد"
+         وعنوانه يصيران "تسجيل مصنع" حين يكون نوع الحساب مصنعاً —
+         وهو ما كانت صفحة التسجيل تفعله بعنوانها وحده. */
+      var accountType = "";
+      try { accountType = localStorage.getItem("sf_account_type") || ""; } catch (e) {}
+      var signupKey = accountType === "factory"
+        ? "splash_signup_factory_btn"
+        : "splash_signup_btn";
+
+      if (signupKey !== "splash_signup_btn") {
+        tabs.register.setAttribute("data-i18n", signupKey);
+        tabs.register.textContent = I18N.t(signupKey);
+      }
+
+      var titleKey = { login: "splash_login_btn", register: signupKey };
+
+      function show(name) {
+        if (!tabs[name]) name = "login";
+        ["login", "register"].forEach(function (n) {
+          var active = n === name;
+          tabs[n].setAttribute("aria-selected", active ? "true" : "false");
+          panels[n].hidden = !active;
+        });
+        /* الصفة والنص معاً: applyTranslations() تكون قد عملت قبل هذا */
+        heading.setAttribute("data-i18n", titleKey[name]);
+        heading.textContent = I18N.t(titleKey[name]);
+        document.title = I18N.t(name === "login" ? "login_page_title" : "register_page_title");
+      }
+
+      tabs.login.addEventListener("click", function () { show("login"); });
+      tabs.register.addEventListener("click", function () { show("register"); });
+
+      /* روابط "ليس لديك حساب؟" و"لديك حساب بالفعل؟" أسفل كل لوحة */
+      Array.prototype.forEach.call(
+        document.querySelectorAll(".tab-jump"),
+        function (a) {
+          a.addEventListener("click", function (e) {
+            e.preventDefault();
+            show(a.getAttribute("data-go"));
+          });
+        }
+      );
+
+      /* ‎#register في الرابط يفتح تبويب التسجيل مباشرة —
+         وهو ما تستخدمه الروابط القادمة من الصفحات الأخرى. */
+      var start = (location.hash || "").replace("#", "");
+      show(start === "register" ? "register" : "login");
+    })();
+  </script>
 
   <script>
     (function () {
       var form = document.getElementById("login-form");
       var btn = document.getElementById("login-btn");
-      var emailInput = document.getElementById("f-email");
-      var passwordInput = document.getElementById("f-password");
+      var emailInput = document.getElementById("l-email");
+      var passwordInput = document.getElementById("l-password");
 
       function checkFilled() {
         var filled = emailInput.value.trim().length > 0 && passwordInput.value.trim().length > 0;
@@ -324,8 +1036,8 @@
       emailInput.addEventListener("input", checkFilled);
       passwordInput.addEventListener("input", checkFilled);
 
-      var toggle = document.getElementById("password-toggle");
-      var eyeIcon = document.getElementById("eye-icon");
+      var toggle = document.getElementById("l-password-toggle");
+      var eyeIcon = document.getElementById("l-eye-icon");
 
       toggle.addEventListener("click", function () {
         if (passwordInput.type === "password") {
@@ -405,6 +1117,682 @@
           btn.textContent = originalLabel;
         });
       });
+    })();
+  </script>
+  <script>
+    (function () {
+      var form = document.getElementById("register-form");
+      var btn = document.getElementById("register-btn");
+      var nameInput = document.getElementById("f-name");
+      var phoneInput = document.getElementById("f-phone");
+      var emailInput = document.getElementById("f-email");
+      var passwordInput = document.getElementById("f-password");
+      var companyImageData = "";
+
+      /* عنوان المصنع (يُملأ من النافذة السفلية) */
+      var addressData = {
+        city: "", district: "", shortAddress: "",
+        building: "", secondary: "", postal: "", street: ""
+      };
+
+      /* ===== وضع تسجيل المصنع ===== */
+      /* عند التسجيل كمصنع: لا يوجد حقل جنس، وخانة الاسم تصبح "اسم الشركة" */
+      var accountType = "";
+      try {
+        accountType = localStorage.getItem("sf_account_type") || "";
+      } catch (err) {}
+      var isFactory = accountType === "factory";
+
+      var crInput = document.getElementById("f-cr");
+
+      if (isFactory) {
+        /* حذف حقل الجنس نهائياً من النموذج */
+        var genderField = document.getElementById("gender-field");
+        if (genderField) genderField.parentNode.removeChild(genderField);
+
+        /* تغيير خانة الاسم إلى اسم الشركة */
+        var nameLabel = document.getElementById("name-label");
+        nameLabel.setAttribute("data-i18n", "field_company_name");
+        nameLabel.textContent = I18N.t("field_company_name");
+        nameInput.setAttribute("data-i18n-placeholder", "field_company_name_placeholder");
+        nameInput.placeholder = I18N.t("field_company_name_placeholder");
+
+        /* عنوان الصفحة وتبويب التسجيل يضبطهما مبدّل التبويبين أعلاه */
+        btn.setAttribute("data-i18n", "splash_signup_factory_btn");
+        btn.textContent = I18N.t("splash_signup_factory_btn");
+      } else {
+        /* الأفراد ليس لديهم سجل تجاري ولا عنوان مصنع */
+        var crField = document.getElementById("cr-field");
+        if (crField) crField.parentNode.removeChild(crField);
+        crInput = null;
+
+        var addressFieldEl = document.getElementById("address-field");
+        if (addressFieldEl) addressFieldEl.parentNode.removeChild(addressFieldEl);
+
+        var addressOverlayEl = document.getElementById("address-modal-overlay");
+        if (addressOverlayEl) addressOverlayEl.parentNode.removeChild(addressOverlayEl);
+      }
+
+      function checkFilled() {
+        var filled = nameInput.value.trim().length > 0 &&
+          phoneInput.value.trim().length > 0 &&
+          emailInput.value.trim().length > 0 &&
+          passwordInput.value.trim().length > 0 &&
+          (!crInput || crInput.value.trim().length > 0) &&
+          (!isFactory || addressData.city.length > 0);
+        btn.disabled = !filled;
+        btn.classList.toggle("enabled", filled);
+      }
+
+      function saveAccountData() {
+        var checkedGender = form.querySelector('input[name="gender"]:checked');
+        var accountData = {
+          accountType: accountType,
+          name: nameInput.value.trim(),
+          commercialRegister: crInput ? crInput.value.trim() : "",
+          address: isFactory ? addressData : null,
+          gender: checkedGender ? checkedGender.value : "",
+          countryFlag: document.getElementById("country-flag").textContent,
+          countryCode: document.getElementById("country-code").textContent,
+          phone: phoneInput.value.trim(),
+          email: emailInput.value.trim(),
+          companyImage: companyImageData
+        };
+        try {
+          localStorage.setItem("sf_account", JSON.stringify(accountData));
+        } catch (err) {}
+      }
+
+      var fields = [nameInput, phoneInput, emailInput, passwordInput];
+      if (crInput) fields.push(crInput);
+
+      fields.forEach(function (el) {
+        el.addEventListener("input", checkFilled);
+        el.addEventListener("input", saveAccountData);
+        el.addEventListener("blur", saveAccountData);
+      });
+
+      form.querySelectorAll('input[name="gender"]').forEach(function (el) {
+        el.addEventListener("change", saveAccountData);
+      });
+
+      var imageTrigger = document.getElementById("image-upload-trigger");
+      var imageInput = document.getElementById("f-company-image");
+      var imagePreview = document.getElementById("image-preview");
+      var imageIcon = document.getElementById("image-upload-icon");
+
+      imageTrigger.addEventListener("click", function () {
+        imageInput.click();
+      });
+
+      /* تصغير الصورة قبل الحفظ حتى لا تمتلئ مساحة التخزين وتضيع بيانات الحساب */
+      function resizeImage(dataUrl, maxSize, done) {
+        var img = new Image();
+        img.onload = function () {
+          var scale = Math.min(1, maxSize / Math.max(img.width, img.height));
+          var canvas = document.createElement("canvas");
+          canvas.width = Math.round(img.width * scale);
+          canvas.height = Math.round(img.height * scale);
+          canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+          done(canvas.toDataURL("image/jpeg", 0.8));
+        };
+        img.onerror = function () { done(dataUrl); };
+        img.src = dataUrl;
+      }
+
+      imageInput.addEventListener("change", function () {
+        var file = imageInput.files[0];
+        if (!file) return;
+        var reader = new FileReader();
+        reader.onload = function (e) {
+          resizeImage(e.target.result, 400, function (resized) {
+            companyImageData = resized;
+            imagePreview.src = companyImageData;
+            imagePreview.style.display = "block";
+            imageIcon.style.display = "none";
+            saveAccountData();
+          });
+        };
+        reader.readAsDataURL(file);
+      });
+
+      var toggle = document.getElementById("password-toggle");
+      var eyeIcon = document.getElementById("eye-icon");
+
+      toggle.addEventListener("click", function () {
+        if (passwordInput.type === "password") {
+          passwordInput.type = "text";
+          eyeIcon.innerHTML = '<path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a21.86 21.86 0 0 1 5.06-6.94M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 8 11 8a21.86 21.86 0 0 1-2.87 4.14M14.12 14.12a3 3 0 1 1-4.24-4.24"></path><path d="M1 1l22 22"></path>';
+        } else {
+          passwordInput.type = "password";
+          eyeIcon.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"></path><circle cx="12" cy="12" r="3"></circle>';
+        }
+      });
+
+      /* رسالة خطأ أسفل النموذج */
+      var errBox = document.createElement("div");
+      errBox.style.cssText = "display:none;margin:12px 0;padding:12px 14px;" +
+        "border-radius:10px;background:#fdecea;color:#a32020;" +
+        "font-size:14px;line-height:1.6;text-align:center;";
+      btn.parentNode.insertBefore(errBox, btn);
+
+      function showError(msg) {
+        errBox.textContent = msg;
+        errBox.style.display = "block";
+      }
+
+      /* ترجمة رسائل Supabase إلى العربية */
+      function arabicError(msg) {
+        var m = (msg || "").toLowerCase();
+        if (m.indexOf("already registered") > -1 || m.indexOf("already been registered") > -1)
+          return "هذا البريد مسجَّل من قبل. سجّل الدخول بدلًا من ذلك.";
+        if (m.indexOf("password") > -1 && m.indexOf("6") > -1)
+          return "كلمة المرور قصيرة — 6 أحرف على الأقل.";
+        if (m.indexOf("invalid") > -1 && m.indexOf("email") > -1)
+          return "صيغة البريد الإلكتروني غير صحيحة.";
+        if (m.indexOf("failed to fetch") > -1 || m.indexOf("network") > -1)
+          return "تعذّر الاتصال بالخادم. تحقّق من الإنترنت وحاول مجددًا.";
+        return "تعذّر إنشاء الحساب: " + msg;
+      }
+
+      form.addEventListener("submit", function (e) {
+        e.preventDefault();
+        errBox.style.display = "none";
+
+        var pass = passwordInput.value;
+        if (pass.length < 6) {
+          showError("كلمة المرور قصيرة — 6 أحرف على الأقل.");
+          return;
+        }
+
+        btn.disabled = true;
+        var originalLabel = btn.textContent;
+        btn.textContent = "جارٍ إنشاء الحساب…";
+
+        saveAccountData();
+
+        var checkedGender = form.querySelector('input[name="gender"]:checked');
+
+        /* إنشاء حساب حقيقي — كلمة المرور تُشفَّر في الخادم ولا تُخزَّن عندنا */
+        sb.auth.signUp({
+          email: emailInput.value.trim(),
+          password: pass,
+          options: {
+            data: {
+              account_type: accountType,
+              full_name: nameInput.value.trim()
+            }
+          }
+        }).then(function (res) {
+          if (res.error) {
+            showError(arabicError(res.error.message));
+            btn.disabled = false;
+            btn.textContent = originalLabel;
+            return;
+          }
+
+          /* الحساب أُنشئ — يُكمَّل الملف الشخصي وبيانات المصنع */
+          var uid = res.data.user ? res.data.user.id : null;
+          if (!uid) {
+            window.location.href = "web-home.html";
+            return;
+          }
+
+          var profilePayload = {
+            full_name: nameInput.value.trim(),
+            gender: checkedGender ? checkedGender.value : "",
+            country_flag: document.getElementById("country-flag").textContent,
+            country_code: document.getElementById("country-code").textContent,
+            phone: phoneInput.value.trim(),
+            email: emailInput.value.trim()
+          };
+
+          return sb.from("profiles").update(profilePayload).eq("id", uid)
+            .then(function () {
+              if (!isFactory) return null;
+              return sb.from("factories").update({
+                name: nameInput.value.trim(),
+                commercial_register: crInput ? crInput.value.trim() : "",
+                address_city: addressData.city,
+                address_district: addressData.district,
+                address_short: addressData.shortAddress,
+                address_building: addressData.building,
+                address_secondary: addressData.secondary,
+                address_postal: addressData.postal,
+                address_street: addressData.street
+              }).eq("owner_id", uid);
+            })
+            .then(function () {
+              window.location.href = "web-home.html";
+            });
+        }).catch(function (err) {
+          showError(arabicError(err && err.message ? err.message : String(err)));
+          btn.disabled = false;
+          btn.textContent = originalLabel;
+        });
+      });
+
+      /* ===== قائمة الدول وأكواد الهواتف ===== */
+      var countries = [
+        ["SA", "السعودية", "966"],
+        ["AE", "الإمارات العربية المتحدة", "971"],
+        ["BH", "البحرين", "973"],
+        ["KW", "الكويت", "965"],
+        ["OM", "عُمان", "968"],
+        ["QA", "قطر", "974"],
+        ["EG", "مصر", "20"],
+        ["JO", "الأردن", "962"],
+        ["LB", "لبنان", "961"],
+        ["SY", "سوريا", "963"],
+        ["IQ", "العراق", "964"],
+        ["YE", "اليمن", "967"],
+        ["PS", "فلسطين", "970"],
+        ["LY", "ليبيا", "218"],
+        ["TN", "تونس", "216"],
+        ["DZ", "الجزائر", "213"],
+        ["MA", "المغرب", "212"],
+        ["SD", "السودان", "249"],
+        ["SO", "الصومال", "252"],
+        ["DJ", "جيبوتي", "253"],
+        ["MR", "موريتانيا", "222"],
+        ["KM", "جزر القمر", "269"],
+        ["TR", "تركيا", "90"],
+        ["IR", "إيران", "98"],
+        ["AF", "أفغانستان", "93"],
+        ["PK", "باكستان", "92"],
+        ["IN", "الهند", "91"],
+        ["BD", "بنغلاديش", "880"],
+        ["LK", "سريلانكا", "94"],
+        ["NP", "نيبال", "977"],
+        ["BT", "بوتان", "975"],
+        ["MV", "جزر المالديف", "960"],
+        ["MM", "ميانمار", "95"],
+        ["TH", "تايلاند", "66"],
+        ["VN", "فيتنام", "84"],
+        ["LA", "لاوس", "856"],
+        ["KH", "كمبوديا", "855"],
+        ["MY", "ماليزيا", "60"],
+        ["SG", "سنغافورة", "65"],
+        ["ID", "إندونيسيا", "62"],
+        ["PH", "الفلبين", "63"],
+        ["BN", "بروناي", "673"],
+        ["TL", "تيمور الشرقية", "670"],
+        ["MN", "منغوليا", "976"],
+        ["CN", "الصين", "86"],
+        ["JP", "اليابان", "81"],
+        ["KR", "كوريا الجنوبية", "82"],
+        ["KP", "كوريا الشمالية", "850"],
+        ["TW", "تايوان", "886"],
+        ["HK", "هونغ كونغ", "852"],
+        ["MO", "ماكاو", "853"],
+        ["KZ", "كازاخستان", "7"],
+        ["UZ", "أوزبكستان", "998"],
+        ["TM", "تركمانستان", "993"],
+        ["TJ", "طاجيكستان", "992"],
+        ["KG", "قيرغيزستان", "996"],
+        ["GE", "جورجيا", "995"],
+        ["AM", "أرمينيا", "374"],
+        ["AZ", "أذربيجان", "994"],
+        ["CY", "قبرص", "357"],
+        ["IL", "إسرائيل", "972"],
+        ["GB", "المملكة المتحدة", "44"],
+        ["IE", "أيرلندا", "353"],
+        ["FR", "فرنسا", "33"],
+        ["DE", "ألمانيا", "49"],
+        ["NL", "هولندا", "31"],
+        ["BE", "بلجيكا", "32"],
+        ["LU", "لوكسمبورغ", "352"],
+        ["CH", "سويسرا", "41"],
+        ["AT", "النمسا", "43"],
+        ["ES", "إسبانيا", "34"],
+        ["PT", "البرتغال", "351"],
+        ["IT", "إيطاليا", "39"],
+        ["VA", "الفاتيكان", "379"],
+        ["SM", "سان مارينو", "378"],
+        ["MT", "مالطا", "356"],
+        ["GR", "اليونان", "30"],
+        ["BG", "بلغاريا", "359"],
+        ["RO", "رومانيا", "40"],
+        ["HU", "هنغاريا", "36"],
+        ["PL", "بولندا", "48"],
+        ["CZ", "التشيك", "420"],
+        ["SK", "سلوفاكيا", "421"],
+        ["SI", "سلوفينيا", "386"],
+        ["HR", "كرواتيا", "385"],
+        ["BA", "البوسنة والهرسك", "387"],
+        ["RS", "صربيا", "381"],
+        ["ME", "الجبل الأسود", "382"],
+        ["MK", "مقدونيا الشمالية", "389"],
+        ["AL", "ألبانيا", "355"],
+        ["XK", "كوسوفو", "383"],
+        ["MD", "مولدوفا", "373"],
+        ["UA", "أوكرانيا", "380"],
+        ["BY", "روسيا البيضاء", "375"],
+        ["RU", "روسيا", "7"],
+        ["LT", "ليتوانيا", "370"],
+        ["LV", "لاتفيا", "371"],
+        ["EE", "إستونيا", "372"],
+        ["FI", "فنلندا", "358"],
+        ["SE", "السويد", "46"],
+        ["NO", "النرويج", "47"],
+        ["DK", "الدنمارك", "45"],
+        ["IS", "آيسلندا", "354"],
+        ["AD", "أندورا", "376"],
+        ["MC", "موناكو", "377"],
+        ["LI", "ليختنشتاين", "423"],
+        ["ZA", "جنوب أفريقيا", "27"],
+        ["NG", "نيجيريا", "234"],
+        ["KE", "كينيا", "254"],
+        ["ET", "إثيوبيا", "251"],
+        ["GH", "غانا", "233"],
+        ["TZ", "تنزانيا", "255"],
+        ["UG", "أوغندا", "256"],
+        ["CM", "الكاميرون", "237"],
+        ["CI", "ساحل العاج", "225"],
+        ["SN", "السنغال", "221"],
+        ["ML", "مالي", "223"],
+        ["NE", "النيجر", "227"],
+        ["TD", "تشاد", "235"],
+        ["BF", "بوركينا فاسو", "226"],
+        ["BJ", "بنين", "229"],
+        ["TG", "توغو", "228"],
+        ["GN", "غينيا", "224"],
+        ["GW", "غينيا بيساو", "245"],
+        ["SL", "سيراليون", "232"],
+        ["LR", "ليبيريا", "231"],
+        ["GM", "غامبيا", "220"],
+        ["GA", "الغابون", "241"],
+        ["CG", "الكونغو برازافيل", "242"],
+        ["CD", "جمهورية الكونغو الديمقراطية", "243"],
+        ["AO", "أنغولا", "244"],
+        ["ZM", "زامبيا", "260"],
+        ["ZW", "زيمبابوي", "263"],
+        ["MZ", "موزمبيق", "258"],
+        ["MW", "مالاوي", "265"],
+        ["NA", "ناميبيا", "264"],
+        ["BW", "بوتسوانا", "267"],
+        ["LS", "ليسوتو", "266"],
+        ["SZ", "إسواتيني", "268"],
+        ["MG", "مدغشقر", "261"],
+        ["MU", "موريشيوس", "230"],
+        ["SC", "سيشل", "248"],
+        ["RW", "رواندا", "250"],
+        ["BI", "بوروندي", "257"],
+        ["ER", "إريتريا", "291"],
+        ["SS", "جنوب السودان", "211"],
+        ["CF", "أفريقيا الوسطى", "236"],
+        ["GQ", "غينيا الاستوائية", "240"],
+        ["CV", "الرأس الأخضر", "238"],
+        ["ST", "ساو تومي وبرينسيبي", "239"],
+        ["US", "الولايات المتحدة", "1"],
+        ["CA", "كندا", "1"],
+        ["MX", "المكسيك", "52"],
+        ["GT", "غواتيمالا", "502"],
+        ["BZ", "بليز", "501"],
+        ["SV", "السلفادور", "503"],
+        ["HN", "هندوراس", "504"],
+        ["NI", "نيكاراغوا", "505"],
+        ["CR", "كوستاريكا", "506"],
+        ["PA", "بنما", "507"],
+        ["CU", "كوبا", "53"],
+        ["JM", "جامايكا", "1876"],
+        ["HT", "هايتي", "509"],
+        ["DO", "جمهورية الدومينيكان", "1809"],
+        ["TT", "ترينيداد وتوباغو", "1868"],
+        ["BS", "جزر البهاما", "1242"],
+        ["BB", "باربادوس", "1246"],
+        ["BR", "البرازيل", "55"],
+        ["AR", "الأرجنتين", "54"],
+        ["CL", "تشيلي", "56"],
+        ["CO", "كولومبيا", "57"],
+        ["PE", "بيرو", "51"],
+        ["VE", "فنزويلا", "58"],
+        ["EC", "الإكوادور", "593"],
+        ["BO", "بوليفيا", "591"],
+        ["PY", "باراغواي", "595"],
+        ["UY", "الأوروغواي", "598"],
+        ["GY", "غيانا", "592"],
+        ["SR", "سورينام", "597"],
+        ["AU", "أستراليا", "61"],
+        ["NZ", "نيوزيلندا", "64"],
+        ["FJ", "فيجي", "679"],
+        ["PG", "بابوا غينيا الجديدة", "675"],
+        ["SB", "جزر سليمان", "677"],
+        ["VU", "فانواتو", "678"],
+        ["NC", "كاليدونيا الجديدة", "687"],
+        ["PF", "بولينيزيا الفرنسية", "689"],
+        ["WS", "ساموا", "685"],
+        ["TO", "تونغا", "676"],
+        ["KI", "كيريباتي", "686"],
+        ["FM", "ميكرونيسيا", "691"],
+        ["MH", "جزر مارشال", "692"],
+        ["PW", "بالاو", "680"],
+        ["NR", "ناورو", "674"],
+        ["TV", "توفالو", "688"]
+      ];
+
+      function flagEmoji(iso) {
+        return iso.replace(/./g, function (c) {
+          return String.fromCodePoint(127397 + c.charCodeAt(0));
+        });
+      }
+
+      var countryModalOverlay = document.getElementById("country-modal-overlay");
+      var countryModalClose = document.getElementById("country-modal-close");
+      var countryTrigger = document.getElementById("country-trigger");
+      var countryList = document.getElementById("country-list");
+      var countrySearchInput = document.getElementById("country-search-input");
+      var countryFlagEl = document.getElementById("country-flag");
+      var countryCodeEl = document.getElementById("country-code");
+
+      function renderCountries(filter) {
+        var q = (filter || "").trim().toLowerCase();
+        countryList.innerHTML = "";
+        var found = false;
+
+        countries.forEach(function (c) {
+          var iso = c[0], name = c[1], dial = c[2];
+          if (q && name.toLowerCase().indexOf(q) === -1 && dial.indexOf(q.replace("+", "")) === -1) {
+            return;
+          }
+          found = true;
+          var btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "country-item";
+          btn.innerHTML =
+            '<span class="flag">' + flagEmoji(iso) + '</span>' +
+            '<span class="name">' + name + '</span>' +
+            '<span class="dial">+' + dial + '</span>';
+          btn.addEventListener("click", function () {
+            countryFlagEl.textContent = flagEmoji(iso);
+            countryCodeEl.textContent = "+" + dial;
+            saveAccountData();
+            closeCountryModal();
+          });
+          countryList.appendChild(btn);
+        });
+
+        if (!found) {
+          var empty = document.createElement("p");
+          empty.className = "country-empty";
+          empty.textContent = "لا توجد نتائج مطابقة";
+          countryList.appendChild(empty);
+        }
+      }
+
+      function openCountryModal() {
+        renderCountries("");
+        countrySearchInput.value = "";
+        countryModalOverlay.classList.add("open");
+        document.body.style.overflow = "hidden";
+        setTimeout(function () { countrySearchInput.focus(); }, 150);
+      }
+
+      function closeCountryModal() {
+        countryModalOverlay.classList.remove("open");
+        document.body.style.overflow = "";
+      }
+
+      countryTrigger.addEventListener("click", openCountryModal);
+      countryModalClose.addEventListener("click", closeCountryModal);
+      countryModalOverlay.addEventListener("click", function (e) {
+        if (e.target === countryModalOverlay) closeCountryModal();
+      });
+      countrySearchInput.addEventListener("input", function () {
+        renderCountries(countrySearchInput.value);
+      });
+      document.addEventListener("keydown", function (e) {
+        if (e.key === "Escape") closeCountryModal();
+      });
+
+      /* ===== نافذة عنوان المصنع (للمصانع فقط) ===== */
+      if (isFactory) {
+        var addressOverlay = document.getElementById("address-modal-overlay");
+        var addressClose = document.getElementById("address-modal-close");
+        var addressTrigger = document.getElementById("address-trigger");
+        var addressValue = document.getElementById("address-value");
+        var addressSaveBtn = document.getElementById("address-save-btn");
+
+        var cityInput = document.getElementById("a-city");
+        var districtInput = document.getElementById("a-district");
+        var shortInput = document.getElementById("a-short");
+        var buildingInput = document.getElementById("a-building");
+        var secondaryInput = document.getElementById("a-secondary");
+        var postalInput = document.getElementById("a-postal");
+        var streetInput = document.getElementById("a-street");
+
+        /* تنقية المدخلات: أرقام إنجليزية فقط، أو 4 أحرف ثم 4 أرقام للعنوان المختصر */
+        function digitsOnly(value, max) {
+          return value.replace(/[^0-9]/g, "").slice(0, max);
+        }
+
+        function formatShortAddress(value) {
+          var clean = value.toUpperCase().replace(/[^A-Z0-9]/g, "");
+          var letters = "";
+          var digits = "";
+          for (var i = 0; i < clean.length; i++) {
+            var ch = clean.charAt(i);
+            if (letters.length < 4) {
+              if (ch >= "A" && ch <= "Z") letters += ch;
+            } else if (digits.length < 4) {
+              if (ch >= "0" && ch <= "9") digits += ch;
+            }
+          }
+          return letters + digits;
+        }
+
+        shortInput.addEventListener("input", function () {
+          shortInput.value = formatShortAddress(shortInput.value);
+          validateAddress();
+        });
+
+        [[buildingInput, 4], [secondaryInput, 4], [postalInput, 5]].forEach(function (pair) {
+          pair[0].addEventListener("input", function () {
+            pair[0].value = digitsOnly(pair[0].value, pair[1]);
+            validateAddress();
+          });
+        });
+
+        [cityInput, districtInput, streetInput].forEach(function (el) {
+          el.addEventListener("input", validateAddress);
+        });
+
+        /* التحقق من اكتمال كل الخانات بالصيغة المطلوبة */
+        function validateAddress() {
+          var shortOk = /^[A-Z]{4}[0-9]{4}$/.test(shortInput.value);
+          var buildingOk = /^[0-9]{4}$/.test(buildingInput.value);
+          var secondaryOk = /^[0-9]{4}$/.test(secondaryInput.value);
+          var postalOk = /^[0-9]{5}$/.test(postalInput.value);
+
+          markField(shortInput, shortOk);
+          markField(buildingInput, buildingOk);
+          markField(secondaryInput, secondaryOk);
+          markField(postalInput, postalOk);
+
+          var valid = cityInput.value.trim().length > 0 &&
+            districtInput.value.trim().length > 0 &&
+            streetInput.value.trim().length > 0 &&
+            shortOk && buildingOk && secondaryOk && postalOk;
+
+          addressSaveBtn.disabled = !valid;
+          return valid;
+        }
+
+        /* تلوين الحقل بالأحمر فقط بعد أن يبدأ المستخدم بالكتابة فيه */
+        function markField(el, ok) {
+          if (el.value.length > 0 && !ok) {
+            el.classList.add("invalid");
+          } else {
+            el.classList.remove("invalid");
+          }
+        }
+
+        /* ملخص العنوان الظاهر في الخانة الرئيسية */
+        function addressSummary() {
+          var parts = [
+            addressData.street, addressData.district,
+            addressData.city, addressData.postal
+          ].filter(function (p) { return p; });
+          return parts.join("، ");
+        }
+
+        function updateAddressValue() {
+          var summary = addressSummary();
+          if (summary) {
+            addressValue.textContent = summary;
+            addressValue.classList.remove("empty");
+            addressValue.removeAttribute("data-i18n");
+          } else {
+            addressValue.textContent = I18N.t("field_address_placeholder");
+            addressValue.classList.add("empty");
+            addressValue.setAttribute("data-i18n", "field_address_placeholder");
+          }
+        }
+
+        function openAddressModal() {
+          cityInput.value = addressData.city;
+          districtInput.value = addressData.district;
+          shortInput.value = addressData.shortAddress;
+          buildingInput.value = addressData.building;
+          secondaryInput.value = addressData.secondary;
+          postalInput.value = addressData.postal;
+          streetInput.value = addressData.street;
+          validateAddress();
+          addressOverlay.classList.add("open");
+          document.body.style.overflow = "hidden";
+        }
+
+        function closeAddressModal() {
+          addressOverlay.classList.remove("open");
+          document.body.style.overflow = "";
+        }
+
+        addressTrigger.addEventListener("click", openAddressModal);
+        addressClose.addEventListener("click", closeAddressModal);
+        addressOverlay.addEventListener("click", function (e) {
+          if (e.target === addressOverlay) closeAddressModal();
+        });
+        document.addEventListener("keydown", function (e) {
+          if (e.key === "Escape") closeAddressModal();
+        });
+
+        addressSaveBtn.addEventListener("click", function () {
+          if (!validateAddress()) return;
+          addressData = {
+            city: cityInput.value.trim(),
+            district: districtInput.value.trim(),
+            shortAddress: shortInput.value,
+            building: buildingInput.value,
+            secondary: secondaryInput.value,
+            postal: postalInput.value,
+            street: streetInput.value.trim()
+          };
+          updateAddressValue();
+          saveAccountData();
+          checkFilled();
+          closeAddressModal();
+        });
+      }
     })();
   </script>
 
