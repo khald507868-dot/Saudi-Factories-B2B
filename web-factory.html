@@ -765,8 +765,15 @@
             body.appendChild(readName);
             body.appendChild(readPrice);
 
-            card.appendChild(imageSlot);
-            card.appendChild(body);
+            /* الزائر: البطاقة كلّها رابط إلى صفحة المنتج */
+            var link = document.createElement("a");
+            link.href = "web-product.html?factory=" +
+              encodeURIComponent(factoryId) + "&p=" + index;
+            link.style.textDecoration = "none";
+            link.style.color = "inherit";
+            link.appendChild(imageSlot);
+            link.appendChild(body);
+            card.appendChild(link);
             productsGrid.appendChild(card);
             return;
           }

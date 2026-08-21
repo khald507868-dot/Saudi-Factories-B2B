@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<!-- نوع الصفحة: متصفّح | تفاصيل المنتج
+     البادئة web- تعني نسخة الموقع؛ والبادئة app- نسخة التطبيق.
+     desktop.css محمّل — التصميم العريض يعمل فوق ١٠٢٤ بكسل.
+
+     تفتحها بطاقات "الأكثر مبيعاً" في الرئيسية عبر
+     ‎web-product.html?factory=<رقم>&p=<فهرس المنتج>‎
+     وكانت قبلها تقود إلى web-factory.html أي متجر المصنع
+     كلّه، فيضيع المنتج الذي اختاره الزائر.
+
+     البيانات من sf_factories في localStorage مثل بقية
+     الموقع — لا استدعاء لقاعدة البيانات بعد.
+     مقابلها في التطبيق: لا يوجد بعد.
+     الدليل الكامل: الصفحات.md -->
+
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title data-i18n="product_page_title">تفاصيل المنتج - المصانع السعودية</title>
+<script src="i18n.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
+<script>var SF_PUBLIC_PAGE = true;</script>
+<script src="auth-guard.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: "Segoe UI", Tahoma, "Arial", sans-serif;
+    background: #f3f5f3;
+    color: #04361b;
+    min-height: 100vh;
+    padding-bottom: 40px;
+  }
+
+  /* ===== الرأس ===== */
+  .page-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    padding: 18px 16px;
+    background: #ffffff;
+    border-bottom: 1px solid #e2e6e3;
+  }
+
+  .page-header h1 {
+    font-size: 18px;
+    font-weight: 700;
+    color: #04361b;
+  }
+
+  .back-btn {
+    position: absolute;
+    right: 16px;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    border: 1px solid #dfe3e0;
+    background: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+  }
+
+  html[dir="ltr"] .back-btn { right: auto; left: 16px; }
+  html[dir="ltr"] .back-btn svg { transform: scaleX(-1); }
+
+  .back-btn svg {
+    width: 18px;
+    height: 18px;
+    stroke: #04361b;
+    fill: none;
+    stroke-width: 2.2;
+  }
+
+  .content-wrap {
+    max-width: 520px;
+    margin: 0 auto;
+    padding: 0 0 20px;
+  }
+
+  /* ===== صورة المنتج ===== */
+  .product-hero {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    background: #e6e9e7;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  .product-hero img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .product-hero svg {
+    width: 54px;
+    height: 54px;
+    stroke: #b6c0ba;
+    fill: none;
+    stroke-width: 1.4;
+  }
+
+  /* ===== البطاقات ===== */
+  .card {
+    background: #ffffff;
+    border-radius: 14px;
+    margin: 14px 14px 0;
+    padding: 16px 14px;
+    box-shadow: 0 2px 10px rgba(4, 54, 27, 0.06);
+  }
+
+  .prod-name {
+    font-size: 19px;
+    font-weight: 700;
+    line-height: 1.5;
+    margin-bottom: 10px;
+  }
+
+  .prod-price {
+    font-size: 26px;
+    font-weight: 800;
+    color: #1f6b42;
+    line-height: 1.2;
+  }
+
+  .prod-price .currency {
+    font-size: 15px;
+    font-weight: 700;
+  }
+
+  .prod-price.on-request {
+    font-size: 17px;
+    color: #5c6b62;
+  }
+
+  .prod-moq {
+    font-size: 12.5px;
+    color: #5c6b62;
+    margin-top: 6px;
+  }
+
+  /* شارات التحقّق */
+  .prod-badges {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 14px;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid #eef1ee;
+    font-size: 12.5px;
+    color: #5c6b62;
+  }
+
+  .prod-verified {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-weight: 700;
+    color: #1f6b42;
+  }
+
+  .prod-verified svg {
+    width: 14px;
+    height: 14px;
+    stroke: #1f6b42;
+    fill: none;
+    stroke-width: 2.6;
+  }
+
+  /* ===== المورّد ===== */
+  .card h2 {
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 12px;
+  }
+
+  .supplier-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .supplier-logo {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: #eef1ee;
+    flex-shrink: 0;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .supplier-logo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .supplier-logo svg {
+    width: 22px;
+    height: 22px;
+    stroke: #9aa8a0;
+    fill: none;
+    stroke-width: 1.8;
+  }
+
+  .supplier-name {
+    font-size: 14.5px;
+    font-weight: 700;
+    line-height: 1.5;
+  }
+
+  .supplier-link {
+    display: inline-block;
+    margin-top: 3px;
+    font-size: 12.5px;
+    font-weight: 700;
+    color: #1f6b42;
+    text-decoration: none;
+  }
+
+  .supplier-link:hover { text-decoration: underline; }
+
+  /* ===== أزرار التواصل ===== */
+  .actions { margin: 14px 14px 0; }
+
+  .act-btn {
+    display: block;
+    width: 100%;
+    padding: 14px;
+    border-radius: 999px;
+    font-family: inherit;
+    font-size: 14.5px;
+    font-weight: 700;
+    text-align: center;
+    text-decoration: none;
+    cursor: pointer;
+    border: 2px solid transparent;
+    margin-bottom: 10px;
+  }
+
+  .act-btn.primary {
+    background: #1f6b42;
+    color: #ffffff;
+  }
+
+  .act-btn.primary:active { opacity: 0.88; }
+
+  .act-btn.outline {
+    background: #ffffff;
+    color: #1f6b42;
+    border-color: #1f6b42;
+  }
+
+  .act-btn.outline:active { background: #f0f4f1; }
+
+  /* ===== المنتج غير موجود ===== */
+  .not-found {
+    margin: 40px 14px;
+    padding: 26px 18px;
+    background: #ffffff;
+    border-radius: 14px;
+    text-align: center;
+    font-size: 14px;
+    color: #5c6b62;
+    line-height: 1.8;
+  }
+</style>
+<link rel="stylesheet" href="mobile.css">
+<link rel="stylesheet" href="desktop.css">
+</head>
+<body class="store-page">
+
+  <header class="page-header">
+    <h1 data-i18n="product_page_heading">تفاصيل المنتج</h1>
+    <a href="web-home.html" class="back-btn" id="back-btn" aria-label="رجوع">
+      <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"></path></svg>
+    </a>
+  </header>
+
+  <div class="content-wrap" id="content-wrap"></div>
+
+  <script>
+    (function () {
+      var wrap = document.getElementById("content-wrap");
+
+      var params    = new URLSearchParams(window.location.search);
+      var factoryId = params.get("factory") || "0";
+      var prodIndex = parseInt(params.get("p") || "0", 10);
+      if (isNaN(prodIndex) || prodIndex < 0) prodIndex = 0;
+
+      /* الرجوع إلى الرئيسية — مصدر بطاقات الأكثر مبيعاً */
+      document.getElementById("back-btn").href = "web-home.html";
+
+      function escapeHTML(text) {
+        return String(text)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+
+      var imageIcon =
+        '<svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">' +
+        '<rect x="3" y="3" width="18" height="18" rx="2"/>' +
+        '<circle cx="8.5" cy="8.5" r="1.5"/>' +
+        '<path d="M21 15l-5-5L5 21"/></svg>';
+
+      var checkIcon =
+        '<svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">' +
+        '<path d="M20 6L9 17l-5-5"/></svg>';
+
+      var factoryIcon =
+        '<svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">' +
+        '<path d="M3 21h18"/><path d="M4 21V10l5 3V10l5 3V10l5 3v8"/>' +
+        '<path d="M4 10 5 4h3l1 6"/></svg>';
+
+      /* ===== البيانات =====
+         نفس مصدر بطاقات الرئيسية: sf_factories في localStorage.
+         فالمنتجات ما زالت محليّة ولم تُربط بقاعدة البيانات. */
+      var factories = {};
+      try {
+        factories = JSON.parse(localStorage.getItem("sf_factories") || "{}") || {};
+      } catch (e) {}
+
+      var factory = factories[factoryId] || {};
+      var products = factory.products || [];
+      var product = products[prodIndex] || {};
+
+      /* بطاقة الرئيسية تعرض أول منتج للمصنع، فإن كان المصنع
+         بلا منتجات بعد فالبطاقة تحمل غلافه واسمه — وهو ما
+         نعرضه هنا أيضاً بدل صفحة فارغة. */
+      var image = product.image || factory.cover || "";
+      var name  = product.name  || factory.name  || "";
+      var price = product.price || "";
+
+      /* القيم التجميلية مشتقّة من رقم المصنع لتطابق البطاقة
+         في الرئيسية بالضبط — نفس المعادلتين هناك. */
+      var idNum   = parseInt(factoryId, 10);
+      if (isNaN(idNum)) idNum = 0;
+      var years   = (idNum % 17) + 1;
+      var reorder = (idNum % 61) + 12;
+
+      var factoryName = factory.name || (I18N.t("msg_role_factory") + " " + factoryId);
+
+      /* لا اسم ولا صورة ولا مصنع بهذا الرقم: لا شيء نعرضه */
+      if (!name && !image && !factory.name) {
+        wrap.innerHTML =
+          '<div class="not-found">' + escapeHTML(I18N.t("product_not_found")) + '</div>';
+        return;
+      }
+
+      /* ===== نصوص الرسائل الجاهزة =====
+         تُمرَّر إلى صفحة المحادثات عبر ‎?draft=‎ فتُملأ خانة
+         الكتابة ولا تُرسل — يراجعها المستخدم أولاً. */
+      var subject      = name || factoryName;
+      var inquiryDraft = I18N.t("product_draft_inquiry") + " " + subject;
+      var quoteDraft   = I18N.t("product_draft_quote") + " " + subject +
+                         "\n" + I18N.t("product_draft_qty") + " ";
+
+      function chatURL(draft) {
+        var url = "web-messages.html?factory=" + encodeURIComponent(factoryId);
+        if (draft) url += "&draft=" + encodeURIComponent(draft);
+        return url;
+      }
+
+      var priceBlock = price
+        ? '<div class="prod-price">' + escapeHTML(price) +
+          ' <span class="currency">' + escapeHTML(I18N.t("currency_sar")) + '</span></div>'
+        : '<div class="prod-price on-request">' +
+          escapeHTML(I18N.t("product_price_on_request")) + '</div>';
+
+      wrap.innerHTML =
+        '<div class="product-hero">' +
+          (image ? '<img alt="" src="' + escapeHTML(image) + '">' : imageIcon) +
+        '</div>' +
+
+        '<div class="card">' +
+          (name ? '<div class="prod-name">' + escapeHTML(name) + '</div>' : '') +
+          priceBlock +
+          '<div class="prod-moq">' + escapeHTML(I18N.t("product_reorder_rate")) +
+            ' ' + reorder + '%</div>' +
+          '<div class="prod-badges">' +
+            '<span class="prod-verified">' + checkIcon +
+              escapeHTML(I18N.t("product_verified")) + '</span>' +
+            '<span>' + years + ' ' + escapeHTML(I18N.t("product_years")) + '</span>' +
+          '</div>' +
+        '</div>' +
+
+        '<div class="card">' +
+          '<h2>' + escapeHTML(I18N.t("product_supplier_label")) + '</h2>' +
+          '<div class="supplier-row">' +
+            '<div class="supplier-logo">' +
+              (factory.logo ? '<img alt="" src="' + escapeHTML(factory.logo) + '">' : factoryIcon) +
+            '</div>' +
+            '<div>' +
+              '<div class="supplier-name">' + escapeHTML(factoryName) + '</div>' +
+              '<a class="supplier-link" href="web-factory.html?id=' +
+                encodeURIComponent(factoryId) + '">' +
+                escapeHTML(I18N.t("product_view_store")) + '</a>' +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+
+        '<div class="actions">' +
+          '<a class="act-btn primary" href="' + escapeHTML(chatURL(inquiryDraft)) + '">' +
+            escapeHTML(I18N.t("product_send_inquiry")) + '</a>' +
+          '<a class="act-btn outline" href="' + escapeHTML(chatURL(quoteDraft)) + '">' +
+            escapeHTML(I18N.t("product_request_quote")) + '</a>' +
+          '<a class="act-btn outline" href="' + escapeHTML(chatURL("")) + '">' +
+            escapeHTML(I18N.t("product_start_chat")) + '</a>' +
+        '</div>';
+    })();
+  </script>
+
+</body>
+</html>

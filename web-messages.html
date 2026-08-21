@@ -1370,6 +1370,17 @@
         }
 
         openChat(id);
+
+        /* ‎?draft=‎ يملأ خانة الكتابة بنصّ مبدئي ولا يُرسله —
+           تأتي به أزرار "استفسار" و"طلب عرض سعر" في صفحة
+           المنتج، ليراجعه المستخدم ويعدّله قبل الإرسال. */
+        var draft = params.get("draft");
+        if (draft) {
+          msgInput.value = draft;
+          msgInput.style.height = "auto";
+          msgInput.style.height = msgInput.scrollHeight + "px";
+          msgInput.focus();
+        }
       }
 
       loadThreads();
