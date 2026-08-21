@@ -69,7 +69,9 @@
   .top-bar-logo .wm-title { font-size: 19px !important; }
   .top-bar-logo .w-dark   { color: #04361b !important; }
 
-  /* ===== حركة الكتابة المستمرة (الصفحة الرئيسية فقط) =====
+  /* ===== حركة الكتابة المستمرة =====
+     تعمل في شعار الشريط العلوي للرئيسية، وفي شعار بوّابتَي
+     الدخول (الأفراد والمصانع) — والقواعد مشتركة بينها.
      الاسم يُكشف من اليسار حرفاً حرفاً، يثبت ٣ ثوانٍ ظاهراً
      بالكامل، ثم يختفي فوراً ويعيد الكرّة من اليسار بلا توقف.
 
@@ -82,7 +84,8 @@
 
      الدورة ٤.٤ ثانية: ١.٤ كشف + ٣ ثبات ظاهراً. */
 
-  .top-bar-logo .wm-title {
+  .top-bar-logo .wm-title,
+  .auth-brandbar .wm-title {
     animation: wmType 4.4s steps(24, end) infinite;
   }
 
@@ -96,9 +99,11 @@
   }
 
   /* الخط الذهبي يُرسم مع الاسم بنفس التوقيت والاتجاه */
-  .top-bar-logo { position: relative; }
+  .top-bar-logo,
+  .auth-brandbar .brand-seal { position: relative; }
 
-  .top-bar-logo .wm-rule {
+  .top-bar-logo .wm-rule,
+  .auth-brandbar .wm-rule {
     animation: wmCaret 4.4s steps(24, end) infinite;
     /* نسبة مئوية لا كلمة left/right: الكلمات تنعكس مع اتجاه
        الصفحة RTL فيمتدّ الخط من اليمين، أما 0% فهي الحافة
@@ -116,11 +121,13 @@
 
   /* احترام تفضيل تقليل الحركة في نظام المستخدم */
   @media (prefers-reduced-motion: reduce) {
-    .top-bar-logo .wm-title {
+    .top-bar-logo .wm-title,
+    .auth-brandbar .wm-title {
       clip-path: none;
       animation: none;
     }
-    .top-bar-logo .wm-rule { animation: none; transform: none; }
+    .top-bar-logo .wm-rule,
+    .auth-brandbar .wm-rule { animation: none; transform: none; }
   }
 
   /* البحث يتمدّد ويأخذ وسط الشريط */
