@@ -724,6 +724,51 @@
 
   /* اللوحة المخفية: hidden وحدها لا تكفي مع display الموروث */
   .auth-panel[hidden] { display: none; }
+
+  /* ===== شريط الشعار أعلى الصفحة =====
+     مخفيّ افتراضياً: تصميم الهاتف يبقى كما هو، وترويسته
+     .page-header وحدها. و desktop.css يُظهره فوق ١٠٢٤ بكسل. */
+  .auth-brandbar { display: none; }
+
+  .auth-brandbar .brand-seal {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    max-width: 260px;
+    text-decoration: none;
+  }
+
+  .auth-brandbar .wm-title {
+    font-size: 30px;
+    font-weight: 800;
+    line-height: 1.15;
+    white-space: nowrap;
+    /* الاسم لاتيني دائماً، فيثبّت اتجاهه حتى لا ينعكس ترتيب الكلمتين في RTL */
+    direction: ltr;
+  }
+
+  .auth-brandbar .wm-title .w-green { color: #45a06a; }
+  .auth-brandbar .wm-title .w-dark  { color: #04361b; }
+
+  .auth-brandbar .wm-title .w-b2b {
+    color: #c9a227;
+    font-size: 0.52em;
+    vertical-align: 0.68em;
+  }
+
+  /* الخط المتدرّج القصير تحت الاسم نفسه */
+  .auth-brandbar .wm-rule {
+    width: 100%;
+    height: 3px;
+    border-radius: 2px;
+    background: linear-gradient(to left, #1f6b42, #45a06a, #c9a227);
+  }
+
+  html[dir="ltr"] .auth-brandbar .wm-rule {
+    background: linear-gradient(to right, #1f6b42, #45a06a, #c9a227);
+  }
 </style>
 <link rel="stylesheet" href="mobile.css">
 <link rel="stylesheet" href="desktop.css">
@@ -748,6 +793,15 @@
     </svg>
   </div>
 
+
+  <!-- شريط الشعار: يظهر على المتصفّح فقط (يخفيه mobile.css أدناه).
+       الشعار وسط الصفحة وتحته خط يمتدّ بعرض النافذة كاملاً. -->
+  <div class="auth-brandbar">
+    <a href="web-home.html" class="brand-seal" aria-label="المصانع السعودية">
+      <div class="wm-title"><span class="w-green">Saudi</span> <span class="w-dark">Factories</span> <span class="w-b2b">B2B</span></div>
+      <div class="wm-rule"></div>
+    </a>
+  </div>
 
   <header class="page-header">
     <h1 data-i18n="splash_login_btn">تسجيل دخول</h1>

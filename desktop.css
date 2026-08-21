@@ -185,6 +185,41 @@
   .dt-btn.ghost { background: #eef3f0; color: #04361b; }
   .dt-btn.ghost:hover { background: #e2eae5; }
 
+  /* ===== "كن مورّدًا" في طرف الشريط =====
+     أيقونة فوق النص كما في أشرطة أسواق B2B، ويملأ الفراغ
+     الذي كان بجانب أيقونة الرسائل. */
+  .dt-supplier {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    padding: 6px 12px;
+    border-radius: 10px;
+    text-decoration: none;
+    white-space: nowrap;
+    cursor: pointer;
+    /* لا ينكمش حين تضيق النافذة فيبقى النص سطراً واحداً */
+    flex-shrink: 0;
+  }
+
+  .dt-supplier:hover { background: #f0f4f1; }
+
+  .dt-supplier svg {
+    width: 22px;
+    height: 22px;
+    stroke: #1f6b42;
+    fill: none;
+    stroke-width: 1.9;
+  }
+
+  .dt-supplier span {
+    font-size: 12px;
+    font-weight: 700;
+    color: #1f6b42;
+    line-height: 1;
+  }
+
   /* خانة الحساب: زرّان للزائر، أو اسم المستخدم */
   /* gap هو ما يرسم المسافة هنا — الحاوية flex،
      فأي margin على .dt-user لا أثر له */
@@ -1260,6 +1295,34 @@
     font-size: 15px !important;
     padding: 13px 14px !important;
   }
+
+  /* ===== شريط الشعار أعلى صفحة الدخول =====
+     الشعار وسط الشريط، وتحته خط يمتدّ بعرض النافذة كاملاً. */
+
+  /* body هنا flex عمودي بتوسيط رأسي (justify-content: center)،
+     فلو تُرك الشريط عنصراً عادياً لالتصق بالبطاقة في الوسط.
+     و margin-bottom: auto يدفع ما بعده للأسفل فيثبت هو أعلى
+     الصفحة وتبقى البطاقة موسّطة فيما تبقّى. */
+  .auth-page .auth-brandbar {
+    display: flex !important;
+    justify-content: center;
+    align-items: center;
+    background: transparent;
+
+    /* الخط الطويل: حدّ سفليّ يبلغ حافّتي النافذة. و body يحمل
+       padding: 40px 24px، فتُلغيه هوامش سالبة مساوية.
+       واللون أخضر الهوية نفسه المستخدم في الشعار. */
+    border-bottom: 1px solid #45a06a;
+    align-self: stretch;
+    margin: -40px -24px auto;
+    padding: 26px 24px 24px;
+  }
+
+  /* البطاقة تبقى موسّطة تحت الشريط */
+  .auth-page .form-wrap { margin-top: auto !important; }
+
+  /* الترويسة القديمة يغنِي عنها التبويبان */
+  .auth-page .page-header { display: none !important; }
 }
 
 /* عناصر سطح المكتب مخفية تماماً على الجوال */
@@ -1269,5 +1332,7 @@
   .dt-actions,
   .page-logo,
   .dash-side,
+  .auth-brandbar,
+  .dt-supplier,
   .dash-stats { display: none !important; }
 }
