@@ -1,27 +1,33 @@
 # قبل الإطلاق للمستخدمين الحقيقيين
 
-## ⚠️ إعادة تفعيل تأكيد البريد — إلزامي
+## ✅ تأكيد البريد — مُفعّل (22 أغسطس 2026)
 
-عُطِّل أثناء التطوير لتسريع التجربة.
-مع التعطيل يستطيع أي شخص التسجيل ببريد ليس له.
+كان مُعطّلاً أثناء التطوير، فكان أي شخص يستطيع التسجيل
+ببريد ليس له. وقد فُعّل من:
+Supabase → Authentication → Sign In / Providers → `Confirm email`
 
-**الإعادة:**
-Supabase → Authentication → Providers → Email → `Confirm email` → تشغيل → Save
+وفي الجلسة نفسها انقلب `Allow anonymous sign-ins` إلى مُفعّل
+سهواً ثم أُعيد إطفاؤه. **يجب أن يبقى مُطفأً** — فهو يمنح
+الزائر صفة authenticated فتنفتح له سياسات RLS المخصصة للمسجّلين.
 
-الرابط:
-https://supabase.com/dashboard/project/yhofxryhlrrwzztfowpa/auth/providers
+**ملاحظة:** الخطة المجانية ترسل عدداً محدوداً من رسائل التأكيد
+في الساعة — تكفي للتجربة، وتحتاج خدمة بريد خارجية عند التوسّع.
 
 ---
 
 ## بقية ما ينتظر
 
-- [ ] صفحة إدارة لاعتماد المصانع (status: pending → approved)
-- [ ] منح is_admin = true لحسابك من Table Editor → profiles
+- [x] صفحة إدارة لاعتماد المصانع (status: pending → approved)
+- [x] منح is_admin = true — عبر make-admin.sql (22 أغسطس 2026)
+- [x] إضافة عمود industrial_license — add-industrial-license.sql (22 أغسطس 2026)
 - [ ] نقل الصور من base64 إلى Supabase Storage
 - [ ] جدول custom_prices للأسعار الخاصة بكل عميل
-- [ ] حقل المنطقة في register.html (region_id فارغ حاليًا،
+- [ ] حقل المنطقة والوصف في web-supplier.html (region_id فارغ حاليًا،
       فلا تجد خريطة home.html مصانع المنطقة)
-- [ ] .gitignore قبل أول رفع إلى GitHub
+- [x] .gitignore — موجود
+- [ ] **نطاق حقيقي ورفع الموقع** — المشروع يعمل من file:/// فقط،
+      فلا يصله أحد، واستعادة كلمة المرور لا تعمل بدونه
+- [ ] بعد النطاق: تسجيله في Authentication → URL Configuration
 
 ---
 
