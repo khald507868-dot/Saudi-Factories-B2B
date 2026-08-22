@@ -1114,9 +1114,11 @@
      ============================================================ */
 
   body.store-page {
-    max-width: 1500px !important;
+    /* 1128px هو عرض لينكدإن — وكان 1500px
+       فيمتدّ الغلاف حتّى يبتلع الشاشة مهما ضُبطت نسبته. */
+    max-width: 1128px !important;
     margin: 0 auto !important;
-    padding: 0 32px 60px !important;
+    padding: 0 24px 60px !important;
     background: #f6f7f6;
   }
 
@@ -1140,8 +1142,8 @@
     padding: 0 !important;
     margin: 0 !important;
     display: grid;
-    grid-template-columns: 340px minmax(0, 1fr);
-    column-gap: 24px;
+    grid-template-columns: 300px minmax(0, 1fr);
+    column-gap: 20px;
     align-items: start;
   }
 
@@ -1151,28 +1153,55 @@
     grid-row: 1;
     border-radius: 14px;
     overflow: visible;
-    margin-bottom: 40px !important;
+    margin-bottom: 0 !important;
   }
 
   .store-page .cover-image {
-    aspect-ratio: 24 / 7;
+    /* ارتفاع ثابت مثل لينكدإن — لا نسبة تتمدّد مع العرض */
+    height: 201px;
     border-radius: 14px;
   }
 
-  .store-page .storage-warning { grid-column: 1 / -1; grid-row: 2; }
+  /* الترويسة تعبر العمودين تحت الغلاف مباشرة —
+     وإدراجها يزيح كلّ ما بعدها صفّاً واحداً. */
+  .store-page .fx-head {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    border-radius: 14px;
+    padding: 44px 24px 0 !important;
+    margin-bottom: 16px !important;
+  }
+
+  .store-page .fx-name { font-size: 26px; }
+
+  .store-page .storage-warning { grid-column: 1 / -1; grid-row: 3; }
 
   /* الإسناد بمعرّفات صريحة لا بـ nth-of-type: الأخير يعُدّ
      حسب اسم الوسم، والغلاف وتحذير التخزين ـdivـات أيضاً،
      فتزحزح الترقيم وتتلقّى البطاقة الخطأ العمود الخطأ.
      الصفوف مثبتة صراحةً لئلا يترك التدفّق التلقائي فراغاً. */
-  .store-page #card-name    { grid-column: 1; grid-row: 3; }
-  .store-page #card-about   { grid-column: 1; grid-row: 4; }
-  .store-page .contact-btn  { grid-column: 1; grid-row: 5; }
+  .store-page #card-name    { grid-column: 1; grid-row: 4; }
+  .store-page #card-about   { grid-column: 1; grid-row: 5; }
+  .store-page .contact-btn  { grid-column: 1; grid-row: 6; }
+
+  /* المنشورات والمنتجات تتشاركان العمود الواسع،
+     ولا تظهران معاً إلا في تبويب الرئيسية. */
+  .store-page #card-posts {
+    grid-column: 2;
+    grid-row: 4;
+    align-self: start;
+  }
 
   .store-page #card-products {
     grid-column: 2;
-    grid-row: 3 / span 3;
+    grid-row: 5 / span 2;
     align-self: stretch;
+  }
+
+  /* في تبويب منفرد يأخذ المرئي منهما كلّ العمود */
+  body.tab-posts.store-page #card-posts,
+  body.tab-products.store-page #card-products {
+    grid-row: 4 / span 3;
   }
 
   .store-page .card {
@@ -1192,7 +1221,7 @@
 
   .store-page.view-only .contact-btn {
     font-size: 15px;
-    padding: 14px 20px !important;
+    padding: 11px 24px !important;
   }
 
   /* شبكة أوسع: عمودان على الجوال ← ثلاثة هنا */
@@ -1212,7 +1241,7 @@
   /* زر المراسلة لا يمتدّ عرض الشاشة */
   .store-page .contact-btn {
     margin: 0 0 16px !important;
-    border-radius: 12px;
+    border-radius: 999px;
   }
 
   /* ============================================================

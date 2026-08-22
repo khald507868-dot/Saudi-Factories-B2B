@@ -88,12 +88,15 @@
   .cover-block {
     position: relative;
     background: #ffffff;
-    margin-bottom: 34px;
+    margin-bottom: 0;
   }
 
   .cover-image {
     width: 100%;
-    aspect-ratio: 16 / 9;
+    /* ارتفاع ثابت لا نسبة — فالنسبة تكبر مع عرض
+       الحاوية، فيبتلع الغلاف الشاشة كلّما اتّسعت. ولينكدإن
+       يستخدم ارتفاعاً ثابتاً للسبب نفسه. */
+    height: 134px;
     background: #e6e9e7;
     display: flex;
     flex-direction: column;
@@ -126,13 +129,13 @@
 
   .logo-circle {
     position: absolute;
-    bottom: -30px;
+    bottom: -28px;
     right: 18px;
-    width: 76px;
-    height: 76px;
-    border-radius: 50%;
+    width: 72px;
+    height: 72px;
+    border-radius: 12px;
     background: #ffffff;
-    border: 2px dashed #c7d0ca;
+    border: 3px dashed #c7d0ca;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -165,20 +168,199 @@
     stroke-width: 1.8;
   }
 
-  /* ===== زر مراسلة المصنع ===== */
-  .contact-btn {
-    display: block;
-    margin: 0 14px 14px;
-    padding: 13px;
+  /* ===== ترويسة المصنع — الاسم والبيانات والتبويبات ===== */
+  /* الحشو العلوي يترك مكاناً للشعار المتدلّي من الغلاف */
+  .fx-head {
+    background: #ffffff;
+    padding: 38px 18px 0;
+    margin-bottom: 14px;
+  }
+
+  .fx-name {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0;
+    font-size: 21px;
+    font-weight: 800;
+    color: #04361b;
+    line-height: 1.3;
+  }
+
+  .fx-verified {
+    width: 18px;
+    height: 18px;
+    flex: none;
+    fill: #45a06a;
+    stroke: none;
+    display: none;
+  }
+
+  .fx-verified.is-on { display: block; }
+
+  .fx-verified .fx-check {
+    fill: none;
+    stroke: #ffffff;
+    stroke-width: 2.2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .fx-tagline {
+    margin: 5px 0 0;
+    font-size: 14px;
+    color: #33463b;
+    line-height: 1.5;
+  }
+
+  .fx-tagline:empty { display: none; }
+
+  /* سطر البيانات مفصول بنقاط — يُبنى من الجافاسكربت */
+  .fx-meta {
+    margin: 6px 0 0;
+    font-size: 12.5px;
+    color: #6b7d72;
+    line-height: 1.6;
+  }
+
+  .fx-meta:empty { display: none; }
+
+  .fx-tabs {
+    display: flex;
+    gap: 4px;
+    margin-top: 14px;
+    border-bottom: 1px solid #e6e9e7;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .fx-tabs::-webkit-scrollbar { display: none; }
+
+  .fx-tab {
+    flex: none;
+    padding: 11px 14px;
+    border: none;
+    background: none;
+    font: inherit;
+    font-size: 13.5px;
+    font-weight: 700;
+    color: #6b7d72;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    white-space: nowrap;
+  }
+
+  .fx-tab.is-active {
+    color: #04361b;
+    border-bottom-color: #04361b;
+  }
+
+  /* ===== المنشورات ===== */
+  .posts-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .post-item {
+    position: relative;
+    border: 1px solid #e6e9e7;
     border-radius: 12px;
+    padding: 13px 14px;
+    background: #fbfcfb;
+  }
+
+  .post-item textarea {
+    width: 100%;
+    min-height: 62px;
+    border: none;
+    background: none;
+    resize: vertical;
+    font: inherit;
+    font-size: 13.5px;
+    color: #04361b;
+    line-height: 1.7;
+    outline: none;
+    padding: 0;
+  }
+
+  .post-read {
+    font-size: 13.5px;
+    color: #04361b;
+    line-height: 1.7;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .post-date {
+    margin-top: 8px;
+    font-size: 11.5px;
+    color: #6b7d72;
+  }
+
+  .post-delete {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    width: 24px;
+    height: 24px;
+    border: none;
+    border-radius: 50%;
+    background: #fdecec;
+    color: #c0392b;
+    font-size: 15px;
+    line-height: 1;
+    cursor: pointer;
+  }
+
+  html[dir="ltr"] .post-delete { left: auto; right: 8px; }
+
+  body.view-only .post-delete,
+  body.view-only #add-post-btn { display: none; }
+
+  /* إخفاء الأقسام حسب التبويب المختار — الصنف على body */
+  body.tab-posts    #card-about,
+  body.tab-posts    #card-products,
+  body.tab-about    #card-posts,
+  body.tab-about    #card-products,
+  body.tab-products #card-about,
+  body.tab-products #card-posts { display: none !important; }
+
+  /* ===== زر مراسلة المصنع ===== */
+  /* كبسولة بحجم محتواها بنمط لينكدإن — وكان زرّاً
+     يمتدّ بعرض العمود كلّه. inline-flex لا block هو
+     ما يجعله ينكمش على نصّه. */
+  .contact-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    margin: 0 14px 14px;
+    padding: 10px 20px;
+    border-radius: 999px;
     background: #04361b;
     color: #ffffff;
     font-size: 14px;
     font-weight: 700;
-    text-align: center;
     text-decoration: none;
     cursor: pointer;
   }
+
+  .contact-btn svg {
+    width: 16px;
+    height: 16px;
+    flex: none;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.9;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  /* الطائرة تشير إلى جهة الإرسال، فهي مرآة لا ترتيب ثابت:
+     تنقلب مع اتجاه القراءة وإلا أشارت للخلف في العربية. */
+  .contact-btn svg { transform: scaleX(-1); }
+  html[dir="ltr"] .contact-btn svg { transform: none; }
 
   .contact-btn:active { opacity: 0.85; }
 
@@ -524,6 +706,22 @@
       </div>
     </div>
 
+    <!-- ترويسة المصنع — الاسم وسطر البيانات والتبويبات -->
+    <div class="fx-head" id="fx-head">
+      <h1 class="fx-name" id="fx-name">
+        <span id="fx-name-text"></span>
+        <svg class="fx-verified" id="fx-verified" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l2.4 1.8 3-.3 1 2.8 2.6 1.5-1 2.9 1 2.9-2.6 1.5-1 2.8-3-.3L12 22l-2.4-1.8-3 .3-1-2.8L3 16.2l1-2.9-1-2.9 2.6-1.5 1-2.8 3 .3z"></path><path class="fx-check" d="M8.6 12.2l2.3 2.3 4.5-4.6"></path></svg>
+      </h1>
+      <p class="fx-tagline" id="fx-tagline"></p>
+      <p class="fx-meta" id="fx-meta"></p>
+      <div class="fx-tabs" id="fx-tabs">
+        <button type="button" class="fx-tab is-active" data-tab="home" data-i18n="factory_tab_home">الرئيسية</button>
+        <button type="button" class="fx-tab" data-tab="posts" data-i18n="factory_tab_posts">المنشورات</button>
+        <button type="button" class="fx-tab" data-tab="about" data-i18n="factory_tab_about">نبذة</button>
+        <button type="button" class="fx-tab" data-tab="products" data-i18n="factory_products_title">المنتجات</button>
+      </div>
+    </div>
+
     <div class="storage-warning" id="storage-warning" data-i18n="storage_full_msg">مساحة التخزين ممتلئة، لن تُحفظ الصور الجديدة.</div>
 
     <div class="card" id="card-name">
@@ -537,7 +735,23 @@
     </div>
 
     <!-- زر المراسلة: يفتح محادثة هذا المصنع في صفحة الرسائل -->
-    <a class="contact-btn" id="contact-btn" data-i18n="msg_contact_btn">مراسلة المصنع</a>
+    <a class="contact-btn" id="contact-btn">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21.5 2.5L11 13"></path><path d="M21.5 2.5l-6.6 19-3.9-8.5L2.5 9.1z"></path></svg>
+      <span data-i18n="msg_contact_btn">مراسلة المصنع</span>
+    </a>
+
+    <!-- المنشورات — تظهر في تبويب الرئيسية وتبويب المنشورات -->
+    <div class="card" id="card-posts">
+      <div class="products-head">
+        <h2 data-i18n="factory_tab_posts">المنشورات</h2>
+        <button type="button" class="add-product-btn" id="add-post-btn">
+          <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"></path></svg>
+          <span data-i18n="factory_add_post">إضافة منشور</span>
+        </button>
+      </div>
+      <p class="products-empty" id="posts-empty" data-i18n="factory_no_posts">لا توجد منشورات بعد</p>
+      <div class="posts-list" id="posts-list"></div>
+    </div>
 
     <div class="card" id="card-products">
       <div class="products-head">
@@ -687,6 +901,7 @@
 
         nameInput.addEventListener("input", function () {
           data.name = nameInput.value;
+          renderHead();
           save();
         });
 
@@ -718,6 +933,138 @@
           el.classList.add("empty");
         }
         field.parentNode.replaceChild(el, field);
+      }
+
+      /* ===== ترويسة المصنع ===== */
+      var headNameEl  = document.getElementById("fx-name-text");
+      var headVerifEl = document.getElementById("fx-verified");
+      var headTagEl   = document.getElementById("fx-tagline");
+      var headMetaEl  = document.getElementById("fx-meta");
+
+      /* سطر البيانات يعرض الموجود وحده — فالحقول الخالية
+         تُسقط بدل أن تترك نقاطاً فاصلة معلّقة */
+      function renderHead() {
+        var shownName = data.name || I18N.t("factory_no_name");
+        headNameEl.textContent = shownName;
+
+        /* علامة التوثيق تظهر للمصنع المُعتمد فقط.
+           والاعتماد لمّا يُقرأ من القاعدة بعد، فتبقى مخفية. */
+        if (data.verified) {
+          headVerifEl.classList.add("is-on");
+          headVerifEl.setAttribute("aria-label", I18N.t("factory_verified"));
+        } else {
+          headVerifEl.classList.remove("is-on");
+        }
+
+        headTagEl.textContent = data.tagline || "";
+
+        var bits = [];
+        if (data.city) bits.push(data.city);
+        var count = (data.products || []).length;
+        if (count) bits.push(count + " " + I18N.t("factory_products_count"));
+        headMetaEl.textContent = bits.join(" · ");
+      }
+
+      /* التبويبات تُبدّل المحتوى لا تمرّر إليه — والإخفاء
+         بصنف على body لا بـstyle مباشر، ليبقى القرار في CSS.
+         و"الرئيسية" بلا صنف — فتظهر النبذة والمنشورات معاً. */
+      var TAB_CLASSES = ["tab-posts", "tab-about", "tab-products"];
+      var tabsWrap = document.getElementById("fx-tabs");
+
+      function selectTab(name) {
+        for (var i = 0; i < TAB_CLASSES.length; i++) {
+          document.body.classList.remove(TAB_CLASSES[i]);
+        }
+        if (name !== "home") document.body.classList.add("tab-" + name);
+
+        var all = tabsWrap.querySelectorAll(".fx-tab");
+        for (var j = 0; j < all.length; j++) {
+          all[j].classList.toggle("is-active",
+            all[j].getAttribute("data-tab") === name);
+        }
+      }
+
+      if (tabsWrap) {
+        tabsWrap.addEventListener("click", function (ev) {
+          var btn = ev.target.closest(".fx-tab");
+          if (!btn) return;
+          selectTab(btn.getAttribute("data-tab"));
+        });
+      }
+
+      /* ===== المنشورات =====
+         تُحفظ مع بقية بيانات المصنع في sf_factories — وجدول posts
+         في القاعدة جاهز لكن الصفحة لمّا تُربط به بعد. */
+      var postsList  = document.getElementById("posts-list");
+      var postsEmpty = document.getElementById("posts-empty");
+      var addPostBtn = document.getElementById("add-post-btn");
+
+      if (!data.posts) data.posts = [];
+
+      function formatPostDate(iso) {
+        if (!iso) return "";
+        var d = new Date(iso);
+        if (isNaN(d.getTime())) return "";
+        return d.getFullYear() + "/" + (d.getMonth() + 1) + "/" + d.getDate();
+      }
+
+      function renderPosts() {
+        postsList.innerHTML = "";
+        postsEmpty.style.display = data.posts.length ? "none" : "";
+
+        data.posts.forEach(function (post, index) {
+          var item = document.createElement("div");
+          item.className = "post-item";
+
+          if (canEdit) {
+            var ta = document.createElement("textarea");
+            ta.value = post.body || "";
+            ta.placeholder = I18N.t("factory_post_placeholder");
+            ta.addEventListener("input", function () {
+              post.body = ta.value;
+              save();
+            });
+            item.appendChild(ta);
+
+            var del = document.createElement("button");
+            del.type = "button";
+            del.className = "post-delete";
+            del.innerHTML = "&times;";
+            del.setAttribute("aria-label", I18N.t("product_delete"));
+            del.addEventListener("click", function () {
+              data.posts.splice(index, 1);
+              save();
+              renderPosts();
+            });
+            item.appendChild(del);
+          } else {
+            var read = document.createElement("div");
+            read.className = "post-read";
+            read.textContent = post.body || "";
+            item.appendChild(read);
+          }
+
+          var date = document.createElement("div");
+          date.className = "post-date";
+          date.textContent = formatPostDate(post.created_at);
+          item.appendChild(date);
+
+          postsList.appendChild(item);
+        });
+      }
+
+      if (canEdit && addPostBtn) {
+        addPostBtn.addEventListener("click", function () {
+          data.posts.unshift({ body: "", image: "", created_at: new Date().toISOString() });
+          save();
+          renderPosts();
+        });
+      }
+
+      /* الزائر لا يرى بطاقة منشورات فارغة */
+      if (!canEdit && !data.posts.length) {
+        var postsCard = document.getElementById("card-posts");
+        if (postsCard) postsCard.classList.add("is-empty");
       }
 
       /* ===== المنتجات ===== */
@@ -819,6 +1166,7 @@
             data.products.splice(index, 1);
             save();
             renderProducts();
+            renderHead();
           });
 
           card.appendChild(imageSlot);
@@ -833,10 +1181,13 @@
           data.products.push({ image: "", name: "", price: "" });
           save();
           renderProducts();
+          renderHead();
         });
       }
 
       renderProducts();
+      renderPosts();
+      renderHead();
     })();
   </script>
 
