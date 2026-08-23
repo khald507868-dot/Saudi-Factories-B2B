@@ -1114,9 +1114,11 @@
      ============================================================ */
 
   body.store-page {
-    /* 1128px هو عرض لينكدإن — وكان 1500px
-       فيمتدّ الغلاف حتّى يبتلع الشاشة مهما ضُبطت نسبته. */
-    max-width: 1128px !important;
+    /* لينكدإن يوزّع 1128px على عمود رئيس ~970px وشريط
+       جانبي — ولا شريط جانبي هنا، فيملأ المحتوى
+       العرض كلّه فيبدو أوسع. فالمقارنة مع العمود لا مع
+       عرض الصفحة كاملة. */
+    max-width: 970px !important;
     margin: 0 auto !important;
     padding: 0 24px 60px !important;
     background: #f6f7f6;
@@ -1142,8 +1144,8 @@
     padding: 0 !important;
     margin: 0 !important;
     display: grid;
-    grid-template-columns: 300px minmax(0, 1fr);
-    column-gap: 20px;
+    grid-template-columns: 264px minmax(0, 1fr);
+    column-gap: 18px;
     align-items: start;
   }
 
@@ -1158,7 +1160,7 @@
 
   .store-page .cover-image {
     /* ارتفاع ثابت مثل لينكدإن — لا نسبة تتمدّد مع العرض */
-    height: 201px;
+    height: 172px;
     border-radius: 14px;
   }
 
@@ -1182,8 +1184,6 @@
      الصفوف مثبتة صراحةً لئلا يترك التدفّق التلقائي فراغاً. */
   .store-page #card-name    { grid-column: 1; grid-row: 4; }
   .store-page #card-about   { grid-column: 1; grid-row: 5; }
-  .store-page .contact-btn  { grid-column: 1; grid-row: 6; }
-
   /* المنشورات والمنتجات تتشاركان العمود الواسع،
      ولا تظهران معاً إلا في تبويب الرئيسية. */
   .store-page #card-posts {
@@ -1216,12 +1216,7 @@
      لا حقول ولا أزرار حذف، فالعمود الجانبي يضيق وتتوسّع
      المنتجات، وزر المراسلة هو الإجراء الرئيس فيبرز. */
   body.store-page.view-only .content-wrap {
-    grid-template-columns: 300px minmax(0, 1fr);
-  }
-
-  .store-page.view-only .contact-btn {
-    font-size: 15px;
-    padding: 11px 24px !important;
+    grid-template-columns: 264px minmax(0, 1fr);
   }
 
   /* شبكة أوسع: عمودان على الجوال ← ثلاثة هنا */
@@ -1239,10 +1234,13 @@
   .store-page .products-head { flex-wrap: nowrap; }
 
   /* زر المراسلة لا يمتدّ عرض الشاشة */
-  .store-page .contact-btn {
-    margin: 0 0 16px !important;
-    border-radius: 999px;
+  /* لوحة المراسلات أوسع على الشاشة العريضة */
+  .store-page .msg-dock {
+    width: 320px;
+    right: 28px;
   }
+
+  html[dir="ltr"] .store-page .msg-dock { right: auto; left: 28px; }
 
   /* ============================================================
      صفحات الدخول للموقع: login • register

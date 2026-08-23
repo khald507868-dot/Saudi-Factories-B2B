@@ -59,6 +59,9 @@ create table if not exists public.factories (
   commercial_register text not null default '',   -- 10 أرقام حدّاً أقصى
   industrial_license  text not null default '',   -- 10 أرقام حدّاً أقصى
   region_id           text default '',      -- يقابل معرّفات مناطق regions-geo.js
+  website             text not null default '',
+  industry            text not null default '',   -- يقابل فئات i18n.js
+  company_size        text not null default '',   -- نطاق مثل 51-200
 
   -- العنوان الوطني — مفكوك إلى أعمدة بدل كائن JSON
   address_city        text default '',

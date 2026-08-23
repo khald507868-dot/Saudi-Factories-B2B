@@ -256,6 +256,256 @@
     border-bottom-color: #04361b;
   }
 
+  /* ===== لوحة المراسلات المطويّة =====
+     تلتصق بزاوية بداية القراءة — مرآة تتبع الاتجاه.
+     والطيّ بتحديد ارتفاع الجسم لا بـdisplay لتبقى الحركة ناعمة. */
+  .msg-dock {
+    position: fixed;
+    bottom: 0;
+    right: 18px;
+    z-index: 70;
+    width: 288px;
+    max-width: calc(100vw - 36px);
+    background: #ffffff;
+    border: 1px solid #e6e9e7;
+    border-bottom: none;
+    border-radius: 12px 12px 0 0;
+    box-shadow: 0 -2px 14px rgba(4, 54, 27, 0.13);
+    overflow: hidden;
+  }
+
+  html[dir="ltr"] .msg-dock { right: auto; left: 18px; }
+
+  .msg-dock-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 10px 12px;
+    border: none;
+    background: none;
+    font: inherit;
+    cursor: pointer;
+    text-align: start;
+  }
+
+  .msg-dock-avatar {
+    width: 28px;
+    height: 28px;
+    flex: none;
+    border-radius: 50%;
+    background: #04361b;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 800;
+  }
+
+  .msg-dock-title {
+    flex: 1;
+    min-width: 0;
+    font-size: 14px;
+    font-weight: 800;
+    color: #04361b;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .msg-dock-count {
+    flex: none;
+    min-width: 19px;
+    height: 19px;
+    padding: 0 5px;
+    border-radius: 999px;
+    background: #c0392b;
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 19px;
+    text-align: center;
+    display: none;
+  }
+
+  .msg-dock-count.is-on { display: block; }
+
+  .msg-dock-arrow {
+    width: 18px;
+    height: 18px;
+    flex: none;
+    fill: none;
+    stroke: #04361b;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    transition: transform 0.2s ease;
+  }
+
+  .msg-dock.is-open .msg-dock-arrow { transform: rotate(180deg); }
+
+  .msg-dock-body {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.24s ease;
+    border-top: 1px solid transparent;
+  }
+
+  .msg-dock.is-open .msg-dock-body {
+    max-height: 340px;
+    overflow-y: auto;
+    border-top-color: #e6e9e7;
+  }
+
+  .msg-dock-empty {
+    margin: 0;
+    padding: 22px 14px;
+    text-align: center;
+    font-size: 12.5px;
+    color: #6b7d72;
+  }
+
+  .msg-dock-item {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 10px 12px;
+    border-bottom: 1px solid #f0f2f0;
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  .msg-dock-item:last-child { border-bottom: none; }
+  .msg-dock-item:active { background: #f6f8f6; }
+
+  .msg-dock-item-avatar {
+    width: 34px;
+    height: 34px;
+    flex: none;
+    border-radius: 50%;
+    background: #eef1ef;
+    color: #04361b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 800;
+    overflow: hidden;
+  }
+
+  .msg-dock-item-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .msg-dock-item-text {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .msg-dock-item-name {
+    font-size: 13px;
+    font-weight: 700;
+    color: #04361b;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .msg-dock-item-last {
+    margin-top: 2px;
+    font-size: 11.5px;
+    color: #6b7d72;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .msg-dock-item-date {
+    flex: none;
+    font-size: 10.5px;
+    color: #93a399;
+  }
+
+  /* ===== بطاقة النبذة بنمط لينكدإن =====
+     عنوان ثم نصّ حرّ ثم صفوف معنونة. */
+  .about-h {
+    margin: 0 0 10px;
+    font-size: 18px;
+    font-weight: 800;
+    color: #04361b;
+  }
+
+  /* التسمية باقية لقارئات الشاشة ومخفيّة بصريّاً */
+  .sr-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .about-rows {
+    margin-top: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .about-row {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .about-label {
+    font-size: 13px;
+    font-weight: 800;
+    color: #04361b;
+  }
+
+  .about-value {
+    font-size: 13.5px;
+    color: #33463b;
+    line-height: 1.6;
+    word-break: break-word;
+  }
+
+  .about-link { text-decoration: none; color: #1a6fd4; }
+  .about-link:hover { text-decoration: underline; }
+
+  .about-input {
+    width: 100%;
+    padding: 9px 11px;
+    border: 1px solid #d8ded9;
+    border-radius: 9px;
+    font: inherit;
+    font-size: 13.5px;
+    color: #04361b;
+    background: #ffffff;
+    outline: none;
+  }
+
+  .about-input:focus { border-color: #45a06a; }
+
+  /* في وضع التحرير تظهر الحقول، وفي وضع العرض القيم */
+  body:not(.view-only) .about-value { display: none; }
+  body.view-only .about-input { display: none; }
+
+  /* صفّ فارغ لا يُعرض على الزائر */
+  .about-row.is-empty { display: none; }
+
+  /* صفّان لا يُحرّران — التوثيق من حالة الاعتماد،
+     والمقرّ من عنوان التسجيل */
+  #row-verified .about-value,
+  #row-hq .about-value { display: block; }
+
   /* ===== المنشورات ===== */
   .posts-list {
     display: flex;
@@ -293,6 +543,60 @@
     word-break: break-word;
   }
 
+  /* وسائط المنشور — صورة أو مقطع */
+  .post-media {
+    margin-top: 10px;
+    border-radius: 10px;
+    overflow: hidden;
+    background: #f2f5f3;
+  }
+
+  .post-media img,
+  .post-media video {
+    display: block;
+    width: 100%;
+    max-height: 420px;
+    object-fit: contain;
+    background: #000000;
+  }
+
+  .post-media-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+  }
+
+  .post-media-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid #d6ded9;
+    border-radius: 999px;
+    background: #ffffff;
+    color: #04361b;
+    font-family: inherit;
+    font-size: 12.5px;
+    font-weight: 600;
+    padding: 7px 12px;
+    cursor: pointer;
+  }
+
+  .post-media-btn:active { background: #f2f5f3; }
+
+  .post-media-btn svg {
+    width: 15px;
+    height: 15px;
+    stroke: #04361b;
+    fill: none;
+    stroke-width: 2;
+  }
+
+  .post-media-clear { color: #c0392b; border-color: #f0d5d1; }
+  .post-media-clear svg { stroke: #c0392b; }
+
+  body.view-only .post-media-row { display: none; }
+
   .post-date {
     margin-top: 8px;
     font-size: 11.5px;
@@ -328,42 +632,6 @@
   body.tab-products #card-posts { display: none !important; }
 
   /* ===== زر مراسلة المصنع ===== */
-  /* كبسولة بحجم محتواها بنمط لينكدإن — وكان زرّاً
-     يمتدّ بعرض العمود كلّه. inline-flex لا block هو
-     ما يجعله ينكمش على نصّه. */
-  .contact-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
-    margin: 0 14px 14px;
-    padding: 10px 20px;
-    border-radius: 999px;
-    background: #04361b;
-    color: #ffffff;
-    font-size: 14px;
-    font-weight: 700;
-    text-decoration: none;
-    cursor: pointer;
-  }
-
-  .contact-btn svg {
-    width: 16px;
-    height: 16px;
-    flex: none;
-    fill: none;
-    stroke: currentColor;
-    stroke-width: 1.9;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-  }
-
-  /* الطائرة تشير إلى جهة الإرسال، فهي مرآة لا ترتيب ثابت:
-     تنقلب مع اتجاه القراءة وإلا أشارت للخلف في العربية. */
-  .contact-btn svg { transform: scaleX(-1); }
-  html[dir="ltr"] .contact-btn svg { transform: none; }
-
-  .contact-btn:active { opacity: 0.85; }
-
   /* ===== البطاقات ===== */
   .card {
     background: #ffffff;
@@ -504,6 +772,163 @@
     fill: none;
     stroke-width: 1.5;
   }
+
+  /* سلايدر صور المنتج — سحب بالإصبع ودوران تلقائي */
+  .product-slider {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    overflow: hidden;
+    background: #eef1ee;
+    touch-action: pan-y;
+  }
+
+  .product-track {
+    display: flex;
+    height: 100%;
+    will-change: transform;
+  }
+
+  /* المسار يتبع اتجاه القراءة: الشريحة الأولى في بداية الاتجاه */
+  .product-slide {
+    flex: 0 0 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  .product-slide img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    -webkit-user-drag: none;
+    user-select: none;
+    pointer-events: none;
+  }
+
+  .product-dots {
+    position: absolute;
+    bottom: 8px;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    z-index: 2;
+  }
+
+  .product-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    border: none;
+    padding: 0;
+    background: rgba(255, 255, 255, 0.55);
+    box-shadow: 0 0 3px rgba(0, 0, 0, 0.35);
+    cursor: pointer;
+  }
+
+  .product-dot.is-active {
+    background: #ffffff;
+    width: 16px;
+    border-radius: 4px;
+  }
+
+  /* شريط مصغّرات المنتج — مخفي حتى يطلبه صاحب المصنع */
+  .product-thumbs {
+    display: none;
+    gap: 6px;
+    padding: 8px 8px 0;
+    flex-wrap: wrap;
+  }
+
+  .product-thumbs.is-open { display: flex; }
+
+  /* زر إظهار المصغّرات — لصاحب المصنع وحده */
+  .product-edit-imgs {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin: 8px 8px 0;
+    border: 1px solid #e3e8e5;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #6b7d72;
+    font-family: inherit;
+    font-size: 11.5px;
+    font-weight: 600;
+    padding: 5px 9px;
+    cursor: pointer;
+  }
+
+  .product-edit-imgs:active { background: #f2f5f3; }
+
+  .product-edit-imgs svg {
+    width: 13px;
+    height: 13px;
+    stroke: #6b7d72;
+    fill: none;
+    stroke-width: 2;
+  }
+
+  body.view-only .product-edit-imgs { display: none; }
+
+  .product-thumb {
+    position: relative;
+    width: 40px;
+    height: 40px;
+    border-radius: 7px;
+    overflow: hidden;
+    border: 2px solid transparent;
+    background: #eef1ee;
+    cursor: pointer;
+    flex: none;
+  }
+
+  .product-thumb.is-active { border-color: #04361b; }
+
+  .product-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .product-thumb-del {
+    position: absolute;
+    top: 0;
+    inset-inline-end: 0;
+    width: 15px;
+    height: 15px;
+    border: none;
+    border-radius: 0 0 0 6px;
+    background: rgba(192, 57, 43, 0.9);
+    color: #ffffff;
+    font-size: 10px;
+    line-height: 15px;
+    padding: 0;
+    cursor: pointer;
+  }
+
+  .product-thumb-add {
+    width: 40px;
+    height: 40px;
+    border: 1.5px dashed #c7d0ca;
+    border-radius: 7px;
+    background: #ffffff;
+    color: #04361b;
+    font-size: 17px;
+    line-height: 1;
+    cursor: pointer;
+    flex: none;
+  }
+
+  .product-thumb-add:active { background: #f2f5f3; }
+
+  body.view-only .product-thumb-del,
+  body.view-only .product-thumb-add { display: none; }
 
   .product-body {
     padding: 8px;
@@ -694,6 +1119,22 @@
     </a>
   </header>
 
+  <!-- لوحة المراسلات — مطويّة في الزاوية السفلية، تنفتح بالسهم.
+       المحادثات من sf_messages — أي من هذا المتصفّح وحده،
+       فجدولا conversations و messages لمّا تُقرأا بعد. -->
+  <div class="msg-dock" id="msg-dock">
+    <button type="button" class="msg-dock-head" id="msg-dock-head" aria-expanded="false">
+      <span class="msg-dock-avatar" id="msg-dock-avatar"></span>
+      <span class="msg-dock-title" data-i18n="msg_panel_title">المراسلات</span>
+      <span class="msg-dock-count" id="msg-dock-count"></span>
+      <svg class="msg-dock-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 15l6-6 6 6"></path></svg>
+    </button>
+    <div class="msg-dock-body" id="msg-dock-body">
+      <p class="msg-dock-empty" id="msg-dock-empty" data-i18n="msg_panel_empty">لا توجد محادثات بعد</p>
+      <div class="msg-dock-list" id="msg-dock-list"></div>
+    </div>
+  </div>
+
   <div class="content-wrap">
 
     <div class="cover-block">
@@ -730,15 +1171,43 @@
     </div>
 
     <div class="card" id="card-about">
-      <label for="factory-about" data-i18n="factory_about_label">نبذة عن المصنع</label>
+      <h2 class="about-h" data-i18n="about_overview">نظرة عامة</h2>
+      <label class="sr-label" for="factory-about" data-i18n="factory_about_label">نبذة عن المصنع</label>
       <textarea id="factory-about" data-i18n-placeholder="factory_about_placeholder" placeholder="اكتب نبذة عن مصنعك ومنتجاته..."></textarea>
-    </div>
 
-    <!-- زر المراسلة: يفتح محادثة هذا المصنع في صفحة الرسائل -->
-    <a class="contact-btn" id="contact-btn">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21.5 2.5L11 13"></path><path d="M21.5 2.5l-6.6 19-3.9-8.5L2.5 9.1z"></path></svg>
-      <span data-i18n="msg_contact_btn">مراسلة المصنع</span>
-    </a>
+      <!-- تفاصيل المصنع — كلّ صفّ يُخفى إن خلا حقله في وضع العرض -->
+      <div class="about-rows" id="about-rows">
+
+        <div class="about-row" id="row-website">
+          <span class="about-label" data-i18n="about_website">الموقع الإلكتروني</span>
+          <input type="url" id="f-website" class="about-input" inputmode="url" placeholder="https://example.com">
+          <a class="about-value about-link" id="v-website" target="_blank" rel="noopener noreferrer"></a>
+        </div>
+
+        <div class="about-row" id="row-verified">
+          <span class="about-label" data-i18n="about_verified">صفحة موثّقة</span>
+          <span class="about-value" id="v-verified"></span>
+        </div>
+
+        <div class="about-row" id="row-industry">
+          <span class="about-label" data-i18n="about_industry">القطاع</span>
+          <select id="f-industry" class="about-input"></select>
+          <span class="about-value" id="v-industry"></span>
+        </div>
+
+        <div class="about-row" id="row-size">
+          <span class="about-label" data-i18n="about_size">حجم الشركة</span>
+          <select id="f-size" class="about-input"></select>
+          <span class="about-value" id="v-size"></span>
+        </div>
+
+        <div class="about-row" id="row-hq">
+          <span class="about-label" data-i18n="about_hq">المقر الرئيس</span>
+          <span class="about-value" id="v-hq"></span>
+        </div>
+
+      </div>
+    </div>
 
     <!-- المنشورات — تظهر في تبويب الرئيسية وتبويب المنشورات -->
     <div class="card" id="card-posts">
@@ -768,6 +1237,7 @@
   </div>
 
   <input type="file" id="image-file-input" accept="image/*" style="display:none;">
+  <input type="file" id="video-file-input" accept="video/*" style="display:none;">
 
   <script>
     (function () {
@@ -786,9 +1256,6 @@
       if (!canEdit) document.body.classList.add("view-only");
 
       /* زر المراسلة يفتح محادثة هذا المصنع في صفحة الرسائل */
-      var contactBtn = document.getElementById("contact-btn");
-      if (contactBtn) contactBtn.href = "web-messages.html?factory=" + encodeURIComponent(factoryId);
-
       var coverEl = document.getElementById("cover-image");
       var logoEl = document.getElementById("logo-circle");
       var nameInput = document.getElementById("factory-name");
@@ -797,6 +1264,7 @@
       var productsEmpty = document.getElementById("products-empty");
       var addProductBtn = document.getElementById("add-product-btn");
       var fileInput = document.getElementById("image-file-input");
+      var videoInput = document.getElementById("video-file-input");
       var storageWarning = document.getElementById("storage-warning");
 
       var allFactories = {};
@@ -861,6 +1329,37 @@
             target.onPicked(resized);
             save();
           });
+        };
+        reader.readAsDataURL(file);
+      });
+
+      /* المقاطع لا تُصغَّر — لا مسار canvas لها — فيحدّها الحجم وحده.
+         حدّ localStorage قرابة 5MB لكل الموقع، فمقطع كبير يبتلعها
+         ويمنع حفظ كل شيء بعده. يُرفع الحدّ عند ربط تخزين Supabase. */
+      var VIDEO_MAX_BYTES = 2 * 1024 * 1024;
+      var pendingVideo = null;
+
+      function pickVideo(onPicked) {
+        pendingVideo = onPicked;
+        videoInput.value = "";
+        videoInput.click();
+      }
+
+      videoInput.addEventListener("change", function () {
+        var file = videoInput.files[0];
+        if (!file || !pendingVideo) return;
+        var onPicked = pendingVideo;
+        pendingVideo = null;
+
+        if (file.size > VIDEO_MAX_BYTES) {
+          alert(I18N.t("video_too_large"));
+          return;
+        }
+
+        var reader = new FileReader();
+        reader.onload = function (e) {
+          onPicked(e.target.result);
+          save();
         };
         reader.readAsDataURL(file);
       });
@@ -956,10 +1455,13 @@
           headVerifEl.classList.remove("is-on");
         }
 
-        headTagEl.textContent = data.tagline || "";
+        headTagEl.textContent = data.tagline ||
+          ((typeof industryLabel === "function") ? industryLabel() : "");
 
         var bits = [];
-        if (data.city) bits.push(data.city);
+        var ind = (typeof industryLabel === "function") ? industryLabel() : "";
+        if (ind) bits.push(ind);
+        if (data.address_city) bits.push(data.address_city);
         var count = (data.products || []).length;
         if (count) bits.push(count + " " + I18N.t("factory_products_count"));
         headMetaEl.textContent = bits.join(" · ");
@@ -990,6 +1492,210 @@
           if (!btn) return;
           selectTab(btn.getAttribute("data-tab"));
         });
+      }
+
+      /* ===== تفاصيل النبذة =====
+         القطاع وحجم الشركة والموقع أعمدة جديدة في القاعدة
+         (add-factory-profile.sql) — وتُحفظ هنا في sf_factories ريثما
+         تُربط الصفحة بالقاعدة. */
+      var SIZE_RANGES = ["1-10", "11-50", "51-200", "201-500",
+                         "501-1000", "1001-5000", "5000+"];
+
+      var websiteInput = document.getElementById("f-website");
+      var industrySel  = document.getElementById("f-industry");
+      var sizeSel      = document.getElementById("f-size");
+
+      /* القطاعات من i18n لا من قائمة محليّة، فتتبع اللغة */
+      function fillIndustryOptions() {
+        var cats = I18N.categories || [];
+        industrySel.innerHTML = "";
+        var blank = document.createElement("option");
+        blank.value = "";
+        blank.textContent = "—";
+        industrySel.appendChild(blank);
+        /* فئات i18n كائنات {ar, en} بلا معرّف، وcategoryName تأخذ
+           الكائن نفسه لا مفتاحاً. فالاسم الإنجليزي هو المعرّف
+           المخزّن — يبقى ثابتاً مهما تغيّرت لغة الواجهة. */
+        cats.forEach(function (c) {
+          var opt = document.createElement("option");
+          opt.value = c.en || "";
+          opt.textContent = I18N.categoryName(c);
+          industrySel.appendChild(opt);
+        });
+      }
+
+      function fillSizeOptions() {
+        sizeSel.innerHTML = "";
+        var blank = document.createElement("option");
+        blank.value = "";
+        blank.textContent = "—";
+        sizeSel.appendChild(blank);
+        SIZE_RANGES.forEach(function (r) {
+          var opt = document.createElement("option");
+          opt.value = r;
+          opt.textContent = r;
+          sizeSel.appendChild(opt);
+        });
+      }
+
+      /* المقرّ يُبنى من عنوان التسجيل — ولا يُحرّر هنا */
+      function hqText() {
+        var bits = [];
+        if (data.address_district) bits.push(data.address_district);
+        if (data.address_city) bits.push(data.address_city);
+        return bits.join("، ");
+      }
+
+      /* المخزّن هو الاسم الإنجليزي، فيُبحث عن كائنه ليُترجم */
+      function industryLabel() {
+        if (!data.industry) return "";
+        var cats = I18N.categories || [];
+        for (var i = 0; i < cats.length; i++) {
+          if (cats[i].en === data.industry) return I18N.categoryName(cats[i]);
+        }
+        return data.industry;
+      }
+
+      function renderAbout() {
+        document.getElementById("v-website").textContent = data.website || "";
+        document.getElementById("v-website").href = data.website || "#";
+        document.getElementById("v-industry").textContent = industryLabel();
+        document.getElementById("v-size").textContent = data.company_size || "";
+        document.getElementById("v-hq").textContent = hqText();
+        document.getElementById("v-verified").textContent =
+          data.verified ? I18N.t("factory_verified") : "";
+
+        /* الزائر لا يرى صفّاً فارغاً، والمالك يراه ليملأه */
+        if (!canEdit) {
+          var pairs = [["row-website", data.website],
+                       ["row-industry", data.industry],
+                       ["row-size", data.company_size],
+                       ["row-hq", hqText()],
+                       ["row-verified", data.verified]];
+          pairs.forEach(function (pair) {
+            var el = document.getElementById(pair[0]);
+            if (el) el.classList.toggle("is-empty", !pair[1]);
+          });
+        } else {
+          /* المقرّ والتوثيق لا يُدخلان، فيُخفيان إن خلوا */
+          var hqRow = document.getElementById("row-hq");
+          if (hqRow) hqRow.classList.toggle("is-empty", !hqText());
+          var vRow = document.getElementById("row-verified");
+          if (vRow) vRow.classList.toggle("is-empty", !data.verified);
+        }
+      }
+
+      if (canEdit) {
+        fillIndustryOptions();
+        fillSizeOptions();
+
+        websiteInput.value = data.website || "";
+        industrySel.value  = data.industry || "";
+        sizeSel.value      = data.company_size || "";
+
+        websiteInput.addEventListener("input", function () {
+          data.website = websiteInput.value.trim();
+          save();
+        });
+        industrySel.addEventListener("change", function () {
+          data.industry = industrySel.value;
+          save();
+          renderAbout();
+          renderHead();
+        });
+        sizeSel.addEventListener("change", function () {
+          data.company_size = sizeSel.value;
+          save();
+        });
+      }
+
+      /* ===== لوحة المراسلات =====
+         تقرأ sf_messages وتعرض المحادثات مرتّبة من الأحدث.
+         وكلّ صفّ يقود إلى المحادثة في web-messages.html. */
+      var dockEl      = document.getElementById("msg-dock");
+      var dockHeadEl  = document.getElementById("msg-dock-head");
+      var dockListEl  = document.getElementById("msg-dock-list");
+      var dockEmptyEl = document.getElementById("msg-dock-empty");
+      var dockCountEl = document.getElementById("msg-dock-count");
+      var dockAvatarEl = document.getElementById("msg-dock-avatar");
+
+      function firstLetter(txt) {
+        return (txt || "?").trim().charAt(0) || "?";
+      }
+
+      function dockDate(ts) {
+        if (!ts) return "";
+        var d = new Date(ts);
+        if (isNaN(d.getTime())) return "";
+        return (d.getMonth() + 1) + "/" + d.getDate();
+      }
+
+      function renderDock() {
+        var threads = {};
+        try {
+          threads = JSON.parse(localStorage.getItem("sf_messages") || "{}") || {};
+        } catch (e) {}
+
+        var ids = Object.keys(threads).sort(function (a, b) {
+          return (threads[b].updated || 0) - (threads[a].updated || 0);
+        });
+
+        dockListEl.innerHTML = "";
+        dockEmptyEl.style.display = ids.length ? "none" : "";
+        dockCountEl.classList.toggle("is-on", ids.length > 0);
+        dockCountEl.textContent = ids.length ? String(ids.length) : "";
+
+        ids.forEach(function (id) {
+          var t = threads[id] || {};
+          var row = document.createElement("a");
+          row.className = "msg-dock-item";
+          row.href = "web-messages.html?open=" + encodeURIComponent(id);
+
+          var av = document.createElement("span");
+          av.className = "msg-dock-item-avatar";
+          if (t.avatar) {
+            var img = document.createElement("img");
+            img.src = t.avatar;
+            img.alt = "";
+            av.appendChild(img);
+          } else {
+            av.textContent = firstLetter(t.name);
+          }
+
+          var txt = document.createElement("span");
+          txt.className = "msg-dock-item-text";
+
+          var nm = document.createElement("span");
+          nm.className = "msg-dock-item-name";
+          nm.textContent = t.name || "";
+
+          var last = document.createElement("span");
+          last.className = "msg-dock-item-last";
+          var msgs = t.messages || [];
+          var lastMsg = msgs.length ? msgs[msgs.length - 1] : null;
+          last.textContent = lastMsg ? (lastMsg.text || "") : "";
+
+          txt.appendChild(nm);
+          txt.appendChild(last);
+
+          var dt = document.createElement("span");
+          dt.className = "msg-dock-item-date";
+          dt.textContent = dockDate(t.updated);
+
+          row.appendChild(av);
+          row.appendChild(txt);
+          row.appendChild(dt);
+          dockListEl.appendChild(row);
+        });
+      }
+
+      if (dockHeadEl && dockEl) {
+        dockAvatarEl.textContent = firstLetter(I18N.t("msg_panel_title"));
+        dockHeadEl.addEventListener("click", function () {
+          var open = dockEl.classList.toggle("is-open");
+          dockHeadEl.setAttribute("aria-expanded", open ? "true" : "false");
+        });
+        renderDock();
       }
 
       /* ===== المنشورات =====
@@ -1044,6 +1750,84 @@
             item.appendChild(read);
           }
 
+          /* الوسائط: صورة أو مقطع — واحدة لكل منشور */
+          if (post.image || post.video) {
+            var media = document.createElement("div");
+            media.className = "post-media";
+            if (post.image) {
+              var pimg = document.createElement("img");
+              pimg.alt = "";
+              pimg.src = post.image;
+              media.appendChild(pimg);
+            } else {
+              var pvid = document.createElement("video");
+              pvid.src = post.video;
+              pvid.controls = true;
+              pvid.playsInline = true;
+              media.appendChild(pvid);
+            }
+            item.appendChild(media);
+          }
+
+          if (canEdit) {
+            var row = document.createElement("div");
+            row.className = "post-media-row";
+
+            var imgBtn = document.createElement("button");
+            imgBtn.type = "button";
+            imgBtn.className = "post-media-btn";
+            imgBtn.innerHTML =
+              '<svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">' +
+              '<rect x="3" y="3" width="18" height="18" rx="2"></rect>' +
+              '<circle cx="8.5" cy="8.5" r="1.5"></circle>' +
+              '<path d="M21 15l-5-5L5 21"></path></svg>' +
+              '<span>' + I18N.t("post_add_image") + '</span>';
+            imgBtn.addEventListener("click", function () {
+              pickImage(640, function (dataUrl) {
+                post.image = dataUrl;
+                post.video = "";
+                renderPosts();
+              });
+            });
+            row.appendChild(imgBtn);
+
+            var vidBtn = document.createElement("button");
+            vidBtn.type = "button";
+            vidBtn.className = "post-media-btn";
+            vidBtn.innerHTML =
+              '<svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">' +
+              '<rect x="2" y="5" width="14" height="14" rx="2"></rect>' +
+              '<path d="M16 10l6-3v10l-6-3z"></path></svg>' +
+              '<span>' + I18N.t("post_add_video") + '</span>';
+            vidBtn.addEventListener("click", function () {
+              pickVideo(function (dataUrl) {
+                post.video = dataUrl;
+                post.image = "";
+                renderPosts();
+              });
+            });
+            row.appendChild(vidBtn);
+
+            if (post.image || post.video) {
+              var clearBtn = document.createElement("button");
+              clearBtn.type = "button";
+              clearBtn.className = "post-media-btn post-media-clear";
+              clearBtn.innerHTML =
+                '<svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">' +
+                '<path d="M18 6L6 18M6 6l12 12"></path></svg>' +
+                '<span>' + I18N.t("post_remove_media") + '</span>';
+              clearBtn.addEventListener("click", function () {
+                post.image = "";
+                post.video = "";
+                save();
+                renderPosts();
+              });
+              row.appendChild(clearBtn);
+            }
+
+            item.appendChild(row);
+          }
+
           var date = document.createElement("div");
           date.className = "post-date";
           date.textContent = formatPostDate(post.created_at);
@@ -1055,7 +1839,7 @@
 
       if (canEdit && addPostBtn) {
         addPostBtn.addEventListener("click", function () {
-          data.posts.unshift({ body: "", image: "", created_at: new Date().toISOString() });
+          data.posts.unshift({ body: "", image: "", video: "", created_at: new Date().toISOString() });
           save();
           renderPosts();
         });
@@ -1070,7 +1854,157 @@
       /* ===== المنتجات ===== */
       var productIconSVG = '<svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><path d="M21 15l-5-5L5 21"></path></svg>';
 
+      /* حتى خمس صور للمنتج الواحد */
+      var PRODUCT_MAX_IMAGES = 5;
+
+      /* ترقية صامتة: المنتجات المحفوظة قبل هذه الميزة تحمل
+         product.image مفردة. تُنقل إلى المصفوفة مرّة واحدة عند
+         أول قراءة، فلا تختفي صور موجودة. */
+      function productImages(product) {
+        if (!Array.isArray(product.images)) {
+          product.images = product.image ? [product.image] : [];
+        }
+        return product.images;
+      }
+
+      /* سلايدر صور المنتج.
+         الدوران كل ثانيتين بلا نهاية، ويتوقّف أثناء السحب وحين
+         تكون الصفحة في الخلفية. والاتجاه يتبع dir: في RTL يبدأ
+         المسار من اليمين فتُعكس إشارة الإزاحة والسحب معاً. */
+      var SLIDE_MS = 2000;
+
+      /* مؤقّتات السلايدرات الحيّة — تُلغى قبل كل إعادة رسم وإلا
+         بقيت تعمل على عناصر محذوفة وتراكمت مع كل تعديل. */
+      var sliderTimers = [];
+
+      function stopAllSliders() {
+        sliderTimers.forEach(function (t) { clearInterval(t); });
+        sliderTimers = [];
+      }
+
+      function buildProductSlider(imgs) {
+        var wrap = document.createElement("div");
+        wrap.className = "product-slider";
+
+        var track = document.createElement("div");
+        track.className = "product-track";
+
+        imgs.forEach(function (src) {
+          var slide = document.createElement("div");
+          slide.className = "product-slide";
+          var im = document.createElement("img");
+          im.alt = "";
+          im.src = src;
+          slide.appendChild(im);
+          track.appendChild(slide);
+        });
+        wrap.appendChild(track);
+
+        var dots = document.createElement("div");
+        dots.className = "product-dots";
+        var dotEls = imgs.map(function (src, i) {
+          var d = document.createElement("button");
+          d.type = "button";
+          d.className = "product-dot" + (i === 0 ? " is-active" : "");
+          d.setAttribute("aria-label", String(i + 1));
+          d.addEventListener("click", function (ev) {
+            ev.stopPropagation();
+            goTo(i);
+            restart();
+          });
+          dots.appendChild(d);
+          return d;
+        });
+        wrap.appendChild(dots);
+
+        /* في RTL الشريحة التالية تقع يساراً، فالإزاحة موجبة */
+        var rtl = document.documentElement.getAttribute("dir") === "rtl";
+        var sign = rtl ? 1 : -1;
+        var current = 0;
+        var timer = null;
+
+        function offsetFor(index, extraPx) {
+          var w = wrap.clientWidth || 1;
+          var px = sign * index * w + (extraPx || 0);
+          return "translateX(" + px + "px)";
+        }
+
+        function paint(animate) {
+          track.style.transition = animate ? "transform 0.35s ease" : "none";
+          track.style.transform = offsetFor(current, 0);
+          dotEls.forEach(function (d, i) {
+            d.classList.toggle("is-active", i === current);
+          });
+        }
+
+        function goTo(index) {
+          current = (index + imgs.length) % imgs.length;
+          paint(true);
+        }
+
+        function stop() {
+          if (timer) { clearInterval(timer); timer = null; }
+        }
+
+        function restart() {
+          stop();
+          timer = setInterval(function () {
+            /* الصفحة في الخلفية: لا تحرّك شيئاً */
+            if (document.hidden) return;
+            goTo(current + 1);
+          }, SLIDE_MS);
+          sliderTimers.push(timer);
+        }
+
+        /* السحب بالإصبع أو المؤشّر */
+        var startX = 0, dragging = false, moved = 0;
+
+        wrap.addEventListener("pointerdown", function (e) {
+          dragging = true;
+          moved = 0;
+          startX = e.clientX;
+          stop();
+          track.style.transition = "none";
+        });
+
+        wrap.addEventListener("pointermove", function (e) {
+          if (!dragging) return;
+          moved = e.clientX - startX;
+          track.style.transform = offsetFor(current, moved);
+        });
+
+        function endDrag() {
+          if (!dragging) return;
+          dragging = false;
+          var w = wrap.clientWidth || 1;
+          /* عتبة الانتقال: خُمس العرض أو 40px أيهما أصغر */
+          var threshold = Math.min(w / 5, 40);
+          if (Math.abs(moved) > threshold) {
+            /* السحب عكس اتجاه الإزاحة يقدّم الشريحة */
+            goTo(current + (moved * sign < 0 ? 1 : -1));
+          } else {
+            paint(true);
+          }
+          restart();
+        }
+
+        wrap.addEventListener("pointerup", endDrag);
+        wrap.addEventListener("pointercancel", endDrag);
+        wrap.addEventListener("pointerleave", endDrag);
+
+        /* منع سحب الصورة كملف */
+        wrap.addEventListener("dragstart", function (e) { e.preventDefault(); });
+
+        /* العرض يتغيّر مع تغيّر النافذة، فتُعاد الإزاحة بالبكسل */
+        window.addEventListener("resize", function () { paint(false); });
+
+        paint(false);
+        restart();
+        return wrap;
+      }
+
       function renderProducts() {
+        stopAllSliders();
         productsGrid.innerHTML = "";
         productsEmpty.style.display = data.products.length ? "none" : "block";
 
@@ -1078,20 +2012,102 @@
           var card = document.createElement("div");
           card.className = "product-card";
 
-          var imageSlot = document.createElement("div");
-          imageSlot.className = "product-image";
-          if (product.image) {
-            fillSlot(imageSlot, product.image);
+          /* صور المنتج: مصفوفة حتى PRODUCT_MAX_IMAGES.
+             المنتجات القديمة تحمل product.image مفردة — تُرقّى هنا
+             فتبقى ظاهرة بلا فقدان. */
+          var imgs = productImages(product);
+
+          var imageSlot;
+
+          if (imgs.length > 1) {
+            /* أكثر من صورة: سلايدر بنقاط وسحب ودوران تلقائي */
+            imageSlot = buildProductSlider(imgs);
           } else {
-            imageSlot.innerHTML = productIconSVG;
-          }
-          if (canEdit) {
-            imageSlot.addEventListener("click", function () {
-              pickImage(400, function (dataUrl) {
-                product.image = dataUrl;
-                fillSlot(imageSlot, dataUrl);
+            /* صورة واحدة أو لا شيء: الشكل الثابت السابق */
+            imageSlot = document.createElement("div");
+            imageSlot.className = "product-image";
+            if (imgs.length) {
+              fillSlot(imageSlot, imgs[0]);
+            } else {
+              imageSlot.innerHTML = productIconSVG;
+            }
+            if (canEdit) {
+              imageSlot.addEventListener("click", function () {
+                pickImage(400, function (dataUrl) {
+                  imgs.push(dataUrl);
+                  renderProducts();
+                });
               });
+            }
+          }
+
+          card.appendChild(imageSlot);
+
+          /* المصغّرات لصاحب المصنع وحده: حذف صورة أو إضافة أخرى.
+             الزائر ينتقل بين الصور عبر السلايدر لا المصغّرات. */
+          if (canEdit && imgs.length) {
+            var thumbs = document.createElement("div");
+            thumbs.className = "product-thumbs";
+
+            imgs.forEach(function (src, imgIndex) {
+              var th = document.createElement("div");
+              th.className = "product-thumb";
+
+              var thImg = document.createElement("img");
+              thImg.alt = "";
+              thImg.src = src;
+              th.appendChild(thImg);
+
+              if (canEdit) {
+                var thDel = document.createElement("button");
+                thDel.type = "button";
+                thDel.className = "product-thumb-del";
+                thDel.innerHTML = "&times;";
+                thDel.setAttribute("aria-label", I18N.t("product_delete"));
+                thDel.addEventListener("click", function (ev) {
+                  ev.stopPropagation();
+                  imgs.splice(imgIndex, 1);
+                  save();
+                  renderProducts();
+                });
+                th.appendChild(thDel);
+              }
+
+              thumbs.appendChild(th);
             });
+
+            if (canEdit && imgs.length < PRODUCT_MAX_IMAGES) {
+              var addTh = document.createElement("button");
+              addTh.type = "button";
+              addTh.className = "product-thumb-add";
+              addTh.innerHTML = "+";
+              addTh.setAttribute("aria-label", I18N.t("product_add_image"));
+              addTh.addEventListener("click", function () {
+                pickImage(400, function (dataUrl) {
+                  imgs.push(dataUrl);
+                  renderProducts();
+                });
+              });
+              thumbs.appendChild(addTh);
+            }
+
+            /* الشريط مخفي افتراضياً: زر صغير يفتحه عند الحاجة،
+               فيبقى شكل البطاقة نظيفاً كما طلب المالك. */
+            var editImgs = document.createElement("button");
+            editImgs.type = "button";
+            editImgs.className = "product-edit-imgs";
+            editImgs.innerHTML =
+              '<svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">' +
+              '<rect x="3" y="3" width="18" height="18" rx="2"></rect>' +
+              '<circle cx="8.5" cy="8.5" r="1.5"></circle>' +
+              '<path d="M21 15l-5-5L5 21"></path></svg>' +
+              '<span>' + I18N.t("product_manage_images") + " (" + imgs.length + ")" + '</span>';
+            editImgs.addEventListener("click", function () {
+              thumbs.classList.toggle("is-open");
+            });
+
+            card.appendChild(editImgs);
+            card.appendChild(thumbs);
           }
 
           var body = document.createElement("div");
@@ -1169,7 +2185,6 @@
             renderHead();
           });
 
-          card.appendChild(imageSlot);
           card.appendChild(body);
           card.appendChild(deleteBtn);
           productsGrid.appendChild(card);
@@ -1178,7 +2193,7 @@
 
       if (canEdit) {
         addProductBtn.addEventListener("click", function () {
-          data.products.push({ image: "", name: "", price: "" });
+          data.products.push({ images: [], name: "", price: "" });
           save();
           renderProducts();
           renderHead();
@@ -1187,6 +2202,7 @@
 
       renderProducts();
       renderPosts();
+      renderAbout();
       renderHead();
     })();
   </script>

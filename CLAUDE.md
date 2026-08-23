@@ -27,7 +27,7 @@ The codebase is split into **two independent paths**. This is the most important
 | Browser site | **`web-`** | yes | wide desktop layout |
 | Phone app | **`app-`** | **no** | stays a phone column |
 
-**14 web pages and 15 app pages — and the two paths no longer mirror each other.** This was true once; it stopped being true when the web gates were rebuilt.
+**14 web pages and 14 app pages — and the two paths no longer mirror each other.** This was true once; it stopped being true when the web gates were rebuilt.
 
 Shared by both paths: `home`, `factories`, `factory`, `messages`, `cart`, `account`, `login`, `settings`, `profile`, `help`, `admin`.
 
@@ -265,7 +265,11 @@ Project `yhofxryhlrrwzztfowpa`. Loaded as plain script tags:
 
 - **`supabase-config.js`** — the key is the **publishable** key and is *meant* to be public; RLS is the protection, not key secrecy. The **secret** key and DB password must never enter any file here — there is no server-side code to use them from.
 - **`schema.sql`** — five tables (`profiles`, `factories`, `products`, `conversations`, `messages`) plus two storage buckets, all re-runnable.
-- **`add-industrial-license.sql`** — a migration the owner **has not run yet**. `schema.sql` already declares `factories.industrial_license`, so a *fresh* rebuild is complete — but the owner's **live database predates the column**, and `create table if not exists` will never add it. Until they run this file, factory registration on `web-supplier.html` fails: the page sends a column the server doesn't have. **Re-flag this before touching factory signup.**
+- **`add-industrial-license.sql`** — **applied.** Added `factories.industrial_license` to the owner's live database, which predated the column. Kept because `create table if not exists` in `schema.sql` will never add a column to an existing table — a rebuild from `schema.sql` alone is complete, but *this* database needed the `alter`.
+- **`add-factory-profile.sql`** — **NOT run yet.** Adds `website` / `industry` / `company_size` to `factories`, for the LinkedIn-style About card on `web-factory.html`. Until it runs, those three fields live only in `localStorage`. **Re-flag before touching the About card.**
+- **`fix-privileges.sql`** — **applied.** The section-8.5 guard triggers, as a standalone file. See *RLS is the real enforcement* below.
+- **`make-admin.sql`** / **`check-admin.sql`** — grant and verify `is_admin`. `make-admin.sql` disables `profiles_guard` inside one transaction, because the guard silently reverts `is_admin` for anyone not already an admin — so editing the checkbox in Table Editor appears to work and does nothing. **Applied**; `khald507868@gmail.com` is admin.
+- **`cleanup-test-data.sql`** — deletes `%@example.com` accounts left from attack-testing, and resets any stray `approved` / `is_admin` rows.
 - **`add-posts-prices.sql`** — a **second applied migration**, not merged. Adds `posts` and `custom_prices` plus a `custom_price_id` column on `messages`. Already run and verified by attack. **Both tables are schema-only — no page reads them.** "Re-run `schema.sql`" does **not** restore them; a rebuild needs both files.
 - Postgres functions are dollar-quoted with **`$fn$`**, not bare `$$`, which collides with shell expansion.
 
@@ -280,7 +284,7 @@ Identical across both paths — verified by counting `<script>` tags, not name m
 | `*-home`, `*-factories`, `*-factory`, `web-product` | ✓ | ✓ | ✓ |
 | `*-account`, `*-settings`, `*-cart`, `*-messages`, `*-profile`, `*-admin` | ✓ | ✓ | — |
 
-Verified by counting `<script>` tags — 14 web pages, 15 app pages, as of commit `02f33a4`.
+Verified by counting `<script>` tags — 14 web pages, 14 app pages.
 
 Adding the guard to a gate page would create a redirect loop, and the guard's *destination* is `app-welcome.html` on the app path and `web-login.html` on the web path. `web-reset.html` is guard-free for the same reason: it must open for someone who cannot sign in. Those pages' banner comments mention `auth-guard.js` — they do not load it.
 
@@ -311,6 +315,28 @@ Mode 2 also has a fallback check on `location.hash.indexOf("type=recovery")`, be
 **The success message is identical whether or not the account exists.** That is deliberate: a different message would let anyone enumerate which emails are registered. Don't "improve" it into a helpful "no such account".
 
 **Not yet testable.** It needs the redirect URL registered at Supabase → Authentication → URL Configuration → Redirect URLs, which requires a real domain — the project currently runs from `file:///`. **Outstanding owner task.** No `app-` equivalent exists yet.
+
+### The factory page is modelled on LinkedIn (`web-factory.html`)
+
+Built to the owner's reference screenshots of a LinkedIn company page. Two mechanisms carry the design and both are easy to undo by accident.
+
+**Tabs switch content; they do not scroll to it.** An early version scrolled and the owner rejected it. Four tabs — الرئيسية / المنشورات / نبذة / المنتجات — driven by a class on `<body>`:
+
+```js
+var TAB_CLASSES = ["tab-posts", "tab-about", "tab-products"];
+// "home" adds NO class — that is what makes about + posts show together
+if (name !== "home") document.body.classList.add("tab-" + name);
+```
+
+**الرئيسية is the absence of a class, not a `tab-home` class.** The CSS hides the cards each *other* tab excludes, so with no class nothing is hidden and the home tab shows نبذة and المنشورات together — which is exactly what the owner asked for ("الرئيسية ابغا يكون فيها النبذه والمنشورات و تظهر معاً"). Adding a `tab-home` class to "tidy this up" would break that pairing.
+
+**The cover uses a fixed `height`, never `aspect-ratio`.** It was `aspect-ratio: 16/9`, then `3/1`, and the owner still said "لاتزال كبيره" — because a ratio grows with the container, and `body.store-page` was 1500px wide. The fix was fixed heights (134px phone / 172px desktop) **plus** narrowing the body. Per the archive rule, "still too big" meant the wrong property, not too small a number.
+
+**Page width is 970px, matching LinkedIn's main column — not its 1128px page.** LinkedIn splits 1128px into a ~970px column plus a right sidebar; this page has no sidebar, so filling 1128px read as wider than the reference. One value in `desktop.css`.
+
+**The message dock (`.msg-dock`) is fixed bottom-right**, collapsing via an `is-open` class and a `max-height` transition, and it reads `sf_messages`. Rows link to `web-messages.html?open=<threadId>`, handled at the top of `openFromQuery()`. It has an `html[dir="ltr"]` counterpart in both `web-factory.html` and `desktop.css` — it is a **mirror**, so keep both. **It will always render empty until messaging is wired to the database** (see *Messaging*); don't read an empty dock as a bug.
+
+An inline message button used to sit in the right-hand column; the owner had it removed as intrusive ("انها مزعجه"). Don't reintroduce one.
 
 ### Product detail and the chat draft handoff
 
@@ -354,7 +380,8 @@ So a factory account **always** has a factory row from the moment it exists, inv
 
 ### Current state / deliberate gaps
 
-- **Email confirmation is DISABLED** in the dashboard — a dev convenience, and the first mandatory item in `TODO-BEFORE-LAUNCH.md`. Anyone can register with an address they don't own.
+- **Email confirmation is now ENABLED**, and **`Allow anonymous sign-ins` must stay OFF.** Anonymous sign-ins were switched on by accident once; they hand every visitor the `authenticated` role, which opens every RLS policy written for signed-in users. If a policy suddenly looks too permissive, check that toggle before rewriting the policy.
+- **Supabase's built-in email sender is rate-limited** (a few messages per hour) — fine for testing, not for launch. A real sender (Resend or similar) is an outstanding item.
 - **The UI is almost entirely un-wired from the database.** Counting `sb.from(` per page: only `*-admin` (2 calls) and the gate pages `web-login` / `web-supplier` (3 each) touch Supabase. Home, account, settings, factories, factory, cart, messages, profile, product make **zero** on both paths. The factory grids, product cards, and bestsellers are generated placeholders. **Don't describe any of them as showing real data.**
 - **`web-product.html` renders from `localStorage`, and deliberately never refuses.** An earlier version bailed out with a "product not found" message when `sf_factories` held no entry for the requested index. That contradicted the card the user had just clicked: `web-home.html` generates bestseller cards for **all 1000 factory slots** regardless of stored data, so most cards point at empty slots. The page now always renders, showing what exists and hiding what doesn't, with the title falling back product name → factory name → `مصنع <n>`. **Don't reintroduce the guard.** (The `product_not_found` i18n key is now unused but stays — see the archive on not mass-deleting keys.)
 - `region_id` is never written at signup (no region field), so the map cannot find a region's factories.

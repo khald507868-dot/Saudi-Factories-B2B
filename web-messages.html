@@ -1344,6 +1344,15 @@
       /* فتح محادثة مباشرة عبر ?factory=<id> القادم من صفحة المصنع */
       function openFromQuery() {
         var params = new URLSearchParams(window.location.search);
+
+        /* ?open=<threadId> — تأتي من لوحة المراسلات في صفحة المصنع،
+           وتفتح محادثة قائمة بمعرّفها مباشرة بدل إنشائها من رقم مصنع. */
+        var openId = params.get("open");
+        if (openId && threads[openId]) {
+          openChat(openId);
+          return;
+        }
+
         var fid = params.get("factory");
         if (fid === null) return;
 
