@@ -1182,26 +1182,17 @@
      حسب اسم الوسم، والغلاف وتحذير التخزين ـdivـات أيضاً،
      فتزحزح الترقيم وتتلقّى البطاقة الخطأ العمود الخطأ.
      الصفوف مثبتة صراحةً لئلا يترك التدفّق التلقائي فراغاً. */
-  .store-page #card-name    { grid-column: 1; grid-row: 4; }
-  .store-page #card-about   { grid-column: 1; grid-row: 5; }
-  /* المنشورات والمنتجات تتشاركان العمود الواسع،
-     ولا تظهران معاً إلا في تبويب الرئيسية. */
-  .store-page #card-posts {
-    grid-column: 2;
-    grid-row: 4;
-    align-self: start;
-  }
+  .store-page #card-about   { grid-column: 1; grid-row: 4; }
 
+  /* المنشورات والمنتجات تتشاركان العمود الواسع وتتلاصقان.
+     الصفّ لا يُثبَّت لأيّهما: تثبيت المنتجات في صفّ لاحق كان
+     يشدّها إلى أسفل بطاقة النبذة في العمود الضيّق — فإن طالت
+     النبذة انفتح فراغ بين البطاقتين. والتدفّق التلقائي يجعل
+     كلّاً منهما تلي الأخرى مهما اختلفت الارتفاعات. */
+  .store-page #card-posts,
   .store-page #card-products {
     grid-column: 2;
-    grid-row: 5 / span 2;
-    align-self: stretch;
-  }
-
-  /* في تبويب منفرد يأخذ المرئي منهما كلّ العمود */
-  body.tab-posts.store-page #card-posts,
-  body.tab-products.store-page #card-products {
-    grid-row: 4 / span 3;
+    align-self: start;
   }
 
   .store-page .card {
