@@ -162,9 +162,9 @@ Both factory pages add `.view-only` to `<body>` when editing is off and **skip r
 | | how `canEdit` is decided | trustworthy? |
 |---|---|---|
 | `web-factory.html` | `row.owner_id === SF_USER.id`, from the database | yes |
-| `app-factory.html` | `localStorage.getItem("sf_account_type") === "factory"` | **no** |
+| `app-factory.html` | `row.owner_id === SF_USER.id`, from the database | yes |
 
-**`sf_account_type` is not authentication** — it is a UI mode backed by a `localStorage` value any user can edit. `app-factory.html` still trusts it, and there is no link there between a factory account and a specific factory `id`, so a factory-type account can open the edit UI on *any* factory. **Don't describe `app-factory.html` as access-controlled**; porting the web page's ownership check is the outstanding work.
+**`sf_account_type` is not authentication** — it is a UI mode backed by a `localStorage` value any user can edit. It is no longer used for edit permission on either path: **as of 2026-08-24 `app-factory.html` carries the same database ownership check as the web page** (`sf_owner_<id>` in `sessionStorage`, two-way sync, one reload), so a factory-type account can no longer open the edit UI on someone else's factory. The app page still renders its *content* from `localStorage` — only the ownership decision comes from the server.
 
 What actually holds on both paths is RLS: the server refuses a write to a factory the caller doesn't own, so the app-path hole exposes the *editing UI*, not the data.
 
@@ -444,7 +444,7 @@ So a factory account **always** has a factory row from the moment it exists, inv
   | `app-login` | 1 |
   | **everything else, both paths** | **0** |
 
-  Home, account, settings, factories, cart, messages, profile, product make **zero**, and `app-factory` is still fully `localStorage`. The factory grids, product cards, and bestsellers are generated placeholders. **Don't describe any of them as showing real data.**
+  Home, account, settings, factories, cart, messages, profile, product make **zero**, and `app-factory` renders its content from `localStorage` — its single `sb.from("factories")` call reads `owner_id` for the permission check only. The factory grids, product cards, and bestsellers are generated placeholders. **Don't describe any of them as showing real data.**
 
 - **`web-factory.html` saves through a debounce, and products/posts are delete-then-insert.** `save()` writes `localStorage` immediately (so nothing is lost offline), then queues `pushToDb()` after 700ms; `beforeunload` flushes anything pending. Products and posts are replaced wholesale rather than diffed — fine at five products, and the reason a save is one round-trip per table, not per row.
 - **`web-product.html` renders from `localStorage`, and deliberately never refuses.** An earlier version bailed out with a "product not found" message when `sf_factories` held no entry for the requested index. That contradicted the card the user had just clicked: `web-home.html` generates bestseller cards for **all 1000 factory slots** regardless of stored data, so most cards point at empty slots. The page now always renders, showing what exists and hiding what doesn't, with the title falling back product name → factory name → `مصنع <n>`. **Don't reintroduce the guard.** (The `product_not_found` i18n key is now unused but stays — see the archive on not mass-deleting keys.)

@@ -563,13 +563,52 @@
       var params = new URLSearchParams(window.location.search);
       var factoryId = params.get("id") || "0";
 
-      /* الأفراد يتصفحون فقط — إضافة الصور والنبذة والمنتجات ميزة للمصانع */
-      var accountType = "";
+      /* صلاحية التعديل = ملكية هذا المصنع بالذات.
+
+         كان هنا sf_account_type من localStorage وحده، فكان
+         أي حساب نوعه "مصنع" يفتح واجهة التحرير على أي
+         مصنع — والقيمة يملكها المستخدم ويعدلها من الطرفية.
+         الآن تُحسم من القاعدة كما في web-factory.html.
+
+         تبدأ مغلقة ثم تُفتح بعد تأكيد الملكية — فالفشل آمن.
+         والحاجز الفعلي يبقى RLS على الخادم: حتى لو زُوّرت
+         هذه القيمة، ترفض القاعدة أي كتابة على مصنع غير مملوك. */
+      var OWNER_FLAG = "sf_owner_" + factoryId;
+
+      var canEdit = false;
       try {
-        accountType = localStorage.getItem("sf_account_type") || "";
+        canEdit = sessionStorage.getItem(OWNER_FLAG) === "1";
       } catch (err) {}
-      var canEdit = accountType === "factory";
+
       if (!canEdit) document.body.classList.add("view-only");
+
+      function setOwnerFlag(on) {
+        try {
+          if (on) sessionStorage.setItem(OWNER_FLAG, "1");
+          else sessionStorage.removeItem(OWNER_FLAG);
+        } catch (err) {}
+        location.reload();
+      }
+
+      /* الصفحة ترسم من localStorage أولاً، ثم يصحّح الخادم
+         قرار الملكية وحده — لا بقية البيانات، فهذه الصفحة
+         لم تُربط بالقاعدة بعد. والاتجاهان لازمان: فتح
+         لمالكٍ رُسم زائراً، وإغلاق لزائرٍ رُسم مالكاً
+         بعلامة قديمة أو مزوّرة. */
+      if (window.sb && window.SF_AUTH_READY) {
+        SF_AUTH_READY.then(function () {
+          return sb.from("factories")
+            .select("owner_id")
+            .eq("id", factoryId)
+            .maybeSingle();
+        }).then(function (res) {
+          if (!res || res.error || !res.data) return;
+          var mine = !!(window.SF_USER && res.data.owner_id === SF_USER.id);
+          if (mine !== canEdit) setOwnerFlag(mine);
+        }).catch(function (err) {
+          console.warn("factory owner check:", err && err.message);
+        });
+      }
 
       /* زر المراسلة يفتح محادثة هذا المصنع في صفحة الرسائل */
       var contactBtn = document.getElementById("contact-btn");
