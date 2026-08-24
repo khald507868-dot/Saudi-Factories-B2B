@@ -48,6 +48,16 @@
 
   /* ===== شبكة قوالب المصانع ===== */
   /* قالبان في كل صف */
+  /* رسالة الحالة (تحميل / لا مصانع / خطأ): تمتدّ على عرض
+     الشبكة كلها بدل أن تحتلّ خانة بطاقة واحدة */
+  .grid-state {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 40px 16px;
+    color: #7d8c83;
+    font-size: 14px;
+  }
+
   .factories-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
@@ -251,26 +261,17 @@
 
   <script>
     (function () {
-      var CARD_COUNT = 1000;
-      var STORE_KEY = "sf_factories";
-      var LEGACY_KEY = "sf_factory_images";
+      /* المصانع الحقيقية من قاعدة البيانات.
 
+         كان هنا مولّد يرسم 1000 بطاقة وهمية بالترقيم، لا علاقة
+         لها بأي حساب — فكان الزائر يفتح بطاقة فيؤدّي به إلى
+         صفحة فارغة. حذفها المالك وطلب المصانع الحقيقية وحدها.
+
+         RLS هي التي ترشح: الزائر لا يرى إلا approved،
+         والمالك يرى مصنعه ولو لم يُعتمد، والمدير يرى الجميع —
+         فلا حاجة لـ eq("status","approved") هنا، ووضعه يخفي
+         عن المالك مصنعه قيد المراجعة. */
       var grid = document.getElementById("factories-grid");
-
-      var factories = {};
-      try {
-        factories = JSON.parse(localStorage.getItem(STORE_KEY) || "{}");
-      } catch (err) {
-        factories = {};
-      }
-
-      /* الصور المحفوظة قبل إضافة صفحة المصنع */
-      var legacyImages = {};
-      try {
-        legacyImages = JSON.parse(localStorage.getItem(LEGACY_KEY) || "{}");
-      } catch (err) {
-        legacyImages = {};
-      }
 
       var imageIcon = '<svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><path d="M21 15l-5-5L5 21"></path></svg>';
       var logoIcon = '<svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"></path></svg>';
@@ -283,27 +284,66 @@
           .replace(/"/g, "&quot;");
       }
 
-      var html = "";
-      for (var i = 0; i < CARD_COUNT; i++) {
-        var factory = factories[i] || {};
-        var cover = factory.cover || legacyImages["img-" + i] || "";
-        var logo = factory.logo || legacyImages["logo-" + i] || "";
-        var name = factory.name || "";
-
-        html +=
-          '<a class="factory-card" href="web-factory.html?id=' + i + '">' +
-            '<div class="card-image-placeholder">' +
-              (cover ? '<img alt="" src="' + cover + '">' : imageIcon) +
-            '</div>' +
-            '<div class="logo-placeholder' + (logo ? ' has-image' : '') + '">' +
-              (logo ? '<img alt="" src="' + logo + '">' : logoIcon) +
-            '</div>' +
-            '<div class="card-footer">' +
-              (name ? '<span class="card-name">' + escapeHTML(name) + '</span>' : '') +
-            '</div>' +
-          '</a>';
+      function t(key, fallback) {
+        return (window.I18N && I18N.t) ? I18N.t(key) : fallback;
       }
-      grid.innerHTML = html;
+
+      function showState(msg) {
+        grid.innerHTML = '<p class="grid-state">' + escapeHTML(msg) + "</p>";
+      }
+
+      showState(t("fx_loading", "جارٍ التحميل…"));
+
+      function render(rows) {
+        if (!rows.length) {
+          showState(t("fx_empty", "لا توجد مصانع بعد"));
+          return;
+        }
+
+        var html = "";
+        rows.forEach(function (f) {
+          var cover = f.cover || "";
+          var logo = f.logo || "";
+          var name = f.name || "";
+
+          html +=
+            '<a class="factory-card" href="web-factory.html?id=' + encodeURIComponent(f.id) + '">' +
+              '<div class="card-image-placeholder">' +
+                (cover ? '<img alt="" src="' + escapeHTML(cover) + '">' : imageIcon) +
+              '</div>' +
+              '<div class="logo-placeholder' + (logo ? ' has-image' : '') + '">' +
+                (logo ? '<img alt="" src="' + escapeHTML(logo) + '">' : logoIcon) +
+              '</div>' +
+              '<div class="card-footer">' +
+                (name ? '<span class="card-name">' + escapeHTML(name) + '</span>' : '') +
+              '</div>' +
+            '</a>';
+        });
+        grid.innerHTML = html;
+      }
+
+      if (!window.sb) {
+        showState(t("fx_failed", "تعذّر تحميل المصانع"));
+        return;
+      }
+
+      /* ننتظر الجلسة أولاً: لو سألنا قبلها لردّ الخادم
+         كأننا زائر، فيختفي مصنع المالك قيد المراجعة. */
+      var ready = window.SF_AUTH_READY || Promise.resolve(null);
+
+      ready.then(function () {
+        return sb.from("factories")
+          .select("id, name, cover, logo")
+          .order("created_at", { ascending: false });
+      }).then(function (res) {
+        if (!res || res.error) {
+          showState(t("fx_failed", "تعذّر تحميل المصانع"));
+          return;
+        }
+        render(res.data || []);
+      }).catch(function () {
+        showState(t("fx_failed", "تعذّر تحميل المصانع"));
+      });
     })();
   </script>
 

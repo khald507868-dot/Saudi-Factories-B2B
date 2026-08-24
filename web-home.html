@@ -453,6 +453,15 @@
   }
 
   /* قالبان في كل صف */
+  /* رسالة الحالة تمتدّ على عرض الشبكة كلها */
+  .grid-state {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 40px 16px;
+    color: #7d8c83;
+    font-size: 14px;
+  }
+
   .bestsellers-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
@@ -1208,12 +1217,15 @@
       var grid = document.getElementById('bestsellers-grid');
       if (!grid) return;
 
-      var CARD_COUNT = 1000;
+      /* المنتجات الحقيقية من قاعدة البيانات.
 
-      var factories = {};
-      try {
-        factories = JSON.parse(localStorage.getItem('sf_factories') || '{}') || {};
-      } catch (e) {}
+         كان هنا مولّد يرسم 1000 قالب مرقّم لا حساب وراءه،
+         فكان الزائر يضغط بطاقة فيصل إلى منتج لا وجود له.
+         حذفها المالك وطلب الحقيقي وحده.
+
+         سياسة products_select_public ترشح بنفسها: لا تظهر إلا
+         منتجات المصانع المعتمدة (أو مصنع المالك نفسه). */
+      var LIMIT = 24;
 
       function escapeHTML(text) {
         return String(text)
@@ -1239,46 +1251,70 @@
       var yearsLabel = I18N.t('product_years');
       var reorderLabel = I18N.t('product_reorder_rate');
 
-      var html = '';
-      for (var i = 0; i < CARD_COUNT; i++) {
-        var factory = factories[i] || {};
-        var products = factory.products || [];
-        var product = products[0] || {};
-
-        var image = product.image || factory.cover || '';
-        var name = product.name || factory.name || '';
-        var price = product.price || '';
-
-        // قيم العرض مشتقّة من رقم القالب حتى تبقى ثابتة بين الزيارات
-        var years = (i % 17) + 1;
-        var reorder = (i % 61) + 12;
-
-        html +=
-          // البطاقة تفتح صفحة المنتج نفسه لا متجر المصنع كلّه،
-          // و p=0 لأنها تعرض أوّل منتج لهذا المصنع
-          '<a class="product-card" href="web-product.html?factory=' + i + '&p=0">' +
-            '<div class="product-image">' +
-              (image ? '<img alt="" src="' + image + '">' : imageIcon) +
-            '</div>' +
-            '<div class="product-body">' +
-              // الاسم والسعر يُحذفان تماماً عند غيابهما حتى لا يحجزا فراغاً أبيض
-              (name ? '<div class="product-name">' + escapeHTML(name) + '</div>' : '') +
-              (price
-                ? '<div class="product-price">' + escapeHTML(price) +
-                  ' <span class="product-currency">' + escapeHTML(riyal) + '</span></div>'
-                : '') +
-              '<div class="product-meta">' +
-                '<span class="product-verified">' + checkIcon + escapeHTML(verified) + '</span>' +
-                '<span>' + years + ' ' + escapeHTML(yearsLabel) + '</span>' +
-              '</div>' +
-              '<div class="product-reorder">' +
-                escapeHTML(reorderLabel) + ' ' + reorder + '%' +
-              '</div>' +
-            '</div>' +
-          '</a>';
+      function showState(msg) {
+        grid.innerHTML = '<p class="grid-state">' + escapeHTML(msg) + '</p>';
       }
 
-      grid.innerHTML = html;
+      showState(I18N.t('fx_loading'));
+
+      function render(rows) {
+        if (!rows.length) {
+          showState(I18N.t('fx_empty'));
+          return;
+        }
+
+        var html = '';
+        rows.forEach(function (row) {
+          var factory = row.factories || {};
+          var image = row.image || factory.cover || '';
+          var name = row.name || factory.name || '';
+          var price = row.price || '';
+
+          /* قيم العرض مشتقّة من رقم المصنع — نفس معادلة
+             web-product.html حتى تتطابق البطاقة والصفحة التي تفتحها */
+          var fid = row.factory_id;
+          var years = (fid % 17) + 1;
+          var reorder = (fid % 61) + 12;
+
+          html +=
+            '<a class="product-card" href="web-product.html?factory=' + encodeURIComponent(fid) + '&p=0">' +
+              '<div class="product-image">' +
+                (image ? '<img alt="" src="' + escapeHTML(image) + '">' : imageIcon) +
+              '</div>' +
+              '<div class="product-body">' +
+                (name ? '<div class="product-name">' + escapeHTML(name) + '</div>' : '') +
+                (price
+                  ? '<div class="product-price">' + escapeHTML(price) +
+                    ' <span class="product-currency">' + escapeHTML(riyal) + '</span></div>'
+                  : '') +
+                '<div class="product-meta">' +
+                  '<span class="product-verified">' + checkIcon + escapeHTML(verified) + '</span>' +
+                  '<span>' + years + ' ' + escapeHTML(yearsLabel) + '</span>' +
+                '</div>' +
+                '<div class="product-reorder">' +
+                  escapeHTML(reorderLabel) + ' ' + reorder + '%' +
+                '</div>' +
+              '</div>' +
+            '</a>';
+        });
+        grid.innerHTML = html;
+      }
+
+      if (!window.sb) { showState(I18N.t('fx_failed')); return; }
+
+      var ready = window.SF_AUTH_READY || Promise.resolve(null);
+
+      ready.then(function () {
+        return sb.from('products')
+          .select('id, factory_id, name, price, image, factories(name, cover)')
+          .order('sort_order')
+          .limit(LIMIT);
+      }).then(function (res) {
+        if (!res || res.error) { showState(I18N.t('fx_failed')); return; }
+        render(res.data || []);
+      }).catch(function () {
+        showState(I18N.t('fx_failed'));
+      });
     })();
 
   /* ============================================================

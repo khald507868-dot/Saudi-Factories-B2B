@@ -440,11 +440,12 @@ So a factory account **always** has a factory row from the moment it exists, inv
   |---|---|
   | `web-factory` | 8 — reads `factories`/`products`/`posts`, writes all three |
   | `web-login`, `web-supplier` | 3 each |
+  | `web-factories`, `web-home` | 1 each — **the 1000-card generators were deleted 2026-08-24** at the owner's request ("احذف جميع المصانع الوهمية"); both now read real rows and RLS does the filtering, so **don't add `eq("status","approved")`** — it would hide the owner's own pending factory from them |
   | `web-admin`, `app-admin`, `app-register` | 2 each |
   | `app-login` | 1 |
   | **everything else, both paths** | **0** |
 
-  Home, account, settings, factories, cart, messages, profile, product make **zero**, and `app-factory` renders its content from `localStorage` — its single `sb.from("factories")` call reads `owner_id` for the permission check only. The factory grids, product cards, and bestsellers are generated placeholders. **Don't describe any of them as showing real data.**
+  Account, settings, cart, messages, profile, product make **zero**, and `app-factory` renders its content from `localStorage` — its single `sb.from("factories")` call reads `owner_id` for the permission check only. The factory grids, product cards, and bestsellers are generated placeholders. **Don't describe any of them as showing real data.**
 
 - **`web-factory.html` saves through a debounce, and products/posts are delete-then-insert.** `save()` writes `localStorage` immediately (so nothing is lost offline), then queues `pushToDb()` after 700ms; `beforeunload` flushes anything pending. Products and posts are replaced wholesale rather than diffed — fine at five products, and the reason a save is one round-trip per table, not per row.
 - **`web-product.html` renders from `localStorage`, and deliberately never refuses.** An earlier version bailed out with a "product not found" message when `sf_factories` held no entry for the requested index. That contradicted the card the user had just clicked: `web-home.html` generates bestseller cards for **all 1000 factory slots** regardless of stored data, so most cards point at empty slots. The page now always renders, showing what exists and hiding what doesn't, with the title falling back product name → factory name → `مصنع <n>`. **Don't reintroduce the guard.** (The `product_not_found` i18n key is now unused but stays — see the archive on not mass-deleting keys.)
