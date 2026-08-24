@@ -488,7 +488,9 @@
       return;
     }
 
-    setStatus(id, act);
+    /* نفس إصلاح web-admin.html: "approve" صيغة فعل،
+       والقاعدة لا تقبل إلا approved. */
+    setStatus(id, act === "approve" ? "approved" : act);
   });
 
   /* ===== نافذة الرفض ===== */

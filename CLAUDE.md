@@ -291,7 +291,7 @@ Project `yhofxryhlrrwzztfowpa`. Loaded as plain script tags:
 - **`schema.sql`** — five tables (`profiles`, `factories`, `products`, `conversations`, `messages`) plus two storage buckets, all re-runnable.
 - **`add-industrial-license.sql`** — **applied.** Added `factories.industrial_license` to the owner's live database, which predated the column. Kept because `create table if not exists` in `schema.sql` will never add a column to an existing table — a rebuild from `schema.sql` alone is complete, but *this* database needed the `alter`.
 - **`add-factory-profile.sql`** — **NOT run yet.** Adds `website` / `industry` / `company_size` to `factories`, for the LinkedIn-style About card on `web-factory.html`. Until it runs, those three fields live only in `localStorage`. **Re-flag before touching the About card.**
-- **`add-media-columns.sql`** — **NOT run yet.** Adds `posts.video` and `products.images` (`text[]`, capped at 5 by a check constraint), and migrates existing `products.image` into the array. Required by the post-media and 5-image slider work on `web-factory.html`; until it runs, **every database save from that page fails** and only the `localStorage` copy survives.
+- **`add-media-columns.sql`** — **applied** (2026-08-24; verified: `products.images` and `posts.video` both answer instead of `42703`).
 - **`fix-privileges.sql`** — **applied.** The section-8.5 guard triggers, as a standalone file. See *RLS is the real enforcement* below.
 - **`make-admin.sql`** / **`check-admin.sql`** — grant and verify `is_admin`. `make-admin.sql` disables `profiles_guard` inside one transaction, because the guard silently reverts `is_admin` for anyone not already an admin — so editing the checkbox in Table Editor appears to work and does nothing. **Applied**; `khald507868@gmail.com` is admin.
 - **`cleanup-test-data.sql`** — deletes `%@example.com` accounts left from attack-testing, and resets any stray `approved` / `is_admin` rows.
@@ -396,6 +396,33 @@ Same IIFE-over-`global` shape as `i18n.js`. Exports `SF_AUTH_READY` (a promise),
 The fix is section **8.5**: `BEFORE UPDATE` trigger guards that silently revert protected columns unless `is_admin()`. **Any new column a user must not set for themselves needs a line in the relevant guard — a policy alone will not do it.**
 
 **Security claims must be tested by attack, not by reading the policy.** When you add or change an RLS policy, run the attack it is supposed to stop and show the result. Details, trigger names (they differ from the function names), and the first-admin recipe are in the archive.
+
+### The admin approve button, and the `approve` / `approved` trap
+
+`web-admin.html` and `app-admin.html` build their buttons with
+`data-act="approve"` and pass that value straight through to
+`setStatus()`. But `factories.status` is constrained to
+`pending` / `approved` / `rejected` — so the click sent **`approve`**
+and Postgres answered
+`violates check constraint "factories_status_check"`.
+
+**Approval was broken for every factory, not just one**, and it looked
+like a permissions problem: the owner was a verified admin
+(`is_admin = true`) and `factories_guard` was enabled, so both of the
+obvious suspects checked out clean. The alert box naming the constraint
+is what identified it.
+
+Fixed at the single call site in each file
+(`act === "approve" ? "approved" : act`) rather than in the button
+markup — one guard covers every button, present and future. The reject
+path was never affected: it calls `setStatus(id, "rejected")` with the
+literal.
+
+**The general lesson: a silent or misattributed failure here is usually
+a value the database rejects, not a permission.** Read the error text
+before theorising about RLS — three sessions' worth of guesses
+(missing row, not an admin, guard disabled) were all wrong, and the
+alert settled it in one line.
 
 ### Signup flow
 

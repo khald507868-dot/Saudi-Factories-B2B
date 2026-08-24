@@ -573,7 +573,12 @@
       return;
     }
 
-    setStatus(id, act);
+    /* الزر يحمل data-act="approve" وهي صيغة الفعل،
+       لكن عمود status في القاعدة لا يقبل إلا ثلاث قيم:
+       pending / approved / rejected. فإرسال "approve"
+       كان يُردّ بخطأ factories_status_check.
+       نحوّلها هنا — موضع واحد يحمي كل الأزرار. */
+    setStatus(id, act === "approve" ? "approved" : act);
   });
 
   /* ===== نافذة الرفض ===== */
