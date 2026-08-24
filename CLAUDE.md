@@ -147,7 +147,7 @@ Each page is a **fully self-contained** `<style>`/markup/`<script>` block in one
 
 Each gate is one file with three IIFEs in order — tab controller, login, register. Login-side element IDs are prefixed `l-` so they don't collide with the register side's `f-`.
 
-The rest: `home` (map + categories + bestsellers), `factories` (1000-card grid), `factory` (per-factory storefront, `?id=<n>`), `messages`, `cart`, `account` (hub), `settings` (everything the hub used to hold, incl. the 90-language picker), `profile`, `help`, `admin` (factory approval, gated on `SF_PROFILE.is_admin`, not linked from any nav).
+The rest: `home` (map + categories + bestsellers), `factories` (1000-card grid), `factory` (per-factory storefront, `?id=<n>`), `messages`, `cart`, `account` (hub), `settings` (everything the hub used to hold, incl. the language picker), `profile`, `help`, `admin` (factory approval, gated on `SF_PROFILE.is_admin`, not linked from any nav).
 
 Per-page implementation details — save-on-input vs save-on-submit, the `isFactory` DOM branch, the date-field overlay, the bestsellers grid, the faked map border — are in **`قرارات-سابقة.md`**. Read the relevant section before touching any of them; several encode a fix that a "cleanup" would silently undo.
 
@@ -155,9 +155,29 @@ Per-page implementation details — save-on-input vs save-on-submit, the `isFact
 
 Value is `"individual"` or `"factory"`; **absent/empty is treated as read-only**, so a visitor who never passed the gate cannot edit.
 
-`factory.html` computes `canEdit = accountType === "factory"` and, when false, adds `.view-only` to `<body>` and **skips registering every edit listener**. The `.view-only` CSS is cosmetic; the absent listeners are the real enforcement.
+Both factory pages add `.view-only` to `<body>` when editing is off and **skip registering every edit listener**. The `.view-only` CSS is cosmetic; the absent listeners are the real enforcement.
 
-**`sf_account_type` is not authentication** — it is a UI mode backed by a `localStorage` value any user can edit, and `factory.html` still trusts it. There is no link between a factory account and a specific factory `id`, so a factory-type account can edit *any* factory page. The database has the fix (`factories.owner_id` + an RLS policy), but the page hasn't been migrated. **Until it is, don't describe these pages as access-controlled.**
+**The two paths now decide `canEdit` differently — check which file you are in before reasoning about permissions.**
+
+| | how `canEdit` is decided | trustworthy? |
+|---|---|---|
+| `web-factory.html` | `row.owner_id === SF_USER.id`, from the database | yes |
+| `app-factory.html` | `localStorage.getItem("sf_account_type") === "factory"` | **no** |
+
+**`sf_account_type` is not authentication** — it is a UI mode backed by a `localStorage` value any user can edit. `app-factory.html` still trusts it, and there is no link there between a factory account and a specific factory `id`, so a factory-type account can open the edit UI on *any* factory. **Don't describe `app-factory.html` as access-controlled**; porting the web page's ownership check is the outstanding work.
+
+What actually holds on both paths is RLS: the server refuses a write to a factory the caller doesn't own, so the app-path hole exposes the *editing UI*, not the data.
+
+**`web-factory.html`'s ownership check, and why it looks convoluted:**
+
+```js
+var OWNER_FLAG = "sf_owner_" + factoryId;   // sessionStorage, per-tab
+var canEdit = false;                         // starts closed — fail safe
+```
+
+Edit listeners are registered at build time, so a change in ownership needs one reload. The `sessionStorage` flag exists **only to break the reload loop** — it is written *before* `location.reload()`, and the sync is two-way (`if (mine !== canEdit) { setOwnerFlag(mine); return null; }`) so a stale or forged flag is revoked on the next load rather than trusted. **It is not a permission** — forging it grants a visitor nothing but a UI that RLS then refuses.
+
+The page renders from `localStorage` first and swaps in database rows when they arrive, because ownership isn't known until the network answers and the owner shouldn't stare at a blank page.
 
 ### Messaging
 
@@ -238,11 +258,15 @@ Direction-relative CSS silently flips, and physical values don't:
 
 Dependency-free IIFE loaded synchronously in `<head>` so `dir`/`lang` are set before body parse. The IIFE takes `window` as `global` and ends with `global.I18N = {...}` — **grepping for `window.I18N` finds nothing.** Exported surface: `getLang`, `setLang`, `t`, `regionName`, `categories`, `categoryName`, `applyTranslations`.
 
+**`I18N.categories` is an array, not a function — six of the seven exports are callable and this one is not.** Writing `I18N.categories()` throws `TypeError: not a function`, and because these pages are one big IIFE, the throw **kills the rest of the page script**: every listener registered after that line silently never binds. This shipped, and the symptom was a dead "add product" button several hundred lines away — nothing pointed at i18n. Use `I18N.categories || []`.
+
+**Read the generalisation, not just the fix: on a page whose script is one IIFE, "a button does nothing" usually means an exception earlier in the file, not a problem with the button.** Ask the owner for the F12 Console first — it names the real line in seconds. Guessing at CSS, z-index, or RTL cost a full session before the Console was consulted.
+
 - **Declarative markup**: `data-i18n="key"` sets `textContent`; `data-i18n-placeholder="key"` sets the placeholder. Prefer these over setting text in page JS.
 - **Fallback chain**: `dict[lang][key] → dict.en[key] → dict.ar[key] → key`.
 - **RTL whitelist**: `RTL_LANGS = ["ar", "fa", "ur", "he"]`.
 - **Language switching is always `I18N.setLang(code); window.location.reload();`** — a full reload, never live re-rendering.
-- **30 languages × 191 keys** in `dict`; the 90-entry picker lives in the settings pages, not `i18n.js`. Adding a language means touching both.
+- **30 languages × 191 keys** in `dict`; a parallel 30-entry picker array lives in the settings pages, not `i18n.js`. Adding a language means touching both. The picker held 90 entries until the 60 untranslated ones were deleted — **it must never list a code `dict` lacks**, or picking it falls back to English and looks broken.
 - **Adding a key means adding it to all 30 blocks.** Verify with `grep -c "^      <key>: " i18n.js` = 30 — anchor the pattern, or substrings of longer key names match too.
 
 Coverage tiers, the `awk` insertion technique, and the orphaned keys (which must **not** be cleaned up) are in the archive.
@@ -267,6 +291,7 @@ Project `yhofxryhlrrwzztfowpa`. Loaded as plain script tags:
 - **`schema.sql`** — five tables (`profiles`, `factories`, `products`, `conversations`, `messages`) plus two storage buckets, all re-runnable.
 - **`add-industrial-license.sql`** — **applied.** Added `factories.industrial_license` to the owner's live database, which predated the column. Kept because `create table if not exists` in `schema.sql` will never add a column to an existing table — a rebuild from `schema.sql` alone is complete, but *this* database needed the `alter`.
 - **`add-factory-profile.sql`** — **NOT run yet.** Adds `website` / `industry` / `company_size` to `factories`, for the LinkedIn-style About card on `web-factory.html`. Until it runs, those three fields live only in `localStorage`. **Re-flag before touching the About card.**
+- **`add-media-columns.sql`** — **NOT run yet.** Adds `posts.video` and `products.images` (`text[]`, capped at 5 by a check constraint), and migrates existing `products.image` into the array. Required by the post-media and 5-image slider work on `web-factory.html`; until it runs, **every database save from that page fails** and only the `localStorage` copy survives.
 - **`fix-privileges.sql`** — **applied.** The section-8.5 guard triggers, as a standalone file. See *RLS is the real enforcement* below.
 - **`make-admin.sql`** / **`check-admin.sql`** — grant and verify `is_admin`. `make-admin.sql` disables `profiles_guard` inside one transaction, because the guard silently reverts `is_admin` for anyone not already an admin — so editing the checkbox in Table Editor appears to work and does nothing. **Applied**; `khald507868@gmail.com` is admin.
 - **`cleanup-test-data.sql`** — deletes `%@example.com` accounts left from attack-testing, and resets any stray `approved` / `is_admin` rows.
@@ -382,7 +407,19 @@ So a factory account **always** has a factory row from the moment it exists, inv
 
 - **Email confirmation is now ENABLED**, and **`Allow anonymous sign-ins` must stay OFF.** Anonymous sign-ins were switched on by accident once; they hand every visitor the `authenticated` role, which opens every RLS policy written for signed-in users. If a policy suddenly looks too permissive, check that toggle before rewriting the policy.
 - **Supabase's built-in email sender is rate-limited** (a few messages per hour) — fine for testing, not for launch. A real sender (Resend or similar) is an outstanding item.
-- **The UI is almost entirely un-wired from the database.** Counting `sb.from(` per page: only `*-admin` (2 calls) and the gate pages `web-login` / `web-supplier` (3 each) touch Supabase. Home, account, settings, factories, factory, cart, messages, profile, product make **zero** on both paths. The factory grids, product cards, and bestsellers are generated placeholders. **Don't describe any of them as showing real data.**
+- **The UI is mostly un-wired from the database.** Counting `sb.from(` per page — the only reliable test, since prose mentions don't count:
+
+  | page | calls |
+  |---|---|
+  | `web-factory` | 8 — reads `factories`/`products`/`posts`, writes all three |
+  | `web-login`, `web-supplier` | 3 each |
+  | `web-admin`, `app-admin`, `app-register` | 2 each |
+  | `app-login` | 1 |
+  | **everything else, both paths** | **0** |
+
+  Home, account, settings, factories, cart, messages, profile, product make **zero**, and `app-factory` is still fully `localStorage`. The factory grids, product cards, and bestsellers are generated placeholders. **Don't describe any of them as showing real data.**
+
+- **`web-factory.html` saves through a debounce, and products/posts are delete-then-insert.** `save()` writes `localStorage` immediately (so nothing is lost offline), then queues `pushToDb()` after 700ms; `beforeunload` flushes anything pending. Products and posts are replaced wholesale rather than diffed — fine at five products, and the reason a save is one round-trip per table, not per row.
 - **`web-product.html` renders from `localStorage`, and deliberately never refuses.** An earlier version bailed out with a "product not found" message when `sf_factories` held no entry for the requested index. That contradicted the card the user had just clicked: `web-home.html` generates bestseller cards for **all 1000 factory slots** regardless of stored data, so most cards point at empty slots. The page now always renders, showing what exists and hiding what doesn't, with the title falling back product name → factory name → `مصنع <n>`. **Don't reintroduce the guard.** (The `product_not_found` i18n key is now unused but stays — see the archive on not mass-deleting keys.)
 - `region_id` is never written at signup (no region field), so the map cannot find a region's factories.
 - Images are base64 in `localStorage`; the storage buckets exist but nothing writes to them.

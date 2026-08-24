@@ -99,6 +99,35 @@
     transform: rotate(180deg);
   }
 
+  /* بطاقة "مصنعي" — لا تظهر إلا لحسابات المصانع،
+     فتبدأ مخفية ويظهرها السكربت بعد قراءة الصف من
+     قاعدة البيانات. ولو فشلت الشبكة تبقى مخفية بدل
+     أن تظهر فارغة. */
+  #my-factory-section { display: none; }
+
+  /* شارة الحالة: قيد المراجعة / معتمد / مرفوض.
+     اللون يحمل المعنى والنص معه، فلا يضيع على
+     من لا يميّز الألوان. */
+  .fstatus {
+    font-size: 12px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+
+  .fstatus.pending  { background: #fdf3e0; color: #8a5a08; }
+  .fstatus.approved { background: #e6f4ea; color: #1c6b34; }
+  .fstatus.rejected { background: #fdecea; color: #a12a1f; }
+
+  /* اسم المصنع قد يطول — يقصّ بنقاط بدل أن
+     يدفع الشارة خارج البطاقة. */
+  #my-factory-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   .app-version {
     text-align: center;
     color: #9aa8a0;
@@ -258,7 +287,27 @@
     </div>
   </div>
 
-  <!-- بطاقة المصنع — لحسابات المصانع فقط، يملؤها السكربت من قاعدة البيانات -->
+  <!-- بطاقة المصنع — لحسابات المصانع فقط، يملؤها السكربت من قاعدة البيانات.
+       الرابط يُكتب في السكربت لأن رقم المصنع لا يُعرف إلا من الخادم. -->
+  <section class="account-section" id="my-factory-section">
+    <h2 class="section-title" data-i18n="my_factory">مصنعي</h2>
+    <div class="account-list">
+      <a href="#" class="account-row" id="my-factory-row">
+        <span class="row-label">
+          <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 21h18"></path>
+            <path d="M4 21V10l5 3V10l5 3V10l5 3v8"></path>
+            <path d="M4 10 5 4h3l1 6"></path>
+          </svg>
+          <span id="my-factory-name"></span>
+        </span>
+        <span class="row-end">
+          <span class="fstatus" id="my-factory-status"></span>
+          <svg class="chevron" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"></path></svg>
+        </span>
+      </a>
+    </div>
+  </section>
 
   <!-- القائمة الرئيسية -->
   <section class="account-section" id="mobile-settings-row">
@@ -354,6 +403,70 @@
         var adminLink = document.getElementById("dash-admin");
         if (adminLink) adminLink.style.display = "";
       }
+
+      /* --------------------------------------------------------
+         بطاقة "مصنعي": صاحب المصنع لا يعرف رقم
+         مصنعه، فلا يمكن وضع رابط ثابت في الصفحة —
+         نقرأ صفّه بـ owner_id ثم نبني الرابط.
+
+         والصف موجود دائماً: يُنشئه الخادم لحظة
+         التسجيل بحالة pending، وسياسة RLS تسمح للمالك
+         برؤية مصنعه ولو لم يُعتمد بعد. */
+      if (p.account_type !== "factory") return;
+
+      sb.from("factories")
+        .select("id, name, status")
+        /* SF_USER.id لا p.id — قائمة select في auth-guard.js
+           لا تجلب عمود id، فهو undefined هنا والقيمتان واحدة. */
+        .eq("owner_id", SF_USER.id)
+        .maybeSingle()
+        .then(function (res) {
+          var sec  = document.getElementById("my-factory-section");
+          var row  = document.getElementById("my-factory-row");
+          var nm   = document.getElementById("my-factory-name");
+          var stEl = document.getElementById("my-factory-status");
+          if (!sec || !row || !nm || !stEl) return;
+
+          var f = res && res.data;
+
+          /* لا نخفي البطاقة عند الفشل: الإخفاء الصامت يجعل
+             المالك يظن أن مصنعه ضاع. نقول له ما الخطب وما العمل. */
+          if (res && res.error) {
+            nm.textContent = I18N.t("fc_load_failed");
+            stEl.style.display = "none";
+            row.removeAttribute("href");
+            sec.style.display = "";
+            return;
+          }
+
+          if (!f) {
+            /* الحساب مصنع لكن لا صفّ له — يقع لمن سجّل قبل
+               إضافة المشغّل الذي يُنشئ الصفّ تلقائياً.
+               لا يمكن إنشاؤه من هنا: لا توجد سياسة insert
+               على factories، فالخادم سيرفض الإدراج. */
+            nm.textContent = I18N.t("fc_missing");
+            stEl.style.display = "none";
+            row.removeAttribute("href");
+            sec.style.display = "";
+            return;
+          }
+
+          /* اسم فارغ وارد: المصنع يُنشأ باسم صاحبه،
+             وقد لا يكون ملأ صفحته بعد. */
+          nm.textContent = f.name || I18N.t("my_factory");
+
+          var key = { pending:  "fs_pending",
+                      approved: "fs_approved",
+                      rejected: "fs_rejected" }[f.status];
+          if (key) {
+            stEl.textContent = I18N.t(key);
+            stEl.classList.add(f.status);
+          }
+
+          row.href = "web-factory.html?id=" + encodeURIComponent(f.id);
+          sec.style.display = "";
+        });
+
     });
   })();
   </script>

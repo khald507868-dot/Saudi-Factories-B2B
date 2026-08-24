@@ -1341,12 +1341,24 @@
       var params = new URLSearchParams(window.location.search);
       var factoryId = params.get("id") || "0";
 
-      /* الأفراد يتصفحون فقط — إضافة الصور والنبذة والمنتجات ميزة للمصانع */
-      var accountType = "";
+      /* صلاحية التعديل = ملكية هذا المصنع بالذات.
+         تُحسم من القاعدة لا من localStorage: الأخيرة يملكها
+         المستخدم ويعدّلها من الطرفية، فلا تصلح حارساً. وتبدأ
+         مغلقة ثم تُفتح بعد تأكيد الملكية — فالفشل آمن.
+         والحاجز الفعلي سياسات RLS على الخادم: حتى لو زُوّرت
+         هذه القيمة، ترفض القاعدة أي كتابة على مصنع غير مملوك. */
+      var OWNER_FLAG = "sf_owner_" + factoryId;
+
+      /* العلامة تعيش في sessionStorage للتبويب الحالي فقط، ووظيفتها
+         تفادي حلقة إعادة التحميل لا منح صلاحية: الصفحة تُرسم بها
+         في وضع التحرير، ثم تتحقّق القاعدة من الملكية وتسحبها إن
+         كذبت. وأي كتابة ترفضها RLS على الخادم بلا استثناء. */
+      var canEdit = false;
       try {
-        accountType = localStorage.getItem("sf_account_type") || "";
+        canEdit = sessionStorage.getItem(OWNER_FLAG) === "1";
       } catch (err) {}
-      var canEdit = accountType === "factory";
+
+      var factoryRow = null;
       if (!canEdit) document.body.classList.add("view-only");
 
       /* زر المراسلة يفتح محادثة هذا المصنع في صفحة الرسائل */
@@ -1380,7 +1392,20 @@
       }
       if (!data.products) data.products = [];
 
+      /* ===== الحفظ =====
+         مسار واحد لكل كتابة. يكتب في القاعدة حين تتوفّر،
+         ويحتفظ بنسخة محلّية كمخزن مؤقّت للعمل بلا اتصال.
+         والتأخير يجمع ضربات المفاتيح المتتابعة في طلب واحد. */
+      var saveTimer = null;
+      var savePending = false;
+
       function save() {
+        /* الحاجز الأخير في الواجهة: أي مسار كتابة يمرّ من هنا.
+           والحاجز الحقيقي RLS على الخادم — هذا لتوفير الطلبات
+           الفاشلة لا للأمان. */
+        if (!canEdit) return;
+
+        /* نسخة محلّية فورية: لا تُفقد الكتابة إن انقطع الاتصال */
         allFactories[factoryId] = data;
         try {
           localStorage.setItem(STORE_KEY, JSON.stringify(allFactories));
@@ -1388,7 +1413,76 @@
         } catch (err) {
           storageWarning.classList.add("show");
         }
+
+        if (!factoryRow) return;
+        savePending = true;
+        if (saveTimer) clearTimeout(saveTimer);
+        saveTimer = setTimeout(pushToDb, 700);
       }
+
+      /* دفع بيانات المصنع إلى القاعدة.
+         المنتجات والمنشورات لهما جدولان مستقلّان، فتُدفع كلٌّ
+         على حدة عبر حذف الصفوف وإعادة إدراجها — أبسط من
+         مطابقة الفروق، والأعداد صغيرة (خمس منتجات لا آلاف). */
+      function pushToDb() {
+        if (!canEdit || !factoryRow || !window.sb) return;
+        savePending = false;
+
+        sb.from("factories").update({
+          name:         data.name || "",
+          about:        data.about || "",
+          cover:        data.cover || "",
+          logo:         data.logo || "",
+          website:      data.website || "",
+          industry:     data.industry || "",
+          company_size: data.company_size || ""
+        }).eq("id", factoryRow.id).then(function (res) {
+          if (res.error) console.warn("factory save:", res.error.message);
+        });
+
+        /* المنتجات */
+        sb.from("products").delete().eq("factory_id", factoryRow.id)
+          .then(function () {
+            var rows = (data.products || []).map(function (pr, i) {
+              return {
+                factory_id: factoryRow.id,
+                images: (pr.images || []).slice(0, 5),
+                name: pr.name || "",
+                price: pr.price ? Number(pr.price) : null,
+                sort_order: i
+              };
+            });
+            if (!rows.length) return null;
+            return sb.from("products").insert(rows);
+          })
+          .then(function (res) {
+            if (res && res.error) console.warn("products save:", res.error.message);
+          });
+
+        /* المنشورات */
+        sb.from("posts").delete().eq("factory_id", factoryRow.id)
+          .then(function () {
+            var rows = (data.posts || []).map(function (po) {
+              return {
+                factory_id: factoryRow.id,
+                body: po.body || "",
+                image: po.image || "",
+                video: po.video || "",
+                created_at: po.created_at || new Date().toISOString()
+              };
+            });
+            if (!rows.length) return null;
+            return sb.from("posts").insert(rows);
+          })
+          .then(function (res) {
+            if (res && res.error) console.warn("posts save:", res.error.message);
+          });
+      }
+
+      /* الكتابة المعلّقة تُدفع قبل مغادرة الصفحة */
+      window.addEventListener("beforeunload", function () {
+        if (savePending) pushToDb();
+      });
 
       /* تصغير الصورة قبل الحفظ حتى لا تمتلئ مساحة التخزين بسرعة */
       function resizeImage(dataUrl, maxSize, done) {
@@ -1408,12 +1502,15 @@
       var pendingTarget = null;
 
       function pickImage(maxSize, onPicked) {
+        if (!canEdit) return;
         pendingTarget = { maxSize: maxSize, onPicked: onPicked };
         fileInput.value = "";
         fileInput.click();
       }
 
       fileInput.addEventListener("change", function () {
+        /* حارس صريح: الزائر لا يرفع صوراً مهما استُدعي المدخل */
+        if (!canEdit) return;
         var file = fileInput.files[0];
         if (!file || !pendingTarget) return;
         var target = pendingTarget;
@@ -1434,12 +1531,14 @@
       var pendingVideo = null;
 
       function pickVideo(onPicked) {
+        if (!canEdit) return;
         pendingVideo = onPicked;
         videoInput.value = "";
         videoInput.click();
       }
 
       videoInput.addEventListener("change", function () {
+        if (!canEdit) return;
         var file = videoInput.files[0];
         if (!file || !pendingVideo) return;
         var onPicked = pendingVideo;
@@ -1563,6 +1662,13 @@
         /* استبدال حقول الإدخال بنص للقراءة.
            الاسم لا يُستبدل: صار داخل الترويسة ومخفياً للزائر. */
         showAsText(aboutInput, data.about, I18N.t("factory_no_about"), "");
+
+        /* حقول النبذة وحقل الاسم تُزال من DOM كلياً لا تُخفى
+           بـCSS — فالمخفي يعود بإظهاره من أدوات المطوّر. */
+        ["f-website", "f-industry", "f-size", "factory-name"].forEach(function (id) {
+          var el = document.getElementById(id);
+          if (el && el.parentNode) el.parentNode.removeChild(el);
+        });
 
         /* بطاقة النبذة الفارغة تُخفى عن الزائر بدل عرض
            عنوان فوق نص "لا توجد نبذة" */
@@ -2359,6 +2465,97 @@
       renderPosts();
       renderAbout();
       renderHead();
+
+      /* ===== الربط بقاعدة البيانات =====
+         الصفحة تُرسم أولاً من النسخة المحلّية فتظهر فوراً، ثم
+         تُستبدل ببيانات القاعدة حين تصل. وسبب هذا الترتيب أن
+         الملكية لا تُعرف إلا بعد ردّ الشبكة، والمستخدم لا
+         ينتظر شاشة فارغة. */
+      function applyRow(row, products, posts) {
+        factoryRow = row;
+
+        data.name         = row.name || "";
+        data.about        = row.about || "";
+        data.cover        = row.cover || "";
+        data.logo         = row.logo || "";
+        data.website      = row.website || "";
+        data.industry     = row.industry || "";
+        data.company_size = row.company_size || "";
+        data.verified     = row.status === "approved";
+        data.address_city = row.address_city || "";
+        data.address_district = row.address_district || "";
+
+        data.products = (products || []).map(function (pr) {
+          return {
+            images: pr.images && pr.images.length ? pr.images
+                    : (pr.image ? [pr.image] : []),
+            name: pr.name || "",
+            price: pr.price == null ? "" : String(pr.price)
+          };
+        });
+
+        data.posts = (posts || []).map(function (po) {
+          return {
+            body: po.body || "",
+            image: po.image || "",
+            video: po.video || "",
+            created_at: po.created_at
+          };
+        });
+
+        /* النسخة المحلّية تتبع القاعدة فلا تتعارضان */
+        allFactories[factoryId] = data;
+        try {
+          localStorage.setItem(STORE_KEY, JSON.stringify(allFactories));
+        } catch (err) {}
+      }
+
+      /* المستمعات تُسجَّل وقت البناء، فتغيّر الملكية يحتاج إعادة
+         تحميل واحدة. والعلامة تُكتب أولاً فلا تتكرّر الحلقة. */
+      function setOwnerFlag(on) {
+        try {
+          if (on) sessionStorage.setItem(OWNER_FLAG, "1");
+          else sessionStorage.removeItem(OWNER_FLAG);
+        } catch (err) {}
+        location.reload();
+      }
+
+      if (window.sb && window.SF_AUTH_READY) {
+        SF_AUTH_READY.then(function () {
+          return sb.from("factories")
+            .select("id, owner_id, status, name, about, cover, logo, website, industry, company_size, address_city, address_district")
+            .eq("id", factoryId)
+            .maybeSingle();
+        }).then(function (res) {
+          if (!res || res.error || !res.data) return null;
+          var row = res.data;
+
+          return Promise.all([
+            sb.from("products").select("*").eq("factory_id", row.id).order("sort_order"),
+            sb.from("posts").select("*").eq("factory_id", row.id).order("created_at", { ascending: false })
+          ]).then(function (out) {
+            applyRow(row, out[0].data, out[1].data);
+
+            var mine = !!(SF_USER && row.owner_id === SF_USER.id);
+
+            /* ما رُسمت عليه الصفحة يخالف الحقيقة؟ أعد البناء مرّة.
+               والاتجاهان لازمان: فتح لمالكٍ رُسم زائراً، وإغلاق
+               لزائرٍ رُسم مالكاً بعلامة قديمة أو مزوّرة. */
+            if (mine !== canEdit) { setOwnerFlag(mine); return null; }
+
+            renderProducts();
+            renderPosts();
+            renderAbout();
+            renderHead();
+            if (data.cover) fillSlot(coverEl, data.cover);
+            if (data.logo) fillSlot(logoEl, data.logo);
+            return null;
+          });
+        }).catch(function (err) {
+          /* تعذّر الوصول للقاعدة: تبقى النسخة المحلّية معروضة */
+          console.warn("factory load:", err && err.message);
+        });
+      }
     })();
   </script>
 

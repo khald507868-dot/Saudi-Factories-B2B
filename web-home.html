@@ -1359,6 +1359,33 @@
     slot.innerHTML =
       '<a class="dt-btn primary" href="web-login.html" data-i18n="splash_login_btn">' +
       I18N.t("splash_login_btn") + "</a>";
+
+    /* زر "كن مورّداً": دعوة للمصانع كي تسجّل — فلا معنى
+       لعرضه لمن سجّل دخوله أصلاً كمورّد. يعود بعد تسجيل
+       الخروج من الإعدادات لأن sfSignOut تمحو الجلسة.
+
+       المصدر هو account_type القادم من جدول profiles عبر
+       الحارس، لا localStorage القابل للتزوير. ولأن الجلسة
+       تصل بعد رسم الصفحة، نخفي الزر مبكّراً إن كان
+       localStorage يقول "factory" لمنع الوميض، ثم نصحّح
+       القرار من الخادم حين تجهز SF_AUTH_READY. */
+    var supplierCta = document.querySelector(".dt-supplier");
+    if (supplierCta) {
+      function showSupplierCta(show) {
+        supplierCta.style.display = show ? "" : "none";
+      }
+
+      var cachedType = "";
+      try { cachedType = localStorage.getItem("sf_account_type") || ""; } catch (e) {}
+      showSupplierCta(cachedType !== "factory");
+
+      if (window.SF_AUTH_READY) {
+        SF_AUTH_READY.then(function () {
+          var type = window.SF_PROFILE ? window.SF_PROFILE.account_type : "";
+          showSupplierCta(type !== "factory");
+        });
+      }
+    }
   })();
   </script>
 
