@@ -40,8 +40,21 @@
     padding-bottom: 0 !important;
   }
 
-  /* إطار الصفحة الأخضر يختفي — هو زينة جوال */
-  body::after { display: none !important; }
+  /* إطار أخضر حول الصفحة كلها — بطلب المالك.
+
+     كان مخفياً هنا بوصفه "زينة جوال"، وطلب المالك إظهاره
+     على الموقع أيضاً. ولونه هنا أخضر واضح (#1c6b34) لا
+     أخضر الجوال الداكن (#04361b) الذي يقارب الأسود على
+     شاشة عريضة.
+
+     position: fixed يجعله يلازم حواف النافذة أثناء التمرير،
+     وpointer-events: none يمنعه من اعتراض النقر — وكلاهما
+     موروث من mobile.css، فلا نعيد تعريفهما. */
+  body::after {
+    display: block !important;
+    max-width: none !important;
+    border-color: #1c6b34;
+  }
 
   /* الشريط السفلي يختفي: التنقّل ينتقل للأعلى */
   .bottom-nav { display: none !important; }
@@ -94,7 +107,8 @@
      الدورة ٤.٤ ثانية: ١.٤ كشف + ٣ ثبات ظاهراً. */
 
   .top-bar-logo .wm-title,
-  .auth-brandbar .wm-title {
+  .auth-brandbar .wm-title,
+  .page-logo .wm-title {
     animation: wmType 4.4s steps(24, end) infinite;
   }
 
@@ -109,10 +123,12 @@
 
   /* الخط الذهبي يُرسم مع الاسم بنفس التوقيت والاتجاه */
   .top-bar-logo,
+  .page-logo,
   .auth-brandbar .brand-seal { position: relative; }
 
   .top-bar-logo .wm-rule,
-  .auth-brandbar .wm-rule {
+  .auth-brandbar .wm-rule,
+  .page-logo .wm-rule {
     animation: wmCaret 4.4s steps(24, end) infinite;
     /* نسبة مئوية لا كلمة left/right: الكلمات تنعكس مع اتجاه
        الصفحة RTL فيمتدّ الخط من اليمين، أما 0% فهي الحافة
@@ -131,12 +147,14 @@
   /* احترام تفضيل تقليل الحركة في نظام المستخدم */
   @media (prefers-reduced-motion: reduce) {
     .top-bar-logo .wm-title,
-    .auth-brandbar .wm-title {
+    .auth-brandbar .wm-title,
+    .page-logo .wm-title {
       clip-path: none;
       animation: none;
     }
     .top-bar-logo .wm-rule,
-    .auth-brandbar .wm-rule { animation: none; transform: none; }
+    .auth-brandbar .wm-rule,
+    .page-logo .wm-rule { animation: none; transform: none; }
   }
 
   /* البحث يتمدّد ويأخذ وسط الشريط */
@@ -657,7 +675,8 @@
     display: inline-flex;
     flex-direction: column;
     gap: 3px;
-    width: 150px;
+    /* نفس مقاس شعار الرئيسية (.top-bar-logo) بطلب المالك */
+    width: 168px;
     margin: 0 0 4px;
     text-decoration: none;
   }
@@ -937,7 +956,7 @@
   .account-page .list .state { grid-column: 1 / -1; }
 
   .page-logo .wm-title {
-    font-size: 17px;
+    font-size: 19px;
     font-weight: 800;
     line-height: 1.1;
     white-space: nowrap;
