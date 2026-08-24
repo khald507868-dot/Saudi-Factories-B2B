@@ -788,6 +788,13 @@
         <span data-i18n="row_help">المساعدة والدعم</span>
       </a>
       <!-- يظهر للمدير فقط -->
+      <!-- مصنعي — لأصحاب المصانع فقط.
+           يبدأ مخفياً وبلا رابط: رقم المصنع لا يُعرف إلا من
+           الخادم، فيملأه السكربت ويُظهره — كما يفعل رابط الإدارة. -->
+      <a href="#" id="dash-myfactory" style="display:none;">
+        <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"></path><path d="M4 21V10l5 3V10l5 3V10l5 3v8"></path><path d="M4 10 5 4h3l1 6"></path></svg>
+        <span data-i18n="my_factory">مصنعي</span>
+      </a>
       <a href="web-admin.html" id="dash-admin" style="display:none;">
         <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><path d="M9 12l2 2 4-4"></path></svg>
         <span data-i18n="dash_admin_factories">إدارة المصانع</span>
@@ -1622,6 +1629,26 @@
         var adminLink = document.getElementById("dash-admin");
         if (adminLink) adminLink.style.display = "";
       }
+
+      /* --------------------------------------------------------
+         رابط "مصنعي" في القائمة الجانبية.
+         رقم المصنع لا يُعرف إلا من الخادم، فلا يصلح
+         رابط ثابت — نقرأ صفّ المالك ثم نبني الرابط.
+         يبقى مخفياً لغير أصحاب المصانع وعند فشل الشبكة. */
+      if (p.account_type === "factory" && window.sb && window.SF_USER) {
+        sb.from("factories")
+          .select("id")
+          .eq("owner_id", SF_USER.id)
+          .maybeSingle()
+          .then(function (r) {
+            var f = r && r.data;
+            var el = document.getElementById("dash-myfactory");
+            if (!f || !el) return;
+            el.href = "web-factory.html?id=" + encodeURIComponent(f.id);
+            el.style.display = "";
+          });
+      }
+
     });
   })();
   </script>
