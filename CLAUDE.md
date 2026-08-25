@@ -31,15 +31,17 @@ The codebase is split into **two independent paths**. This is the most important
 | Browser site | **`web-`** | yes | wide desktop layout |
 | Phone app | **`app-`** | **no** | stays a phone column |
 
-**14 web pages and 14 app pages — and the two paths no longer mirror each other.** This was true once; it stopped being true when the web gates were rebuilt.
+**14 web pages and 15 app pages — and the two paths no longer mirror each other.** This was true once; it stopped being true when the web gates were rebuilt.
 
 Shared by both paths: `home`, `factories`, `factory`, `messages`, `cart`, `account`, `login`, `settings`, `profile`, `help`, `admin`.
 
-- **App path only:** `index.html` (splash), `app-user-type.html` (account-type gate), `app-welcome.html`, `app-register.html`.
+- **App path only:** `app-index.html` (splash), `app-user-type.html` (account-type gate), `app-welcome.html`, `app-register.html`.
 - **Web path only:** `web-supplier.html` (factory gate), `web-reset.html` (password reset), `web-product.html` (product detail).
 - **Deleted from the web path:** `web-register.html` and `web-welcome.html`. Registration merged into `web-login.html` as a tab; the welcome page was removed as useless ("مامنها فائدة"). **Don't recreate them** — `auth-guard.js` now points the web path at `web-login.html` and `web-login.html#register`.
 
-**`index.html` is the one exception with no prefix.** It holds the *app* splash and redirects to `app-user-type.html`. The name is reserved — servers serve it automatically at a bare domain, so renaming it would break the site's root URL. **Do not rename it.**
+**`index.html` is the one exception with no prefix, and it belongs to the *web* path.** It is the former `web-home.html`, renamed on 2026-08-25 so that a bare domain lands on the factories home page. The name is reserved — servers serve it automatically at the domain root — so **do not rename it**, and read it as a `web-` page everywhere below: it carries `desktop.css`, `SF_PUBLIC_PAGE`, `regions-geo.js`, and the desktop archetype layout.
+
+**The app splash moved to `app-index.html`** (`<meta http-equiv="refresh">` → `app-user-type.html`). **Nothing links to it, deliberately** — it is the entry point for the installed app, not a page reachable from the site. A dead-link sweep will report it as orphaned; that is correct, **don't delete it.**
 
 ### What the split changes
 
@@ -52,7 +54,7 @@ Shared by both paths: `home`, `factories`, `factory`, `messages`, `cart`, `accou
 
 ### Unprefixed page names below
 
-Sections after this one predate the split and say `home.html`, `account.html`, etc. **Read every such name as *both* copies** unless the point is specifically about the desktop layer, in which case it is the `web-` one. `index.html` always means the literal file.
+Sections after this one predate the split and say `home.html`, `account.html`, etc. **Read every such name as *both* copies** unless the point is specifically about the desktop layer, in which case it is the `web-` one. An unprefixed `home.html` means `index.html` on the web side and `app-home.html` on the app side.
 
 **But check the page-list above first — not every name has two copies any more.** `register` and `welcome` exist only on the app path; `supplier`, `reset`, and `product` only on the web path. Newer sections write these prefixed in full; an unprefixed `register.html` in an older section means the app one, or the register *tab* on a web gate.
 
@@ -66,10 +68,10 @@ No dev server, build, lint, or test suite — no `package.json`, no `node`. "Run
 
 ```bash
 # open a page for the owner (plain Windows path — no query string, no file:/// URL)
-powershell Start-Process "web-home.html"
+powershell Start-Process "index.html"
 
 # brace balance after editing any HTML/CSS — the two numbers must match
-awk '{o+=gsub(/{/,"{"); c+=gsub(/}/,"}")} END{print o, c}' web-home.html
+awk '{o+=gsub(/{/,"{"); c+=gsub(/}/,"}")} END{print o, c}' index.html
 
 # .sql balance — strip comments first (Arabic "1)" numbering gives false positives)
 sed 's/--.*$//' schema.sql | awk '{o+=gsub(/\(/,"("); c+=gsub(/\)/,")")} END{print o, c}'
@@ -80,13 +82,13 @@ grep -oh 'href="[a-z][a-z0-9._-]*\.html' *.html | sed 's/href="//' | sort -u \
 
 # path isolation — both must print nothing
 grep -o 'href="app-[a-z-]*\.html' web-*.html | sort -u
-grep -o 'href="web-[a-z-]*\.html' app-*.html index.html | sort -u
+grep -o 'href="web-[a-z-]*\.html' app-*.html | sort -u
 
 # which pages actually query the database (prose mentions don't count)
-for f in web-*.html; do echo "$(grep -oc 'sb\.from(' "$f" || true) $f"; done
+for f in web-*.html index.html; do echo "$(grep -oc 'sb\.from(' "$f" || true) $f"; done
 
 # which pages really load a shared asset (tag, not name — see the grep trap)
-grep -c '<link[^>]*desktop\.css' web-home.html
+grep -c '<link[^>]*desktop\.css' index.html
 grep -c '<script[^>]*auth-guard\.js' app-home.html
 
 # an i18n key must exist in all 30 language blocks (anchor the pattern!)
@@ -115,7 +117,7 @@ Four traps, all hit in practice:
 
 ### You cannot see the page — the owner must look
 
-**Visual verification is the owner's job, and you must ask for it.** Open the page with `powershell Start-Process "web-home.html"`, then *ask what they see*. Never report a UI change as confirmed off a balance check — that check cannot see layout, z-index, animation, or runtime errors. Say plainly that you can't see the rendered page.
+**Visual verification is the owner's job, and you must ask for it.** Open the page with `powershell Start-Process "index.html"`, then *ask what they see*. Never report a UI change as confirmed off a balance check — that check cannot see layout, z-index, animation, or runtime errors. Say plainly that you can't see the rendered page.
 
 Several bugs passed review and were caught only by the owner looking: the `.auth-btn:active` fill-mode issue, the drawer escaping the phone column, `.composer` doing the same, missing account data.
 
@@ -145,7 +147,7 @@ Each page is a **fully self-contained** `<style>`/markup/`<script>` block in one
 
 **The two paths now gate accounts differently — this is the biggest post-split divergence.**
 
-- **App path:** `index.html` → `app-user-type.html` → `app-welcome.html` → `app-login`/`app-register` → `app-home`. The type chosen at the gate is written to `sf_account_type` and **branches the three pages after it**.
+- **App path:** `app-index.html` → `app-user-type.html` → `app-welcome.html` → `app-login`/`app-register` → `app-home`. The type chosen at the gate is written to `sf_account_type` and **branches the three pages after it**.
 - **Web path:** no type gate at all. Two separate doors, each a tabbed login/register page that **hardcodes its own type**:
   - `web-login.html` — individuals. `var accountType = "individual"; var isFactory = false;`
   - `web-supplier.html` — factories. `var accountType = "factory"; var isFactory = true;`
@@ -234,6 +236,8 @@ Carried by the **14 `web-` pages and nothing else**.
 - **Un-capping the phone column is the first thing the file does** — `body`'s `max-width`/`margin`/`box-shadow` are overridden with `!important` and `.bottom-nav` is hidden.
 - **`body::after` is no longer killed here — it is re-enabled and recolored.** The web path draws a **green page frame** (owner request: "ضع حدود خضراء على كامل الصفحه") via `display: block !important; max-width: none !important; border-color: #1c6b34;`. **Thickness is inherited from `mobile.css` (3px) on purpose** — a `border-width: 1px !important` was added once and the owner asked for it back out ("ارجع قبل اخر التعديل"). Don't re-add a width override without being asked.
 - **The animated wordmark (`.page-logo`) is on every web page**, sized `168px` / `19px` font, and joined to the `wmType`/`wmCaret` keyframe selectors *and* the `prefers-reduced-motion` block — miss the latter and the logo animates for users who asked it not to.
+  - **Its width must be `min-width`, never `width`, and its `line-height` must clear the raised B2B.** A fixed `width` clipped the final **B** of "B2B"; the superscript is lifted by `vertical-align: 0.68em`, so a tight `line-height` cropped it from above. Fixed 2026-08-25 as `min-width: <n>; width: auto` plus `line-height: 1.55`–`1.6`.
+  - **This lives in five places and a partial fix looks complete.** `desktop.css` alone carries **three**: `.top-bar-logo` (~line 89), the grid `.page-logo` (~758), and — the one missed on the first two attempts — the **non-grid** `.page-logo` for `store`/`cart`/`chat`/`doc`/classless bodies (~1115), which is more specific and silently overrode the earlier fix on six pages. The other two are `.auth-brandbar .wm-title` (duplicated in `web-login`, `web-supplier`, `web-reset`) and `index.html`'s own `108px` copy. **Grep `min-width: 168px` and `wm-title` before declaring this fixed.**
   - **It sits at the visual *left* in Arabic**, which is the opposite of the sidebar. Grid archetypes use `justify-self: end` under **both** `dir`s; non-grid archetypes (`store`/`cart`/`chat`/`doc`/classless) use `display: flex` with `margin-inline-start: auto; margin-inline-end: 24px`.
   - **`display: inline-flex` ignores `margin: auto`** — that single fact cost three failed attempts at this. It must be `display: flex`. Use the logical `margin-inline-*` properties, not `margin-left`/`right`: they flip with `dir` on their own, which is what keeps the logo mirroring correctly without a second `html[dir="ltr"]` rule.
 - **`html` carries the page tint, not just `body`.** `html { background: #f6f7f6 }` matches the shared `body` background. It was `#ffffff`, producing a white band below `messages.html`, and the owner asked twice to remove it. **The first fix targeted the wrong thing** — it read as a layout gap, so height rules went onto `body.chat-page`; the answer was "لم تتغير". **Telling them apart: a layout gap moves the content when fixed; an `html` background leaves content exactly where it is and only the color changes.**
@@ -327,12 +331,12 @@ Identical across both paths — verified by counting `<script>` tags, not name m
 
 | | supabase-js + config | auth-guard | `SF_PUBLIC_PAGE` |
 |---|---|---|---|
-| `index`, `app-welcome`, `app-user-type`, `*-help` | — | — | — |
+| `app-index`, `app-welcome`, `app-user-type`, `*-help` | — | — | — |
 | `*-login`, `app-register`, `web-supplier`, `web-reset` | ✓ | — | — |
-| `*-home`, `*-factories`, `*-factory`, `web-product` | ✓ | ✓ | ✓ |
+| `index`, `app-home`, `*-factories`, `*-factory`, `web-product` | ✓ | ✓ | ✓ |
 | `*-account`, `*-settings`, `*-cart`, `*-messages`, `*-profile`, `*-admin` | ✓ | ✓ | — |
 
-Verified by counting `<script>` tags — 14 web pages, 14 app pages.
+Verified by counting `<script>` tags — 14 web pages, 15 app pages.
 
 Adding the guard to a gate page would create a redirect loop, and the guard's *destination* is `app-welcome.html` on the app path and `web-login.html` on the web path. `web-reset.html` is guard-free for the same reason: it must open for someone who cannot sign in. Those pages' banner comments mention `auth-guard.js` — they do not load it.
 
@@ -364,6 +368,22 @@ Mode 2 also has a fallback check on `location.hash.indexOf("type=recovery")`, be
 
 **Not yet testable.** It needs the redirect URL registered at Supabase → Authentication → URL Configuration → Redirect URLs, which requires a real domain — the project currently runs from `file:///`. **Outstanding owner task.** No `app-` equivalent exists yet.
 
+### The landing page (`index.html`) — category bar, sector filter, watermark
+
+Three mechanisms added 2026-08-25. Each spans more than one file, which is what makes them easy to half-break.
+
+**The sector filter is a three-file contract, and it was broken in three places at once.** A category link carries `?cat=<English category name>`; `web-factories.html` reads it and applies `.eq("industry", wantedCat)`. The value must be **`cat.en`**, never the category object — `I18N.categories` holds `{ar, en}` pairs, so passing the object to `encodeURIComponent` yields the string `[object Object]` and matches nothing. **There are three link-building sites in `index.html`**; a fix to one is not a fix.
+
+The English name is the join key because that is what the factory page stores in `industry`. **A factory whose `industry` is empty appears under no sector at all** — that is data, not a bug; `check-industry.sql` reports it.
+
+When a filter is active the page retitles its `<h1>` and must `removeAttribute("data-i18n")` first, or `applyTranslations()` overwrites the new title on the next language pass. The empty state uses class **`grid-state`** (what `showState()` builds), not `state`.
+
+**The category bar scrolls an inner wrapper, not the bar.** All 40 categories render; `.dt-catscroll` holds only the links and carries the `overflow-x`. **Putting `overflow` on `.dt-catbar-inner` clips the ☰ dropdown panel**, which escapes those bounds — the CSS says so at the rule. Edge arrows are `.dt-catnav`, shown on hover via `.dt-catbar-inner:hover .dt-catnav.is-active`.
+
+Its RTL handling is a **mirror** — the "more" arrow follows reading order, so it sits left in Arabic and right in English. `scrollLeft` **is negative in RTL** in modern browsers, so position is measured with `Math.abs()` and the step direction is signed off `dir`. Hover-scroll runs 4px every 20ms and sets `scrollBehavior = "auto"` for the duration, restoring `""` on mouseleave: with `smooth` left on, each tiny step starts its own overlapping transition and the motion stutters. The click-jump keeps `smooth`.
+
+**The watermark map (`.map-watermark`) is sized by height, not width.** The Saudi map SVG is taller than it is wide, so constraining width alone pushes its top and bottom outside the page frame — `height: 74vh; width: auto; max-width: 88%`. It is `position: fixed; inset: 0; z-index: 0; pointer-events: none`, with `.content` lifted to `z-index: 1`. Its 13 `deco-region` paths are copied verbatim from `app-user-type.html`. Per the `mobile.css` phone-column rule, **a fixed element with `inset: 0` ignores `margin: auto`** — this one is already in the cap list; don't add another without it.
+
 ### The factory page is modelled on LinkedIn (`web-factory.html`)
 
 Built to the owner's reference screenshots of a LinkedIn company page. Two mechanisms carry the design and both are easy to undo by accident.
@@ -388,7 +408,7 @@ An inline message button used to sit in the right-hand column; the owner had it 
 
 ### Product detail and the chat draft handoff
 
-`web-product.html?factory=<n>&p=<index>` reads `sf_factories` from `localStorage`. Reached from bestseller cards on `web-home.html` and product cards on `web-factory.html` — both previously opened the whole storefront, which the owner reported as wrong.
+`web-product.html?factory=<n>&p=<index>` reads `sf_factories` from `localStorage`. Reached from bestseller cards on `index.html` and product cards on `web-factory.html` — both previously opened the whole storefront, which the owner reported as wrong.
 
 Its three buttons all lead to chat, passing a prefilled message:
 
@@ -402,7 +422,7 @@ Its three buttons all lead to chat, passing a prefilled message:
 
 Same IIFE-over-`global` shape as `i18n.js`. Exports `SF_AUTH_READY` (a promise), `SF_USER`, `SF_PROFILE`, `sfSignOut`.
 
-- **Path-aware.** `LOGIN_PAGE` is gone; `currentPage()` / `isWebPath()` / `loginPage()` / `registerPage()` pick the destination from the current filename, used in three places (session expiry, `sfRequireLogin()`, sign-out). `index.html` has no prefix so it falls into the "not web-" branch — the app path, which is correct.
+- **Path-aware.** `LOGIN_PAGE` is gone; `currentPage()` / `isWebPath()` / `loginPage()` / `registerPage()` pick the destination from the current filename, used in three places (session expiry, `sfRequireLogin()`, sign-out). **`isWebPath()` special-cases `index.html` and `""`** — without that, the unprefixed landing page would fall into the "not `web-`" branch and send a desktop visitor whose session expired to `app-welcome.html`, i.e. the phone layout in a wide window.
 - It reads `account_type` **from `profiles`**, then writes it back to `sf_account_type` — a compatibility shim for un-migrated pages, not the source of truth.
 - **A network failure does not sign the user out** — the `.catch` returns `null` rather than redirecting.
 - **This is a UX guard, not data protection.** Disabling JavaScript opens the page — but it renders empty, because RLS refuses the data. Don't present the guard as the security boundary.
@@ -463,7 +483,7 @@ So a factory account **always** has a factory row from the moment it exists, inv
   |---|---|
   | `web-factory` | 8 — reads `factories`/`products`/`posts`, writes all three |
   | `web-login`, `web-supplier` | 3 each |
-  | `web-factories`, `web-home` | 1 each — **the 1000-card generators were deleted 2026-08-24** at the owner's request ("احذف جميع المصانع الوهمية"); both now read real rows and RLS does the filtering, so **don't add `eq("status","approved")`** — it would hide the owner's own pending factory from them |
+  | `web-factories`, `index` | 1 each — **the 1000-card generators were deleted 2026-08-24** at the owner's request ("احذف جميع المصانع الوهمية"); both now read real rows and RLS does the filtering, so **don't add `eq("status","approved")`** — it would hide the owner's own pending factory from them |
   | `web-admin` | 3 |
   | `app-admin`, `app-register` | 2 each |
   | `web-account`, `web-settings`, `web-profile`, `app-login`, `app-factory` | 1 each |
@@ -476,7 +496,9 @@ So a factory account **always** has a factory row from the moment it exists, inv
   **`app-factory` renders its content from `localStorage`**; its single call reads `owner_id` for the ownership check only.
 
 - **`web-factory.html` saves through a debounce, and products/posts are delete-then-insert.** `save()` writes `localStorage` immediately (so nothing is lost offline), then queues `pushToDb()` after 700ms; `beforeunload` flushes anything pending. Products and posts are replaced wholesale rather than diffed — fine at five products, and the reason a save is one round-trip per table, not per row.
-- **`web-product.html` renders from `localStorage`, and deliberately never refuses.** An earlier version bailed out with a "product not found" message when `sf_factories` held no entry for the requested index. That contradicted the card the user had just clicked: `web-home.html` generates bestseller cards for **all 1000 factory slots** regardless of stored data, so most cards point at empty slots. The page now always renders, showing what exists and hiding what doesn't, with the title falling back product name → factory name → `مصنع <n>`. **Don't reintroduce the guard.** (The `product_not_found` i18n key is now unused but stays — see the archive on not mass-deleting keys.)
+- **`web-product.html` renders from `localStorage`, and deliberately never refuses.** An earlier version bailed out with a "product not found" message when `sf_factories` held no entry for the requested index; that contradicted the card the user had just clicked. The page now always renders, showing what exists and hiding what doesn't, with the title falling back product name → factory name → `مصنع <n>`. **Don't reintroduce the guard.** (The `product_not_found` i18n key is now unused but stays — see the archive on not mass-deleting keys.)
+
+  The original reason was that `web-home.html` fabricated bestseller cards for all 1000 factory slots, so most pointed at empty ones. **That generator is gone** — `index.html` now reads up to `LIMIT = 24` real rows from `products`, filtered by RLS. The guard still shouldn't come back: the page is public and reachable by direct URL.
 - `region_id` is never written at signup (no region field), so the map cannot find a region's factories.
 - Images are base64 in `localStorage`; the storage buckets exist but nothing writes to them.
 - `posts` and `custom_prices` are schema-only — the factory feed and private-price-in-chat are the next UI work.
