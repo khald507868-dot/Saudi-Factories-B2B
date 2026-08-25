@@ -693,9 +693,11 @@
   }
 
   .map-watermark svg {
-    width: 78%;
-    max-width: 980px;
-    height: auto;
+    /* الحصر بالارتفاع لا بالعرض: الخريطة أطول منها عرضاً،
+       فتحديد العرض وحده يطلّع أعلاها وأسفلها خارج إطار الصفحة */
+    width: auto;
+    height: 74vh;
+    max-width: 88%;
     opacity: 0.06;
   }
 
