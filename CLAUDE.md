@@ -9,6 +9,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 > section **before** editing the thing it describes.
 > **`الصفحات.md`** — the page map, written in Arabic for the owner. Keep it in
 > sync when pages are added or renamed.
+> **`TODO-BEFORE-LAUNCH.md`** — the owner's launch checklist, in Arabic: what is
+> done, what is deferred, and *why*. Check it before proposing work — several
+> items on it are deliberately deferred, not forgotten. It is the owner's file;
+> tick a box when something genuinely ships, don't rewrite it.
 
 ## What this is
 
@@ -39,8 +43,9 @@ Shared by both paths: `home`, `factories`, `factory`, `messages`, `cart`, `accou
 
 ### What the split changes
 
+- **The in-page back button is gone from the web path** (owner request, 2026-08-24, scoped explicitly to "كل صفحات web فقط" — browser arrows only). One global `.back-btn { display: none !important; }` at the end of `desktop.css`'s main block does it. Four narrower `.back-btn` rules from before it still sit earlier in the file; they are redundant but harmless, and were left alone deliberately. **The markup is still in the DOM on every page, and the app path still shows its button** — don't delete the markup.
 - **The two paths never link to each other.** Verified zero cross-links in both directions, including links built inside JS strings (`'href="app-factory.html?id=' + i + '"'`) — those are easy to miss in a rename, and 11 such sites exist.
-- **A change to a shared component is a two-file edit.** The bottom nav lives in **10** files (home/account/factories/cart/messages × both paths); the desktop sidebar in **4** (`web-account`, `web-admin`, `web-profile`, `web-settings`).
+- **A change to a shared component is a multi-file edit.** The bottom nav lives in **10** files (home/account/factories/cart/messages × both paths); the desktop sidebar in **4** (`web-account`, `web-admin`, `web-profile`, `web-settings`) — and so does the `dash-myfactory` link *and its query*, in those same 4.
 - **`desktop.css` only reaches `web-` pages.** A rule added there cannot affect the app path. `mobile.css`, `i18n.js`, `auth-guard.js`, `supabase-config.js` are shared by both.
 - **Creating a new `app-` copy: deleting the `desktop.css` link is not enough.** The rule that *hides* desktop-only markup (`.dt-bar`, `.dt-catbar`, `.dt-actions`, `.page-logo`, `.dash-side`, `.dash-stats`) lives inside `desktop.css` itself — so dropping the link also drops the hiding, and that markup renders as black boxes. This shipped once on `app-home.html` and the owner caught it in a screenshot. Grep for those six class names first; if present, delete the markup **and its scripts**.
 - Some `app-` pages still carry a body archetype class (`chat-page`, `store-page`) from before the split. They are inert — no `desktop.css` reads them.
@@ -120,6 +125,8 @@ There **is** a git repository (branch `master`). The manual `.bak` convention is
 
 **Do not create `.bak` files — `git commit` before a bulk rewrite instead.** Unlike a `.bak`, a commit cannot be mistaken for a live page.
 
+**The established habit is a checkpoint commit named for what is about to happen** — `نقطة حفظ قبل حذف زر الرجوع من صفحات web`, `نقطة حفظ قبل ربط صفحة المصانع بقاعدة البيانات`. Written in Arabic, before the risky edit, describing the *next* step rather than the last one — which is what makes "ارجع قبل اخر تعديل" ("revert to before the last edit") a one-command answer. **Expect that request; it is a normal part of how the owner works**, and it means the previous *visual* state, not necessarily the previous commit.
+
 Two rules when the owner asks you to delete something:
 - **"Don't delete backups" is guidance for Claude, not a constraint on the owner.** Confirm which file, then delete it. Explaining instead of acting got "لماذا لم تحذفه من الملفات؟؟؟؟".
 - **`rm` via Bash is blocked by the permission classifier**; PowerShell `Remove-Item -Force -Confirm:$false` works. Bulk pipelines are refused — delete in explicit batches of ~10 named files.
@@ -196,7 +203,11 @@ Loaded **after** each page's `<style>`, holds only cross-cutting device concerns
 
 ### Desktop layer (`desktop.css`)
 
-**The whole file lives inside `@media (min-width: 1024px)`**, with one closing `@media (max-width: 1023px)` block that hides desktop-only elements. Nothing sits outside a media query, and that is the core invariant: below 1024px the phone design is untouched. **Never add a bare top-level rule here.**
+**The whole file lives inside `@media (min-width: 0px)`**, with one closing `@media (max-width: 0px)` block that hides desktop-only elements. Nothing sits outside a media query, and that is the core invariant. **Never add a bare top-level rule here.**
+
+**Those two breakpoints used to be `1024px` / `1023px`, and they were widened deliberately on 2026-08-24** — the owner asked for the phone layout to be gone from the web path entirely ("ما ابغا شكل جوال في صفحات web"), not just suppressed on large screens. `min-width: 0px` always matches, so the desktop layout now applies to `web-` pages at **every** width; `max-width: 0px` never matches, so the hide-block is inert.
+
+**The empty media wrappers are load-bearing and must not be "cleaned up".** They look redundant, but deleting either one shifts every rule inside it out one nesting level and changes what it applies to. The comment at the top of the file says exactly this. If the owner ever wants a responsive web path again, the fix is to restore the two numbers — not to unwrap the blocks.
 
 **A brace-balance check does not prove a rule landed in the right block.** A rule inserted between the two media blocks — after the first one's closing brace, before the second opens — balances perfectly and applies at **no** screen size at all. That happened here and cost a round. After inserting into this file, verify containment, not just balance:
 
@@ -219,8 +230,12 @@ EOF
 
 Carried by the **14 `web-` pages and nothing else**.
 
-- **Desktop-only markup is always in the DOM**, hidden below 1024px by that closing block. Adding a desktop-only element means **adding it to the hide list too**.
-- **Un-capping the phone column is the first thing the file does** — `body`'s `max-width`/`margin`/`box-shadow` are overridden with `!important`, `body::after` is killed, and `.bottom-nav` hidden.
+- **Desktop-only markup is always in the DOM.** The closing block used to hide it below 1024px; with the breakpoint now at `0px` that block never matches, so the hide list is currently inert on the web path. **Keep adding new desktop-only elements to it anyway** — it is what makes restoring a responsive web path a two-number change.
+- **Un-capping the phone column is the first thing the file does** — `body`'s `max-width`/`margin`/`box-shadow` are overridden with `!important` and `.bottom-nav` is hidden.
+- **`body::after` is no longer killed here — it is re-enabled and recolored.** The web path draws a **green page frame** (owner request: "ضع حدود خضراء على كامل الصفحه") via `display: block !important; max-width: none !important; border-color: #1c6b34;`. **Thickness is inherited from `mobile.css` (3px) on purpose** — a `border-width: 1px !important` was added once and the owner asked for it back out ("ارجع قبل اخر التعديل"). Don't re-add a width override without being asked.
+- **The animated wordmark (`.page-logo`) is on every web page**, sized `168px` / `19px` font, and joined to the `wmType`/`wmCaret` keyframe selectors *and* the `prefers-reduced-motion` block — miss the latter and the logo animates for users who asked it not to.
+  - **It sits at the visual *left* in Arabic**, which is the opposite of the sidebar. Grid archetypes use `justify-self: end` under **both** `dir`s; non-grid archetypes (`store`/`cart`/`chat`/`doc`/classless) use `display: flex` with `margin-inline-start: auto; margin-inline-end: 24px`.
+  - **`display: inline-flex` ignores `margin: auto`** — that single fact cost three failed attempts at this. It must be `display: flex`. Use the logical `margin-inline-*` properties, not `margin-left`/`right`: they flip with `dir` on their own, which is what keeps the logo mirroring correctly without a second `html[dir="ltr"]` rule.
 - **`html` carries the page tint, not just `body`.** `html { background: #f6f7f6 }` matches the shared `body` background. It was `#ffffff`, producing a white band below `messages.html`, and the owner asked twice to remove it. **The first fix targeted the wrong thing** — it read as a layout gap, so height rules went onto `body.chat-page`; the answer was "لم تتغير". **Telling them apart: a layout gap moves the content when fixed; an `html` background leaves content exactly where it is and only the color changes.**
 
 **Six page archetypes**, selected by a class on `<body>`:
@@ -262,6 +277,11 @@ Dependency-free IIFE loaded synchronously in `<head>` so `dir`/`lang` are set be
 
 **Read the generalisation, not just the fix: on a page whose script is one IIFE, "a button does nothing" usually means an exception earlier in the file, not a problem with the button.** Ask the owner for the F12 Console first — it names the real line in seconds. Guessing at CSS, z-index, or RTL cost a full session before the Console was consulted.
 
+**The same failure has a second, more alarming signature: a `web-` page suddenly rendering as the phone layout.** The desktop shape depends on page JS running to completion, so one SyntaxError anywhere in the IIFE collapses the whole layout — and it looks like a CSS regression. This was self-inflicted once: a Python patch wrote `
+` escapes as **literal newlines inside JS string literals**, producing an unterminated string. The owner's report was "لماذا ظهر واجهة التطبيق", and only their Console screenshot found it.
+
+**So: when injecting JS through a Python patch, verify no string literal gained a real newline.** And when a web page "goes mobile", check the Console before touching `desktop.css` — the CSS is very likely innocent.
+
 - **Declarative markup**: `data-i18n="key"` sets `textContent`; `data-i18n-placeholder="key"` sets the placeholder. Prefer these over setting text in page JS.
 - **Fallback chain**: `dict[lang][key] → dict.en[key] → dict.ar[key] → key`.
 - **RTL whitelist**: `RTL_LANGS = ["ar", "fa", "ur", "he"]`.
@@ -296,6 +316,9 @@ Project `yhofxryhlrrwzztfowpa`. Loaded as plain script tags:
 - **`make-admin.sql`** / **`check-admin.sql`** — grant and verify `is_admin`. `make-admin.sql` disables `profiles_guard` inside one transaction, because the guard silently reverts `is_admin` for anyone not already an admin — so editing the checkbox in Table Editor appears to work and does nothing. **Applied**; `khald507868@gmail.com` is admin.
 - **`cleanup-test-data.sql`** — deletes `%@example.com` accounts left from attack-testing, and resets any stray `approved` / `is_admin` rows.
 - **`add-posts-prices.sql`** — a **second applied migration**, not merged. Adds `posts` and `custom_prices` plus a `custom_price_id` column on `messages`. Already run and verified by attack. **Both tables are schema-only — no page reads them.** "Re-run `schema.sql`" does **not** restore them; a rebuild needs both files.
+- **One-off operational scripts from 2026-08-24**, all Arabic-commented with click-by-click steps for the owner: `approve-my-factory.sql` (approve the owner's factory), `check-guard.sql` (is `factories_guard` still enabled?), `check-admin-now.sql` (is this account really an admin?), `fix-my-factory.sql`, `cleanup-test-account.sql` (removes the `sec.test.factory@gmail.com` security-test account). **`cleanup-test-account.sql` has not been run yet** — that account's "Test Attacker" factory still appears in the factories list.
+- **Any script that writes a guarded column must disable the trigger inside a transaction.** `approve-my-factory.sql` and `make-admin.sql` both do this, and the reason is subtle: guards call `is_admin()`, which reads `auth.uid()` — and **in the SQL Editor there is no logged-in user, so `auth.uid()` is null and `is_admin()` returns false.** The guard then silently reverts the write and the editor reports success with no rows changed. **A plain `update ... set status='approved'` in the SQL Editor does nothing at all.** Always re-enable the trigger in the same transaction.
+- **Only the *last* statement's result is shown** in the Supabase SQL Editor — which is why the check scripts here contain exactly one `select`. Adding a second hides the first.
 - Postgres functions are dollar-quoted with **`$fn$`**, not bare `$$`, which collides with shell expansion.
 
 ### Which pages carry which scripts
@@ -441,11 +464,16 @@ So a factory account **always** has a factory row from the moment it exists, inv
   | `web-factory` | 8 — reads `factories`/`products`/`posts`, writes all three |
   | `web-login`, `web-supplier` | 3 each |
   | `web-factories`, `web-home` | 1 each — **the 1000-card generators were deleted 2026-08-24** at the owner's request ("احذف جميع المصانع الوهمية"); both now read real rows and RLS does the filtering, so **don't add `eq("status","approved")`** — it would hide the owner's own pending factory from them |
-  | `web-admin`, `app-admin`, `app-register` | 2 each |
-  | `app-login` | 1 |
+  | `web-admin` | 3 |
+  | `app-admin`, `app-register` | 2 each |
+  | `web-account`, `web-settings`, `web-profile`, `app-login`, `app-factory` | 1 each |
   | **everything else, both paths** | **0** |
 
-  Account, settings, cart, messages, profile, product make **zero**, and `app-factory` renders its content from `localStorage` — its single `sb.from("factories")` call reads `owner_id` for the permission check only. The factory grids, product cards, and bestsellers are generated placeholders. **Don't describe any of them as showing real data.**
+  `web-cart`, `web-messages`, `web-product`, `web-help` and the whole app path except `app-login`/`app-register`/`app-admin`/`app-factory` make **zero**. Cart, messaging, and product detail still render from `localStorage` — **don't describe them as showing real data.**
+
+  **The three dashboard pages' single call is the same 4-line query, duplicated.** `web-account`, `web-settings`, and `web-profile` each read `factories.id` by `owner_id` for one reason only: to build the "مصنعي" sidebar link, whose href needs a factory id the client cannot know. `web-admin` carries a fourth copy. It is duplicated rather than shared because this project has no shared page-JS file — the same reason `.dash-side` is duplicated per page. **Changing that link means a four-file edit**, and in `web-admin.html` the copy must stay **above** the `is_admin` gate that returns early, or it never runs for a non-admin factory owner.
+
+  **`app-factory` renders its content from `localStorage`**; its single call reads `owner_id` for the ownership check only.
 
 - **`web-factory.html` saves through a debounce, and products/posts are delete-then-insert.** `save()` writes `localStorage` immediately (so nothing is lost offline), then queues `pushToDb()` after 700ms; `beforeunload` flushes anything pending. Products and posts are replaced wholesale rather than diffed — fine at five products, and the reason a save is one round-trip per table, not per row.
 - **`web-product.html` renders from `localStorage`, and deliberately never refuses.** An earlier version bailed out with a "product not found" message when `sf_factories` held no entry for the requested index. That contradicted the card the user had just clicked: `web-home.html` generates bestseller cards for **all 1000 factory slots** regardless of stored data, so most cards point at empty slots. The page now always renders, showing what exists and hiding what doesn't, with the title falling back product name → factory name → `مصنع <n>`. **Don't reintroduce the guard.** (The `product_not_found` i18n key is now unused but stays — see the archive on not mass-deleting keys.)

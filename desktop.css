@@ -682,8 +682,10 @@
   }
 
   /* …لذا نُجبره على الطرف الأيسر فعلياً */
+  /* اليسار البصري في العربية، واليمين في الإنجليزية —
+     أي أنه يتبع نهاية السطر في الحالتين. */
   html[dir="rtl"] .page-logo { justify-self: end; }
-  html[dir="ltr"] .page-logo { justify-self: start; }
+  html[dir="ltr"] .page-logo { justify-self: end; }
 
   /* القائمة الجانبية */
   .dash-side {
@@ -995,6 +997,45 @@
   }
 
   .doc-page .page-logo { margin-bottom: 14px; }
+
+  /* ===== الشعار في بقية الصفحات =====
+     بطلب المالك: شعار متحرّك في كل صفحات الموقع.
+
+     القواعد أعلاه مكتوبة لـ account-page وهي شبكية (grid)،
+     فتعتمد grid-column و justify-self. وهذه الأنماط ليست
+     شبكية، فالخاصيتان لا تعملان فيها — نضبط الموضع
+     بـ margin وعرض محدّد بدلهما.
+
+     الموضع يتبع اللغة، ويطابق صفحات الحساب تماماً:
+     تلك تستخدم justify-self: end في RTL أي اليسار،
+     و start في LTR أي اليمين — وهذا ما يراه المالك
+     في الرئيسية أيضاً.
+
+     أخطأتُ مرتين قبل ضبطها: مرة ثبّتُه يساراً في
+     الاتجاهين، ومرة عكستُه فصار يميناً في العربية.
+
+     والحشوة 24px لا صفر: الشعار كان يلتصق بالحافة
+     فيُقصّ طرفه (ظهر B2 بدل B2B). */
+  /* الأنماط غير الشبكية: justify-self لا تعمل فيها،
+     فيُدفع الشعار بالهامش المنطقي إلى نهاية السطر.
+
+     margin-inline-start: auto هو الذي يدفعه — والبداية
+     في RTL هي اليمين، فدفعه عنها يستقرّ يساراً.
+     وفي LTR العكس تلقائياً دون قاعدة ثانية. */
+  .store-page .page-logo,
+  .cart-page .page-logo,
+  .chat-page .page-logo,
+  .doc-page .page-logo,
+  body:not([class]) .page-logo {
+    display: flex;
+    width: 168px;
+    margin-block: 18px 10px;
+    margin-inline-start: auto;
+    margin-inline-end: 24px;
+  }
+
+  /* صفحة المحادثة ارتفاعها محسوب، فالشعار يقتطع منه */
+  .chat-page .page-logo { margin-top: 12px; margin-bottom: 6px; }
 
   .doc-page .page-header {
     position: static !important;
