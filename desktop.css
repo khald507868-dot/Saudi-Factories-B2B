@@ -1035,7 +1035,10 @@
   .doc-page .page-logo,
   body:not([class]) .page-logo {
     display: flex;
-    width: 168px;
+    /* min-width لا width: العرض الثابت كان يقصّ آخر حرف من B2B.
+       ويبقى display: flex لا inline-flex: margin auto لا يعمل مع الثاني. */
+    min-width: 168px;
+    width: auto;
     margin-block: 18px 10px;
     margin-inline-start: auto;
     margin-inline-end: 24px;
