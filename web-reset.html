@@ -880,7 +880,7 @@
   <!-- شريط الشعار: يظهر على المتصفّح فقط (يخفيه mobile.css أدناه).
        الشعار وسط الصفحة وتحته خط يمتدّ بعرض النافذة كاملاً. -->
   <div class="auth-brandbar">
-    <a href="web-home.html" class="brand-seal" aria-label="المصانع السعودية">
+    <a href="index.html" class="brand-seal" aria-label="المصانع السعودية">
       <div class="wm-title"><span class="w-green">Saudi</span> <span class="w-dark">Factories</span> <span class="w-b2b">B2B</span></div>
       <div class="wm-rule"></div>
     </a>
@@ -1084,7 +1084,7 @@
           show("ok", "تم تغيير كلمة المرور. جارٍ تحويلك…");
           updateForm.hidden = true;
           setTimeout(function () {
-            window.location.href = "web-home.html";
+            window.location.href = "index.html";
           }, 1600);
         }).catch(function (err) {
           show("err", arabicError(err && err.message ? err.message : String(err)));

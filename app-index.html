@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<!-- نوع الصفحة: تطبيق فقط (جوال) | شاشة البداية
+     لا يوجد desktop.css — تعرض تصميم الجوال دائماً.
+
+     كان اسمه index.html حتى 2026-08-25، ثم أُعيدت تسميته:
+     الاسم index.html محجوز — الخوادم تعرضه تلقائياً عند
+     فتح عنوان الموقع، والمالك طلب أن تكون أول صفحة
+     للزائر هي صفحة المصانع (مسار web)، فأخذته تلك.
+
+     شاشة البداية هذه لم تعد مرتبطة من أي صفحة: هي مدخل
+     التطبيق المثبّت فقط (تُفتح مباشرة)، فلا تحذفها.
+     الدليل الكامل: الصفحات.md -->
+
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#04361b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta http-equiv="refresh" content="2;url=app-user-type.html">
+<title data-i18n="app_title">المصانع السعودية</title>
+<script src="i18n.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #04361b;
+    font-family: "Segoe UI", Tahoma, "Arial", sans-serif;
+  }
+
+  .wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 24px;
+    width: 100%;
+  }
+
+  /* ===== الشعار الكتابي: "مصانع السعودية" + الخط المتدرج + الوصف ===== */
+  .wordmark {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    max-width: 260px;
+  }
+
+  .wordmark .title {
+    font-size: 33px;
+    font-weight: 800;
+    line-height: 1.15;
+    letter-spacing: 0;
+    white-space: nowrap;
+    /* الاسم لاتيني دائماً، فيثبّت اتجاهه حتى لا ينعكس ترتيب الكلمتين في RTL */
+    direction: ltr;
+    animation: titleIn 0.7s ease-out both;
+    animation-delay: 0.2s;
+  }
+
+  /* "مصانع" باللون الأخضر الفاتح و"السعودية" بالأبيض */
+  .title .w-green { color: #45a06a; }
+  .title .w-dark { color: #ffffff; }
+
+  /* "B2B" ذهبي وبحجم أصغر لتمييزها عن الاسم */
+  .title .w-b2b {
+    color: #c9a227;
+    font-size: 0.52em;
+    vertical-align: 0.68em;
+  }
+
+  /* الخط المتدرج تحت الاسم */
+  .rule {
+    width: 100%;
+    height: 3px;
+    border-radius: 2px;
+    background: linear-gradient(to left, #1f6b42, #45a06a, #c9a227);
+    animation: ruleIn 0.7s ease-out both;
+    animation-delay: 0.45s;
+    transform-origin: right center;
+  }
+
+  @keyframes titleIn {
+    from { opacity: 0; transform: translateY(18px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes ruleIn {
+    from { opacity: 0; transform: scaleX(0); }
+    to { opacity: 1; transform: scaleX(1); }
+  }
+
+  html[dir="ltr"] .rule {
+    background: linear-gradient(to right, #1f6b42, #45a06a, #c9a227);
+    transform-origin: left center;
+  }
+
+  @media (max-width: 480px) {
+    .wordmark { max-width: 215px; }
+    .wordmark .title { font-size: 26px; }
+  }
+</style>
+<link rel="stylesheet" href="mobile.css">
+</head>
+<body class="dark-page">
+
+  <div class="wrap">
+
+    <!-- الشعار الكتابي: "مصانع" أخضر + "السعودية" أبيض، تحته خط متدرج -->
+    <div class="wordmark">
+      <h1 class="title"><span class="w-green">Saudi</span> <span class="w-dark">Factories</span> <span class="w-b2b">B2B</span></h1>
+      <div class="rule"></div>
+    </div>
+
+  </div>
+
+  <script>
+    setTimeout(function () {
+      window.location.href = "app-user-type.html";
+    }, 1500);
+  </script>
+
+</body>
+</html>

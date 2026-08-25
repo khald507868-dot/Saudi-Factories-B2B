@@ -854,7 +854,7 @@
   <!-- شريط الشعار: يظهر على المتصفّح فقط (يخفيه mobile.css أدناه).
        الشعار وسط الصفحة وتحته خط يمتدّ بعرض النافذة كاملاً. -->
   <div class="auth-brandbar">
-    <a href="web-home.html" class="brand-seal" aria-label="المصانع السعودية">
+    <a href="index.html" class="brand-seal" aria-label="المصانع السعودية">
       <div class="wm-title"><span class="w-green">Saudi</span> <span class="w-dark">Factories</span> <span class="w-b2b">B2B</span></div>
       <div class="wm-rule"></div>
     </a>
@@ -862,7 +862,7 @@
 
   <header class="page-header">
     <h1 data-i18n="splash_login_btn">تسجيل دخول</h1>
-    <a href="web-home.html" class="back-btn" aria-label="رجوع">
+    <a href="index.html" class="back-btn" aria-label="رجوع">
       <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"></path></svg>
     </a>
   </header>
@@ -1236,7 +1236,7 @@
               /* الدخول نجح فعلاً، فالوجهة الرئيسية في الحالتين.
                  وفصل البوّابتين تنظيمي لا أمني: النوع الحقيقي
                  يأتي من الخادم أعلاه، وRLS هي الحماية. */
-              window.location.href = "web-home.html";
+              window.location.href = "index.html";
             });
         }).catch(function (err) {
           showError(arabicError(err && err.message ? err.message : String(err)));
@@ -1479,7 +1479,7 @@
           /* الحساب أُنشئ — يُكمَّل الملف الشخصي وبيانات المصنع */
           var uid = res.data.user ? res.data.user.id : null;
           if (!uid) {
-            window.location.href = "web-home.html";
+            window.location.href = "index.html";
             return;
           }
 
@@ -1509,7 +1509,7 @@
               }).eq("owner_id", uid);
             })
             .then(function () {
-              window.location.href = "web-home.html";
+              window.location.href = "index.html";
             });
         }).catch(function (err) {
           showError(arabicError(err && err.message ? err.message : String(err)));
