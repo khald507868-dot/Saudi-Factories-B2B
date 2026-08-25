@@ -84,7 +84,10 @@
 
   /* الشعار داخل الشريط الواسع */
   .top-bar-logo {
-    width: 168px !important;
+    /* min-width لا width: العرض الثابت كان يقصّ آخر حرف من B2B
+       لأن النص بحجم 19px أعرض من 168px */
+    min-width: 168px !important;
+    width: auto !important;
     flex-shrink: 0;
   }
 

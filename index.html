@@ -91,14 +91,16 @@
     align-items: center;
     gap: 2px;
     flex-shrink: 0;
-    /* عرض يكفي "Saudi Factories B2B" اللاتيني دون قصّ */
-    width: 108px;
+    /* min-width لا width: العرض الثابت يقصّ آخر حرف من B2B */
+    min-width: 108px;
   }
 
   .top-bar-logo .wm-title {
     font-size: 11px;
     font-weight: 800;
-    line-height: 1.1;
+    /* 1.55 لا 1.1: B2B مرفوعة بـ vertical-align فوق السطر،
+       وارتفاع السطر الضيّق كان يقصّ أعلاها */
+    line-height: 1.55;
     white-space: nowrap;
     /* الاسم لاتيني دائماً، فيثبّت اتجاهه حتى لا ينعكس ترتيب الكلمتين في RTL */
     direction: ltr;
