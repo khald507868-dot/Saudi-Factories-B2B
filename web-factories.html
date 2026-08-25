@@ -302,6 +302,15 @@
 
       function render(rows) {
         if (!rows.length) {
+          /* الرسالة العامة تُقرأ كأن الموقع فارغ، والأدقّ أن هذا
+             القطاع وحده فارغ — مع رابط يعود لكل المصانع. */
+          if (wantedCat) {
+            grid.innerHTML =
+              '<p class="grid-state">' + escapeHTML(t("fx_empty", "لا توجد مصانع بعد")) + '<br>' +
+              '<a href="web-factories.html" style="color:#1f6b42;font-weight:700">' +
+              escapeHTML(t("nav_factories", "المصانع")) + '</a></p>';
+            return;
+          }
           showState(t("fx_empty", "لا توجد مصانع بعد"));
           return;
         }
@@ -337,10 +346,36 @@
          كأننا زائر، فيختفي مصنع المالك قيد المراجعة. */
       var ready = window.SF_AUTH_READY || Promise.resolve(null);
 
+      /* فلترة القطاع: ?cat=<الاسم الإنجليزي للفئة>
+         وهو نفس ما يخزّنه حقل القطاع في صفحة المصنع (عمود industry)،
+         فيبقى ثابتاً مهما تغيّرت لغة الواجهة. */
+      var wantedCat = "";
+      try {
+        wantedCat = new URLSearchParams(location.search).get("cat") || "";
+      } catch (e) { wantedCat = ""; }
+
+      /* عنوان الصفحة يذكر القطاع المختار باسمه المترجم */
+      if (wantedCat) {
+        var h1 = document.querySelector(".page-header h1");
+        var cats = (window.I18N && I18N.categories) || [];
+        for (var ci = 0; ci < cats.length; ci++) {
+          if (cats[ci].en === wantedCat) {
+            if (h1) {
+              h1.textContent = I18N.categoryName(cats[ci]);
+              /* يُزال data-i18n وإلا أعاد applyTranslations العنوان العام */
+              h1.removeAttribute("data-i18n");
+            }
+            break;
+          }
+        }
+      }
+
       ready.then(function () {
-        return sb.from("factories")
+        var q = sb.from("factories")
           .select("id, name, cover, logo")
           .order("created_at", { ascending: false });
+        if (wantedCat) q = q.eq("industry", wantedCat);
+        return q;
       }).then(function (res) {
         if (!res || res.error) {
           showState(t("fx_failed", "تعذّر تحميل المصانع"));

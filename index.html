@@ -1406,7 +1406,7 @@
       if (listEl) {
         listEl.innerHTML = cats.map(function (cat, i) {
           return '<li data-i="' + i + '"' + (i === 0 ? ' class="active"' : "") + '>' +
-                 '<a href="web-factories.html?cat=' + encodeURIComponent(cat) + '">' +
+                 '<a href="web-factories.html?cat=' + encodeURIComponent(cat.en || "") + '">' +
                  I18N.categoryName(cat) + "</a></li>";
         }).join("");
       }
@@ -1421,7 +1421,7 @@
       function showPreview(i) {
         if (!prev || !cats[i]) return;
         var name = I18N.categoryName(cats[i]);
-        var link = "web-factories.html?cat=" + encodeURIComponent(cats[i]);
+        var link = "web-factories.html?cat=" + encodeURIComponent(cats[i].en || "");
         var items = "";
         /* ثماني بطاقات نائبة حتى تُربط الصفحة بقاعدة البيانات */
         for (var k = 0; k < 8; k++) {
@@ -1525,7 +1525,7 @@
       if (bar) {
         var html = "";
         cats.forEach(function (cat) {
-          html += '<a href="web-factories.html?cat=' + encodeURIComponent(cat) + '">' +
+          html += '<a href="web-factories.html?cat=' + encodeURIComponent(cat.en || "") + '">' +
                   I18N.categoryName(cat) + "</a>";
         });
         bar.innerHTML = html;
