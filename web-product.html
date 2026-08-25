@@ -421,6 +421,31 @@
           '<a class="act-btn outline" href="' + escapeHTML(chatURL("")) + '">' +
             escapeHTML(I18N.t("product_start_chat")) + '</a>' +
         '</div>';
+
+      /* ===== بوابة الحساب على أزرار المراسلة =====
+         الصفحة عامة (SF_PUBLIC_PAGE): يتصفّحها الزائر دون حساب
+         كما في علي بابا — لكنّ المراسلة تحتاج حساباً.
+
+         مستمع واحد مفوّض على .actions لا ثلاثة على كلّ زرّ:
+         يغطّي الأزرار الثلاثة وأيّ زرّ يُضاف لاحقاً.
+
+         SF_AUTH_READY لا يُنتظر هنا: المستمع يُسجّل فوراً
+         ولا يُقرأ SF_USER إلا لحظة الضغط — وقد انتهت الجلسة
+         من زمن. ولو انتظرنا لبقيت الأزرار بلا حماية لحظات. */
+      var actions = wrap.querySelector(".actions");
+      if (actions) {
+        actions.addEventListener("click", function (ev) {
+          var link = ev.target.closest ? ev.target.closest("a.act-btn") : null;
+          if (!link) return;
+          if (typeof sfRequireLogin !== "function") return;
+
+          /* نمرّر وجهة الزرّ نفسه لا الصفحة الحالية،
+             ليعود بعد التسجيل إلى المحادثة ومعها نصّها
+             الجاهز بدل أن يعود إلى صفحة المنتج فيضغط من جديد. */
+          var dest = link.getAttribute("href") || "";
+          if (!sfRequireLogin(dest)) ev.preventDefault();
+        });
+      }
     })();
   </script>
 
