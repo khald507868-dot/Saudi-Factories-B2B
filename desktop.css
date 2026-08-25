@@ -678,8 +678,10 @@
     display: inline-flex;
     flex-direction: column;
     gap: 3px;
-    /* نفس مقاس شعار الرئيسية (.top-bar-logo) بطلب المالك */
-    width: 168px;
+    /* نفس مقاس شعار الرئيسية (.top-bar-logo) بطلب المالك.
+       min-width لا width: العرض الثابت كان يقصّ آخر حرف من B2B */
+    min-width: 168px;
+    width: auto;
     margin: 0 0 4px;
     text-decoration: none;
   }
@@ -963,7 +965,9 @@
   .page-logo .wm-title {
     font-size: 19px;
     font-weight: 800;
-    line-height: 1.1;
+    /* 1.55 لا 1.1: B2B مرفوعة بـ vertical-align فوق السطر،
+       وارتفاع السطر الضيّق كان يقصّ أعلاها */
+    line-height: 1.55;
     white-space: nowrap;
     direction: ltr;   /* الاسم لاتيني: يمنع انعكاس ترتيب الكلمات في RTL */
     text-align: center;

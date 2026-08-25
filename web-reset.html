@@ -782,7 +782,9 @@
   .auth-brandbar .wm-title {
     font-size: 30px;
     font-weight: 800;
-    line-height: 1.15;
+    /* 1.6 لا 1.15: B2B مرفوعة بـ vertical-align فوق السطر،
+       وارتفاع السطر الضيّق كان يقصّ أعلاها */
+    line-height: 1.6;
     white-space: nowrap;
     /* الاسم لاتيني دائماً، فيثبّت اتجاهه حتى لا ينعكس ترتيب الكلمتين في RTL */
     direction: ltr;
