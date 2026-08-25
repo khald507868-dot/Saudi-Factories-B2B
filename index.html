@@ -1472,23 +1472,33 @@
           backEl.classList.toggle("is-active", !atStart && max > 0);
         }
 
-        /* اتجاه الخطوة: موجبة تمضي للأمام في الاتجاهين معاً */
-        function step(el, forward) {
+        /* اتجاه الخطوة: موجبة تمضي للأمام في الاتجاهين معاً.
+           المسافة وسيط: قفزة الضغط واسعة، وخطوة التمرير
+           التلقائي صغيرة ومتكرّرة لتكون الحركة ناعمة بطيئة. */
+        function step(el, forward, dist) {
           var rtl = document.documentElement.getAttribute("dir") === "rtl";
           var sign = rtl ? -1 : 1;
-          box.scrollLeft += sign * (forward ? 240 : -240);
+          var d = dist || 240;
+          box.scrollLeft += sign * (forward ? d : -d);
         }
 
         function hold(el, forward) {
           var timer = null;
           el.addEventListener("mouseenter", function () {
             if (timer) return;
-            timer = setInterval(function () { step(el, forward); }, 90);
+            /* smooth يُلغى أثناء الوقوف: كل خطوة صغيرة تبدأ
+               حركة انتقالية فتتداخل مع التي قبلها وتتقطّع */
+            box.style.scrollBehavior = "auto";
+            /* ٤ بكسل كل ٢٠ms: أبطأ بكثير ممّا كان (٢٤٠ كل ٩٠ms) */
+            timer = setInterval(function () { step(el, forward, 4); }, 20);
           });
           function stop() {
             if (timer) { clearInterval(timer); timer = null; }
           }
-          el.addEventListener("mouseleave", stop);
+          el.addEventListener("mouseleave", function () {
+            stop();
+            box.style.scrollBehavior = "";
+          });
           el.addEventListener("click", function () { step(el, forward); });
           box.addEventListener("scroll", sync);
           return stop;
