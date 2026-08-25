@@ -287,11 +287,86 @@
        الروابط الزائدة تُخفى بدل تمريرها. */
     overflow: visible;
     flex-wrap: nowrap;
+    /* مرجع تموضع سهمي التمرير */
+    position: relative;
   }
 
-  /* الروابط التي لا يتسع لها الشريط تُخفى — الفئات كلها
-     متاحة داخل لوحة ☰ على أي حال */
+  /* ===== غلاف الروابط القابل للتمرير =====
+     الفئات أربعون ولا يتسع الشريط إلا لبعضها، فتُمرّر أفقياً.
+     التمرير على هذا الغلاف وحده لا على .dt-catbar-inner: وضعه
+     على الحاوية يقصّ لوحة زر ☰ المنسدلة لأنها تخرج عن حدوده. */
+  .dt-catscroll {
+    display: flex;
+    align-items: center;
+    gap: 22px;
+    flex: 1;
+    min-width: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-behavior: smooth;
+    /* الحاوية row-reverse، والغلاف يرث اتجاه الصفحة
+       فتبدأ الفئات من اليمين في العربية ومن اليسار في الإنجليزية */
+    flex-direction: row;
+    /* شريط التمرير مخفيٌ: التمرير بالمؤشر والعجلة */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .dt-catscroll::-webkit-scrollbar { display: none; }
+
+  .dt-catscroll > a { flex-shrink: 0; }
+
+  /* زر ☰ يبقى ثابتاً ولا يُمرّر مع الروابط */
   .dt-catbar-inner > a { flex-shrink: 0; }
+
+  /* ===== أسهم التمرير عند الحافتين =====
+     تظهر عند مرور المؤشر على الشريط، وتختفي عند بلوغ الطرف. */
+  .dt-catnav {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 46px;
+    border: 0;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.18s ease;
+    z-index: 3;
+  }
+
+  .dt-catbar-inner:hover .dt-catnav.is-active {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .dt-catnav svg {
+    width: 20px;
+    height: 20px;
+    stroke: #04361b;
+    stroke-width: 2.2;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  /* تدرّج أبيض يذوّب الروابط تحت السهم بدل قطعها فجأة */
+  .dt-catnav.left {
+    left: 0;
+    background: linear-gradient(to right, #ffffff 58%, rgba(255,255,255,0));
+    justify-content: flex-start;
+    padding-inline-start: 8px;
+  }
+
+  .dt-catnav.right {
+    right: 0;
+    background: linear-gradient(to left, #ffffff 58%, rgba(255,255,255,0));
+    justify-content: flex-end;
+    padding-inline-end: 8px;
+  }
 
   html[dir="ltr"] .dt-catbar-inner { flex-direction: row; }
 

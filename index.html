@@ -801,6 +801,20 @@
             <div class="dt-catpreview" id="dt-catpreview"></div>
           </div>
         </div>
+
+        <!-- الروابط داخل غلاف قابل للتمرير وحدها:
+             وضع overflow على .dt-catbar-inner يقصّ لوحة زر ☰ المنسدلة،
+             فالزر يبقى خارج الغلاف والروابط وحدها تُمرّر. -->
+        <div class="dt-catscroll" id="dt-catscroll"></div>
+
+        <!-- سهما التمرير: يظهران عند مرور المؤشر على الشريط،
+             والتمرير يبدأ بمجرد وقوف المؤشر عليهما دون ضغط -->
+        <button type="button" class="dt-catnav left" id="dt-catnav-left" aria-label="المزيد من الفئات">
+          <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"></polyline></svg>
+        </button>
+        <button type="button" class="dt-catnav right" id="dt-catnav-right" aria-label="المزيد من الفئات">
+          <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"></polyline></svg>
+        </button>
       </div>
     </div>
   </header>
@@ -1432,14 +1446,80 @@
       }
 
       /* روابط الفئات المسطّحة بعد زر ☰ في نفس الشريط */
-      var bar = document.getElementById("dt-catbar-inner");
+      /* تمرير شريط الفئات: وقوف المؤشر على أحد الطرفين
+         يُمرّر تلقائياً، والضغط يقفز قفزة واحدة، والعجلة تعمل أيضاً. */
+      function setupCatScroll(box) {
+        var L = document.getElementById("dt-catnav-left");
+        var R = document.getElementById("dt-catnav-right");
+        if (!L || !R) return;
+
+        /* في RTL تكون scrollLeft سالبة في المتصفّحات الحديثة،
+           فنقيس بالقيمة المطلقة ليعمل المنطق في الاتجاهين. */
+        function maxScroll() { return box.scrollWidth - box.clientWidth; }
+
+        function sync() {
+          var pos = Math.abs(box.scrollLeft);
+          var max = maxScroll();
+          var atStart = pos <= 1;
+          var atEnd = pos >= max - 1;
+          var rtl = document.documentElement.getAttribute("dir") === "rtl";
+
+          /* السهم الذي يمضي إلى المزيد يقع يساراً في العربية
+             ويميناً في الإنجليزية — مرآة تتبع اتجاه القراءة. */
+          var moreEl = rtl ? L : R;
+          var backEl = rtl ? R : L;
+          moreEl.classList.toggle("is-active", !atEnd && max > 0);
+          backEl.classList.toggle("is-active", !atStart && max > 0);
+        }
+
+        /* اتجاه الخطوة: موجبة تمضي للأمام في الاتجاهين معاً */
+        function step(el, forward) {
+          var rtl = document.documentElement.getAttribute("dir") === "rtl";
+          var sign = rtl ? -1 : 1;
+          box.scrollLeft += sign * (forward ? 240 : -240);
+        }
+
+        function hold(el, forward) {
+          var timer = null;
+          el.addEventListener("mouseenter", function () {
+            if (timer) return;
+            timer = setInterval(function () { step(el, forward); }, 90);
+          });
+          function stop() {
+            if (timer) { clearInterval(timer); timer = null; }
+          }
+          el.addEventListener("mouseleave", stop);
+          el.addEventListener("click", function () { step(el, forward); });
+          box.addEventListener("scroll", sync);
+          return stop;
+        }
+
+        var rtlNow = document.documentElement.getAttribute("dir") === "rtl";
+        hold(rtlNow ? L : R, true);
+        hold(rtlNow ? R : L, false);
+
+        /* عجلة الفأرة الرأسية تُحوّل إلى تمرير أفقي */
+        box.addEventListener("wheel", function (e) {
+          if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
+          e.preventDefault();
+          box.scrollLeft += (document.documentElement.getAttribute("dir") === "rtl" ? -1 : 1) * e.deltaY;
+        }, { passive: false });
+
+        window.addEventListener("resize", sync);
+        sync();
+      }
+
+      /* الفئات كلها لا أول ثمانٍ: الشريط يُمرّر أفقياً
+         فيظهر الباقي عند التمرير إلى آخر اليسار. */
+      var bar = document.getElementById("dt-catscroll");
       if (bar) {
         var html = "";
-        cats.slice(0, 8).forEach(function (cat) {
+        cats.forEach(function (cat) {
           html += '<a href="web-factories.html?cat=' + encodeURIComponent(cat) + '">' +
                   I18N.categoryName(cat) + "</a>";
         });
-        bar.insertAdjacentHTML("beforeend", html);
+        bar.innerHTML = html;
+        setupCatScroll(bar);
       }
     }
 
