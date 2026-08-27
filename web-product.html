@@ -27,6 +27,7 @@
 <script src="supabase-config.js"></script>
 <script>var SF_PUBLIC_PAGE = true;</script>
 <script src="auth-guard.js"></script>
+<script src="commerce-service.js"></script>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -295,6 +296,7 @@
 
       var params    = new URLSearchParams(window.location.search);
       var factoryId = params.get("factory") || "0";
+      var productId = params.get("product") || params.get("product_id") || "";
       var prodIndex = parseInt(params.get("p") || "0", 10);
       if (isNaN(prodIndex) || prodIndex < 0) prodIndex = 0;
 
@@ -335,6 +337,7 @@
       var factory = factories[factoryId] || {};
       var products = factory.products || [];
       var product = products[prodIndex] || {};
+      if (productId && product.id && String(product.id) !== String(productId)) product = {};
 
       /* بطاقة الرئيسية تعرض أول منتج للمصنع، فإن كان المصنع
          بلا منتجات بعد فالبطاقة تحمل غلافه واسمه — وهو ما
@@ -414,6 +417,8 @@
         '</div>' +
 
         '<div class="actions">' +
+          (product.id ? '<button type="button" class="act-btn primary add-cart-btn" data-product-id="' +
+            escapeHTML(product.id) + '">' + escapeHTML(I18N.t("product_add_to_cart")) + '</button>' : '') +
           '<a class="act-btn primary" href="' + escapeHTML(chatURL(inquiryDraft)) + '">' +
             escapeHTML(I18N.t("product_send_inquiry")) + '</a>' +
           '<a class="act-btn outline" href="' + escapeHTML(chatURL(quoteDraft)) + '">' +
@@ -421,6 +426,66 @@
           '<a class="act-btn outline" href="' + escapeHTML(chatURL("")) + '">' +
             escapeHTML(I18N.t("product_start_chat")) + '</a>' +
         '</div>';
+
+      function bindCartButton() {
+        var cartButton = wrap.querySelector(".add-cart-btn");
+        if (!cartButton) return;
+        cartButton.addEventListener("click", function () {
+          if (typeof sfRequireLogin === "function" && !sfRequireLogin("web-cart.html")) return;
+          if (!window.SFCommerce || !product.id) return;
+          cartButton.disabled = true;
+          SFCommerce.addToCart(product.id, 1).then(function () {
+            cartButton.textContent = I18N.t("product_added_to_cart");
+            setTimeout(function () { window.location.href = "web-cart.html"; }, 350);
+          }).catch(function (err) {
+            cartButton.disabled = false;
+            cartButton.textContent = err && err.message ? err.message : I18N.t("fx_failed");
+          });
+        });
+      }
+      bindCartButton();
+
+      function applyLiveProduct(row) {
+        if (!row) return;
+        product = row;
+        factory = row.factories || factory;
+        var liveImage = row.image || (row.images && row.images[0]) || factory.cover || "";
+        var hero = wrap.querySelector(".product-hero");
+        if (hero) hero.innerHTML = liveImage ? '<img alt="" src="' + escapeHTML(liveImage) + '">' : imageIcon;
+        var title = wrap.querySelector(".prod-name");
+        if (title) title.textContent = row.name || factory.name || factoryName;
+        var priceEl = wrap.querySelector(".prod-price");
+        if (priceEl) {
+          priceEl.className = row.price ? "prod-price" : "prod-price on-request";
+          priceEl.innerHTML = row.price
+            ? escapeHTML(row.price) + ' <span class="currency">' + escapeHTML(I18N.t("currency_sar")) + '</span>'
+            : escapeHTML(I18N.t("product_price_on_request"));
+        }
+        if (!wrap.querySelector(".add-cart-btn")) {
+          var actionBox = wrap.querySelector(".actions");
+          if (actionBox) {
+            var btn = document.createElement("button");
+            btn.type = "button";
+            btn.className = "act-btn primary add-cart-btn";
+            btn.setAttribute("data-product-id", row.id);
+            btn.textContent = I18N.t("product_add_to_cart");
+            actionBox.insertBefore(btn, actionBox.firstChild);
+            bindCartButton();
+          }
+        }
+      }
+
+      if (window.sb) {
+        (window.SF_AUTH_READY || Promise.resolve()).then(function () {
+          var query = sb.from("products").select("id, factory_id, name, price, image, images, factories(id, name, cover, logo, status)");
+          if (productId) query = query.eq("id", productId);
+          else query = query.eq("factory_id", factoryId).order("sort_order").range(prodIndex, prodIndex);
+          return query.maybeSingle();
+        }).then(function (res) {
+          if (!res || res.error || !res.data) return;
+          applyLiveProduct(res.data);
+        }).catch(function () {});
+      }
 
       /* ===== بوابة الحساب على أزرار المراسلة =====
          الصفحة عامة (SF_PUBLIC_PAGE): يتصفّحها الزائر دون حساب

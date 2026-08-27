@@ -1351,7 +1351,7 @@
           var reorder = (fid % 61) + 12;
 
           html +=
-            '<a class="product-card" href="web-product.html?factory=' + encodeURIComponent(fid) + '&p=0">' +
+            '<a class="product-card" href="web-product.html?factory=' + encodeURIComponent(fid) + '&p=0&product=' + encodeURIComponent(row.id) + '">' +
               '<div class="product-image">' +
                 (image ? '<img alt="" src="' + escapeHTML(image) + '">' : imageIcon) +
               '</div>' +
