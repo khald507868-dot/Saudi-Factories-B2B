@@ -982,7 +982,7 @@
       I18N.categories.forEach(cat => {
         const li = document.createElement('li');
         const a = document.createElement('a');
-        a.href = 'web-factories.html?category=' + encodeURIComponent(cat.ar);
+        a.href = 'web-factories.html?cat=' + encodeURIComponent(cat.en || '');
         a.textContent = I18N.categoryName(cat);
         li.appendChild(a);
         drawerList.appendChild(li);
