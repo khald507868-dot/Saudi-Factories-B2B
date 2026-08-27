@@ -465,3 +465,767 @@ on conflict (id) do nothing;
 -- ============================================================
 --  انتهى
 -- ============================================================
+
+
+-- ============================================================
+-- 10) الترحيلات الموحدة للباك إند
+-- ============================================================
+-- ============================================================
+-- Backend foundation — Saudi Factories B2B
+-- Unifies the previously scattered schema additions and prepares
+-- atomic factory saving, Storage, messaging, carts, and orders.
+-- Safe to run repeatedly on the existing Supabase project.
+-- ============================================================
+
+create extension if not exists pgcrypto;
+
+-- ---------- Existing content tables: canonical media + stable IDs ----------
+alter table public.products
+  add column if not exists images text[] not null default '{}',
+  add column if not exists client_key uuid not null default gen_random_uuid(),
+  add column if not exists updated_at timestamptz not null default now();
+
+create unique index if not exists products_client_key_uidx
+  on public.products(client_key);
+
+update public.products
+   set images = array[image]
+ where coalesce(image, '') <> ''
+   and cardinality(images) = 0;
+
+alter table public.products drop constraint if exists products_images_max;
+alter table public.products
+  add constraint products_images_max check (cardinality(images) <= 5);
+
+create table if not exists public.posts (
+  id          bigint generated always as identity primary key,
+  factory_id  bigint not null references public.factories(id) on delete cascade,
+  client_key  uuid not null default gen_random_uuid(),
+  body        text not null default '',
+  image       text not null default '',
+  video       text not null default '',
+  created_at  timestamptz not null default now(),
+  updated_at  timestamptz not null default now()
+);
+
+alter table public.posts
+  add column if not exists client_key uuid not null default gen_random_uuid(),
+  add column if not exists video text not null default '',
+  add column if not exists updated_at timestamptz not null default now();
+
+create unique index if not exists posts_client_key_uidx on public.posts(client_key);
+create index if not exists posts_created_idx on public.posts(created_at desc);
+create index if not exists posts_factory_idx on public.posts(factory_id, created_at desc);
+
+create table if not exists public.custom_prices (
+  id            bigint generated always as identity primary key,
+  factory_id    bigint not null references public.factories(id) on delete cascade,
+  product_id    bigint not null references public.products(id) on delete cascade,
+  customer_id   uuid not null references public.profiles(id) on delete cascade,
+  price         numeric(12, 2) not null check (price >= 0),
+  note          text not null default '',
+  created_at    timestamptz not null default now(),
+  updated_at    timestamptz not null default now(),
+  unique (product_id, customer_id)
+);
+
+alter table public.custom_prices
+  add column if not exists updated_at timestamptz not null default now();
+
+create index if not exists custom_prices_customer_idx on public.custom_prices(customer_id);
+create index if not exists custom_prices_factory_idx on public.custom_prices(factory_id);
+
+alter table public.messages
+  add column if not exists custom_price_id bigint references public.custom_prices(id) on delete set null,
+  add column if not exists client_key uuid not null default gen_random_uuid(),
+  add column if not exists read_at timestamptz,
+  add column if not exists updated_at timestamptz not null default now();
+
+create unique index if not exists messages_client_key_uidx on public.messages(client_key);
+
+-- ---------- Shopping cart ----------
+create table if not exists public.carts (
+  id          bigint generated always as identity primary key,
+  owner_id    uuid not null unique references public.profiles(id) on delete cascade,
+  created_at  timestamptz not null default now(),
+  updated_at  timestamptz not null default now()
+);
+
+create table if not exists public.cart_items (
+  id          bigint generated always as identity primary key,
+  cart_id     bigint not null references public.carts(id) on delete cascade,
+  product_id  bigint not null references public.products(id) on delete cascade,
+  quantity    numeric(12, 3) not null default 1 check (quantity > 0),
+  created_at  timestamptz not null default now(),
+  updated_at  timestamptz not null default now(),
+  unique (cart_id, product_id)
+);
+
+create index if not exists cart_items_cart_idx on public.cart_items(cart_id);
+
+-- ---------- Orders and provider-neutral payment attempts ----------
+create table if not exists public.orders (
+  id                 uuid primary key default gen_random_uuid(),
+  buyer_id           uuid not null references public.profiles(id) on delete restrict,
+  factory_id         bigint not null references public.factories(id) on delete restrict,
+  status             text not null default 'pending'
+                       check (status in (
+                         'pending', 'awaiting_payment', 'paid', 'processing',
+                         'shipped', 'completed', 'cancelled', 'payment_failed'
+                       )),
+  currency           text not null default 'SAR' check (currency = 'SAR'),
+  subtotal           numeric(14, 2) not null default 0 check (subtotal >= 0),
+  total              numeric(14, 2) not null default 0 check (total >= 0),
+  payment_provider   text not null default '',
+  payment_reference  text not null default '',
+  idempotency_key    uuid not null default gen_random_uuid(),
+  created_at         timestamptz not null default now(),
+  updated_at         timestamptz not null default now(),
+  unique (buyer_id, idempotency_key)
+);
+
+create index if not exists orders_buyer_idx on public.orders(buyer_id, created_at desc);
+create index if not exists orders_factory_idx on public.orders(factory_id, created_at desc);
+create index if not exists orders_status_idx on public.orders(status);
+
+create table if not exists public.order_items (
+  id            bigint generated always as identity primary key,
+  order_id      uuid not null references public.orders(id) on delete cascade,
+  product_id    bigint references public.products(id) on delete set null,
+  product_name  text not null,
+  unit_price    numeric(14, 2) not null check (unit_price >= 0),
+  quantity      numeric(12, 3) not null check (quantity > 0),
+  line_total    numeric(14, 2) not null check (line_total >= 0),
+  created_at    timestamptz not null default now()
+);
+
+create index if not exists order_items_order_idx on public.order_items(order_id);
+
+create table if not exists public.payment_attempts (
+  id                   bigint generated always as identity primary key,
+  order_id             uuid not null references public.orders(id) on delete cascade,
+  provider             text not null,
+  provider_payment_id  text not null default '',
+  status               text not null default 'created'
+                         check (status in ('created', 'pending', 'paid', 'failed', 'cancelled', 'refunded')),
+  amount               numeric(14, 2) not null check (amount >= 0),
+  currency             text not null default 'SAR' check (currency = 'SAR'),
+  raw_response         jsonb not null default '{}'::jsonb,
+  created_at           timestamptz not null default now(),
+  updated_at           timestamptz not null default now()
+);
+
+create unique index if not exists payment_attempts_provider_id_uidx
+  on public.payment_attempts(provider, provider_payment_id)
+  where provider_payment_id <> '';
+create index if not exists payment_attempts_order_idx on public.payment_attempts(order_id, created_at desc);
+
+-- ---------- Shared updated_at trigger ----------
+create or replace function public.touch_updated_at()
+returns trigger
+language plpgsql
+set search_path = public
+as $fn$
+begin
+  new.updated_at := now();
+  return new;
+end;
+$fn$;
+
+do $do$
+declare
+  table_name text;
+begin
+  foreach table_name in array array[
+    'products', 'posts', 'custom_prices', 'messages',
+    'carts', 'cart_items', 'orders', 'payment_attempts'
+  ] loop
+    execute format(
+      'drop trigger if exists %I on public.%I',
+      table_name || '_touch', table_name
+    );
+    execute format(
+      'create trigger %I before update on public.%I for each row execute function public.touch_updated_at()',
+      table_name || '_touch', table_name
+    );
+  end loop;
+end;
+$do$;
+
+-- Keep the legacy scalar product image synchronized with images[1].
+create or replace function public.sync_product_media()
+returns trigger
+language plpgsql
+set search_path = public
+as $fn$
+begin
+  if cardinality(new.images) > 0 then
+    new.image := coalesce(new.images[1], '');
+  elsif coalesce(new.image, '') <> '' then
+    new.images := array[new.image];
+  else
+    new.image := '';
+  end if;
+  return new;
+end;
+$fn$;
+
+drop trigger if exists products_sync_media on public.products;
+create trigger products_sync_media
+  before insert or update on public.products
+  for each row execute function public.sync_product_media();
+
+-- ---------- Access helpers ----------
+create or replace function public.owns_cart(cid bigint)
+returns boolean
+language sql
+security definer
+set search_path = public
+stable
+as $fn$
+  select exists (
+    select 1 from public.carts c
+    where c.id = cid and c.owner_id = auth.uid()
+  );
+$fn$;
+
+create or replace function public.can_access_order(oid uuid)
+returns boolean
+language sql
+security definer
+set search_path = public
+stable
+as $fn$
+  select exists (
+    select 1
+      from public.orders o
+      join public.factories f on f.id = o.factory_id
+     where o.id = oid
+       and (o.buyer_id = auth.uid() or f.owner_id = auth.uid() or public.is_admin())
+  );
+$fn$;
+
+-- ---------- RLS ----------
+alter table public.posts enable row level security;
+alter table public.custom_prices enable row level security;
+alter table public.carts enable row level security;
+alter table public.cart_items enable row level security;
+alter table public.orders enable row level security;
+alter table public.order_items enable row level security;
+alter table public.payment_attempts enable row level security;
+
+-- Profiles used in a conversation: counterpart metadata only.
+drop policy if exists profiles_select_conversation_party on public.profiles;
+create policy profiles_select_conversation_party on public.profiles
+  for select using (
+    id = auth.uid()
+    or exists (
+      select 1
+        from public.conversations c
+        join public.factories f on f.id = c.factory_id
+       where c.individual_id = profiles.id
+         and (c.individual_id = auth.uid() or f.owner_id = auth.uid())
+    )
+    or public.is_admin()
+  );
+
+-- Posts
+drop policy if exists posts_select_public on public.posts;
+create policy posts_select_public on public.posts
+  for select using (
+    exists (
+      select 1 from public.factories f
+       where f.id = posts.factory_id
+         and (f.status = 'approved' or f.owner_id = auth.uid() or public.is_admin())
+    )
+  );
+
+drop policy if exists posts_write_own on public.posts;
+create policy posts_write_own on public.posts
+  for all using (public.owns_factory(factory_id))
+  with check (public.owns_factory(factory_id));
+
+-- Custom prices
+drop policy if exists custom_prices_select_party on public.custom_prices;
+create policy custom_prices_select_party on public.custom_prices
+  for select using (customer_id = auth.uid() or public.owns_factory(factory_id));
+
+drop policy if exists custom_prices_write_factory on public.custom_prices;
+create policy custom_prices_write_factory on public.custom_prices
+  for all using (public.owns_factory(factory_id))
+  with check (public.owns_factory(factory_id));
+
+-- Carts
+drop policy if exists carts_own on public.carts;
+create policy carts_own on public.carts
+  for all using (owner_id = auth.uid()) with check (owner_id = auth.uid());
+
+drop policy if exists cart_items_own on public.cart_items;
+create policy cart_items_own on public.cart_items
+  for all using (public.owns_cart(cart_id)) with check (public.owns_cart(cart_id));
+
+-- Orders are read by the buyer, factory owner, or admin. Creation and
+-- payment-status updates happen only through reviewed server functions.
+drop policy if exists orders_select_party on public.orders;
+create policy orders_select_party on public.orders
+  for select using (public.can_access_order(id));
+
+drop policy if exists order_items_select_party on public.order_items;
+create policy order_items_select_party on public.order_items
+  for select using (public.can_access_order(order_id));
+
+drop policy if exists payment_attempts_select_party on public.payment_attempts;
+create policy payment_attempts_select_party on public.payment_attempts
+  for select using (public.can_access_order(order_id));
+
+-- Messages may be marked read only by a conversation party; immutable
+-- sender/conversation/body fields are enforced by a guard trigger below.
+drop policy if exists messages_update_party on public.messages;
+create policy messages_update_party on public.messages
+  for update using (public.in_conversation(conversation_id))
+  with check (public.in_conversation(conversation_id));
+
+create or replace function public.guard_message_columns()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $fn$
+begin
+  new.conversation_id := old.conversation_id;
+  new.sender_id := old.sender_id;
+  new.body := old.body;
+  new.attachment_url := old.attachment_url;
+  new.attachment_type := old.attachment_type;
+  new.custom_price_id := old.custom_price_id;
+  new.client_key := old.client_key;
+  return new;
+end;
+$fn$;
+
+drop trigger if exists messages_guard on public.messages;
+create trigger messages_guard
+  before update on public.messages
+  for each row execute function public.guard_message_columns();
+
+-- Factory website must be empty or HTTP(S). NOT VALID avoids blocking the
+-- migration on legacy rows while enforcing the rule for future writes.
+alter table public.factories drop constraint if exists factories_website_http;
+alter table public.factories
+  add constraint factories_website_http
+  check (website = '' or website ~* '^https?://[^[:space:]]+$') not valid;
+
+-- ---------- Storage buckets and owner-prefix policies ----------
+insert into storage.buckets (id, name, public)
+values ('factory-media', 'factory-media', true)
+on conflict (id) do update set public = excluded.public;
+
+insert into storage.buckets (id, name, public)
+values ('chat-media', 'chat-media', false)
+on conflict (id) do update set public = excluded.public;
+
+-- Public factory media: readable by all, writable only below <auth.uid()>/.
+drop policy if exists factory_media_public_read on storage.objects;
+create policy factory_media_public_read on storage.objects
+  for select using (bucket_id = 'factory-media');
+
+drop policy if exists factory_media_owner_insert on storage.objects;
+create policy factory_media_owner_insert on storage.objects
+  for insert to authenticated
+  with check (
+    bucket_id = 'factory-media'
+    and (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+drop policy if exists factory_media_owner_update on storage.objects;
+create policy factory_media_owner_update on storage.objects
+  for update to authenticated
+  using (bucket_id = 'factory-media' and owner_id = auth.uid()::text)
+  with check (bucket_id = 'factory-media' and (storage.foldername(name))[1] = auth.uid()::text);
+
+drop policy if exists factory_media_owner_delete on storage.objects;
+create policy factory_media_owner_delete on storage.objects
+  for delete to authenticated
+  using (bucket_id = 'factory-media' and owner_id = auth.uid()::text);
+
+-- Private chat media: uploader owns the object. Access to message URLs will
+-- use short-lived signed URLs after conversation authorization.
+drop policy if exists chat_media_owner_insert on storage.objects;
+create policy chat_media_owner_insert on storage.objects
+  for insert to authenticated
+  with check (
+    bucket_id = 'chat-media'
+    and (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+drop policy if exists chat_media_owner_select on storage.objects;
+create policy chat_media_owner_select on storage.objects
+  for select to authenticated
+  using (
+    bucket_id = 'chat-media'
+    and (
+      owner_id = auth.uid()::text
+      or exists (
+        select 1 from public.messages m
+         where m.attachment_url = name
+           and public.in_conversation(m.conversation_id)
+      )
+    )
+  );
+
+drop policy if exists chat_media_owner_delete on storage.objects;
+create policy chat_media_owner_delete on storage.objects
+  for delete to authenticated
+  using (bucket_id = 'chat-media' and owner_id = auth.uid()::text);
+
+-- ---------- Grants ----------
+grant usage on schema public to authenticated;
+grant select, insert, update, delete on public.carts, public.cart_items to authenticated;
+grant select on public.orders, public.order_items, public.payment_attempts to authenticated;
+grant select, insert, update, delete on public.posts, public.custom_prices to authenticated;
+grant select, insert, update on public.messages to authenticated;
+grant usage, select on all sequences in schema public to authenticated;
+
+-- Optional realtime publication for messages. Idempotent across projects.
+do $do$
+begin
+  if exists (select 1 from pg_publication where pubname = 'supabase_realtime')
+     and not exists (
+       select 1 from pg_publication_tables
+        where pubname = 'supabase_realtime'
+          and schemaname = 'public'
+          and tablename = 'messages'
+     ) then
+    alter publication supabase_realtime add table public.messages;
+  end if;
+end;
+$do$;
+
+
+-- ============================================================
+-- 11) الحفظ الذري للمصنع
+-- ============================================================
+-- ============================================================
+-- Atomic factory editor save
+-- One authenticated RPC updates the factory, products, and posts
+-- in a single PostgreSQL transaction. Stable client_key values avoid
+-- delete/reinsert cycles and preserve references.
+-- ============================================================
+
+create or replace function public.save_factory_content(
+  p_factory_id bigint,
+  p_factory jsonb,
+  p_products jsonb default null,
+  p_posts jsonb default null,
+  p_expected_updated_at timestamptz default null
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $fn$
+declare
+  current_row public.factories%rowtype;
+  item jsonb;
+  item_key uuid;
+  product_keys uuid[] := '{}';
+  post_keys uuid[] := '{}';
+  clean_images text[];
+  clean_price numeric(12, 2);
+  result_row jsonb;
+begin
+  if auth.uid() is null then
+    raise exception 'Authentication required' using errcode = '42501';
+  end if;
+
+  if jsonb_typeof(coalesce(p_factory, '{}'::jsonb)) <> 'object'
+     or (p_products is not null and jsonb_typeof(p_products) <> 'array')
+     or (p_posts is not null and jsonb_typeof(p_posts) <> 'array') then
+    raise exception 'Invalid factory payload' using errcode = '22023';
+  end if;
+
+  if (p_products is not null and jsonb_array_length(p_products) > 200)
+     or (p_posts is not null and jsonb_array_length(p_posts) > 500) then
+    raise exception 'Payload exceeds allowed item count' using errcode = '22023';
+  end if;
+
+  -- Serialize edits for one factory and lock the owner row.
+  perform pg_advisory_xact_lock(p_factory_id);
+  select * into current_row
+    from public.factories
+   where id = p_factory_id
+     and owner_id = auth.uid()
+   for update;
+
+  if not found then
+    raise exception 'Factory not found or not owned by current user'
+      using errcode = '42501';
+  end if;
+
+  if p_expected_updated_at is not null
+     and current_row.updated_at is distinct from p_expected_updated_at then
+    raise exception 'Factory data changed in another session; reload before saving'
+      using errcode = '40001';
+  end if;
+
+  if coalesce(p_factory->>'website', '') <> ''
+     and coalesce(p_factory->>'website', '') !~* '^https?://[^[:space:]]+$' then
+    raise exception 'Website must use http or https' using errcode = '22023';
+  end if;
+
+  update public.factories
+     set name = case when p_factory ? 'name' then left(coalesce(p_factory->>'name', ''), 200) else current_row.name end,
+         about = case when p_factory ? 'about' then left(coalesce(p_factory->>'about', ''), 10000) else current_row.about end,
+         cover = case when p_factory ? 'cover' then left(coalesce(p_factory->>'cover', ''), 2048) else current_row.cover end,
+         logo = case when p_factory ? 'logo' then left(coalesce(p_factory->>'logo', ''), 2048) else current_row.logo end,
+         website = case when p_factory ? 'website' then left(coalesce(p_factory->>'website', ''), 2048) else current_row.website end,
+         industry = case when p_factory ? 'industry' then left(coalesce(p_factory->>'industry', ''), 200) else current_row.industry end,
+         company_size = case when p_factory ? 'company_size' then left(coalesce(p_factory->>'company_size', ''), 100) else current_row.company_size end
+   where id = p_factory_id;
+
+  -- Upsert products by stable client_key. NULL means “leave unchanged”.
+  if p_products is not null then
+  for item in select value from jsonb_array_elements(p_products) loop
+    begin
+      item_key := nullif(item->>'client_key', '')::uuid;
+    exception when invalid_text_representation then
+      item_key := null;
+    end;
+
+    if item_key is null
+       or exists (
+         select 1 from public.products p
+          where p.client_key = item_key and p.factory_id <> p_factory_id
+       ) then
+      item_key := gen_random_uuid();
+    end if;
+
+    select coalesce(array_agg(left(value, 2048)), '{}')
+      into clean_images
+      from (
+        select value
+          from jsonb_array_elements_text(
+            case when jsonb_typeof(item->'images') = 'array'
+                 then item->'images' else '[]'::jsonb end
+          )
+         where value <> ''
+         limit 5
+      ) image_values;
+
+    if coalesce(item->>'price', '') ~ '^[0-9]+([.][0-9]{1,2})?$' then
+      clean_price := (item->>'price')::numeric(12, 2);
+    else
+      clean_price := null;
+    end if;
+
+    insert into public.products (
+      factory_id, client_key, images, image, name, price, sort_order
+    ) values (
+      p_factory_id,
+      item_key,
+      clean_images,
+      coalesce(clean_images[1], ''),
+      left(coalesce(item->>'name', ''), 300),
+      clean_price,
+      coalesce(array_length(product_keys, 1), 0)
+    )
+    on conflict (client_key) do update
+       set images = excluded.images,
+           image = excluded.image,
+           name = excluded.name,
+           price = excluded.price,
+           sort_order = excluded.sort_order
+     where products.factory_id = p_factory_id;
+
+    product_keys := array_append(product_keys, item_key);
+  end loop;
+
+  delete from public.products
+   where factory_id = p_factory_id
+     and not (client_key = any(product_keys));
+  end if;
+
+  -- Upsert posts by stable client_key. NULL means “leave unchanged”.
+  if p_posts is not null then
+  for item in select value from jsonb_array_elements(p_posts) loop
+    begin
+      item_key := nullif(item->>'client_key', '')::uuid;
+    exception when invalid_text_representation then
+      item_key := null;
+    end;
+
+    if item_key is null
+       or exists (
+         select 1 from public.posts p
+          where p.client_key = item_key and p.factory_id <> p_factory_id
+       ) then
+      item_key := gen_random_uuid();
+    end if;
+
+    insert into public.posts (
+      factory_id, client_key, body, image, video
+    ) values (
+      p_factory_id,
+      item_key,
+      left(coalesce(item->>'body', ''), 10000),
+      left(coalesce(item->>'image', ''), 2048),
+      left(coalesce(item->>'video', ''), 2048)
+    )
+    on conflict (client_key) do update
+       set body = excluded.body,
+           image = excluded.image,
+           video = excluded.video
+     where posts.factory_id = p_factory_id;
+
+    post_keys := array_append(post_keys, item_key);
+  end loop;
+
+  delete from public.posts
+   where factory_id = p_factory_id
+     and not (client_key = any(post_keys));
+  end if;
+
+  select jsonb_build_object(
+    'factory', to_jsonb(f),
+    'products', coalesce((
+      select jsonb_agg(to_jsonb(p) order by p.sort_order)
+        from public.products p where p.factory_id = p_factory_id
+    ), '[]'::jsonb),
+    'posts', coalesce((
+      select jsonb_agg(to_jsonb(po) order by po.created_at desc)
+        from public.posts po where po.factory_id = p_factory_id
+    ), '[]'::jsonb)
+  ) into result_row
+  from public.factories f
+  where f.id = p_factory_id;
+
+  return result_row;
+end;
+$fn$;
+
+revoke all on function public.save_factory_content(bigint, jsonb, jsonb, jsonb, timestamptz) from public;
+grant execute on function public.save_factory_content(bigint, jsonb, jsonb, jsonb, timestamptz) to authenticated;
+
+comment on function public.save_factory_content(bigint, jsonb, jsonb, jsonb, timestamptz)
+  is 'Atomically saves one owned factory and upserts products/posts by stable client keys';
+
+
+-- ============================================================
+-- 12) السلة والطلبات والتحقق السعري الخادمي
+-- ============================================================
+-- ============================================================
+-- Cart and order RPCs
+-- Prices are read from the database inside a transaction. The client
+-- cannot choose the order total or unit prices.
+-- ============================================================
+
+create or replace function public.get_or_create_cart()
+returns public.carts
+language plpgsql
+security definer
+set search_path = public
+as $fn$
+declare result_row public.carts%rowtype;
+begin
+  if auth.uid() is null then raise exception 'Authentication required' using errcode = '42501'; end if;
+  insert into public.carts(owner_id) values (auth.uid())
+  on conflict (owner_id) do update set updated_at = now()
+  returning * into result_row;
+  return result_row;
+end;
+$fn$;
+
+create or replace function public.add_to_cart(p_product_id bigint, p_quantity numeric default 1)
+returns public.cart_items
+language plpgsql
+security definer
+set search_path = public
+as $fn$
+declare result_row public.cart_items%rowtype; cart_id_value bigint;
+begin
+  if auth.uid() is null then raise exception 'Authentication required' using errcode = '42501'; end if;
+  if p_quantity <= 0 or p_quantity > 100000 then raise exception 'Invalid quantity' using errcode = '22023'; end if;
+  if not exists (
+    select 1 from public.products p join public.factories f on f.id = p.factory_id
+     where p.id = p_product_id and f.status = 'approved'
+  ) then raise exception 'Product unavailable' using errcode = '22023'; end if;
+  select id into cart_id_value from public.get_or_create_cart();
+  insert into public.cart_items(cart_id, product_id, quantity)
+  values (cart_id_value, p_product_id, p_quantity)
+  on conflict (cart_id, product_id) do update set quantity = cart_items.quantity + excluded.quantity
+  returning * into result_row;
+  return result_row;
+end;
+$fn$;
+
+create or replace function public.create_order_from_cart(
+  p_factory_id bigint,
+  p_idempotency_key uuid default gen_random_uuid()
+)
+returns public.orders
+language plpgsql
+security definer
+set search_path = public
+as $fn$
+declare
+  cart_row public.carts%rowtype;
+  result_row public.orders%rowtype;
+  order_id_value uuid;
+  subtotal_value numeric(14,2);
+  item_count integer;
+begin
+  if auth.uid() is null then raise exception 'Authentication required' using errcode = '42501'; end if;
+  if p_factory_id is null then raise exception 'Factory is required' using errcode = '22023'; end if;
+
+  select * into cart_row from public.carts where owner_id = auth.uid() for update;
+  if not found then raise exception 'Cart is empty' using errcode = '22023'; end if;
+
+  select count(*), coalesce(sum(
+    ci.quantity * coalesce(cp.price, p.price)
+  ), 0)
+    into item_count, subtotal_value
+    from public.cart_items ci
+    join public.products p on p.id = ci.product_id
+    left join public.custom_prices cp
+      on cp.product_id = p.id and cp.customer_id = auth.uid()
+   where ci.cart_id = cart_row.id and p.factory_id = p_factory_id;
+
+  if item_count = 0 then raise exception 'Cart has no products for this factory' using errcode = '22023'; end if;
+  if exists (
+    select 1 from public.cart_items ci join public.products p on p.id = ci.product_id
+     where ci.cart_id = cart_row.id and p.factory_id <> p_factory_id
+  ) then
+    raise exception 'Create one order per factory' using errcode = '22023';
+  end if;
+
+  insert into public.orders (
+    buyer_id, factory_id, status, subtotal, total, idempotency_key
+  ) values (
+    auth.uid(), p_factory_id, 'awaiting_payment', subtotal_value, subtotal_value, p_idempotency_key
+  ) on conflict (buyer_id, idempotency_key) do update
+    set updated_at = excluded.updated_at
+  returning * into result_row;
+
+  insert into public.order_items (
+    order_id, product_id, product_name, unit_price, quantity, line_total
+  )
+  select result_row.id, p.id, p.name,
+         coalesce(cp.price, p.price), ci.quantity,
+         coalesce(cp.price, p.price) * ci.quantity
+    from public.cart_items ci
+    join public.products p on p.id = ci.product_id
+    left join public.custom_prices cp
+      on cp.product_id = p.id and cp.customer_id = auth.uid()
+   where ci.cart_id = cart_row.id;
+
+  delete from public.cart_items where cart_id = cart_row.id;
+  return result_row;
+end;
+$fn$;
+
+revoke all on function public.get_or_create_cart() from public;
+revoke all on function public.add_to_cart(bigint, numeric) from public;
+revoke all on function public.create_order_from_cart(bigint, uuid) from public;
+grant execute on function public.get_or_create_cart() to authenticated;
+grant execute on function public.add_to_cart(bigint, numeric) to authenticated;
+grant execute on function public.create_order_from_cart(bigint, uuid) to authenticated;

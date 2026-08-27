@@ -18,6 +18,7 @@
 <script src="i18n.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase-config.js"></script>
+<script src="media-upload.js"></script>
 <script>var SF_PUBLIC_PAGE = true;</script>
 <script src="auth-guard.js"></script>
 <style>
@@ -590,23 +591,66 @@
         location.reload();
       }
 
-      /* الصفحة ترسم من localStorage أولاً، ثم يصحّح الخادم
-         قرار الملكية وحده — لا بقية البيانات، فهذه الصفحة
-         لم تُربط بالقاعدة بعد. والاتجاهان لازمان: فتح
-         لمالكٍ رُسم زائراً، وإغلاق لزائرٍ رُسم مالكاً
-         بعلامة قديمة أو مزوّرة. */
+      /* يرسم من المسودة أولاً ثم يستبدلها بالبيانات الخادمية كاملةً.
+         قرار الملكية والبيانات والحفظ النهائي كلها من Supabase. */
+      var factoryRow = null;
+      var saveTimer = null;
+      var savePending = false;
+      var saveInFlight = false;
+      var saveQueued = false;
+
+      function newClientKey() {
+        if (window.crypto && typeof window.crypto.randomUUID === "function") {
+          return window.crypto.randomUUID();
+        }
+        return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
+          var r = Math.random() * 16 | 0;
+          return (c === "x" ? r : (r & 3 | 8)).toString(16);
+        });
+      }
+
       if (window.sb && window.SF_AUTH_READY) {
         SF_AUTH_READY.then(function () {
           return sb.from("factories")
-            .select("owner_id")
+            .select("id, owner_id, status, name, about, cover, logo, website, industry, company_size, updated_at")
             .eq("id", factoryId)
             .maybeSingle();
         }).then(function (res) {
-          if (!res || res.error || !res.data) return;
-          var mine = !!(window.SF_USER && res.data.owner_id === SF_USER.id);
-          if (mine !== canEdit) setOwnerFlag(mine);
+          if (!res || res.error || !res.data) return null;
+          var row = res.data;
+          factoryRow = row;
+          var mine = !!(window.SF_USER && row.owner_id === SF_USER.id);
+          if (mine !== canEdit) {
+            setOwnerFlag(mine);
+            return null;
+          }
+          data.name = row.name || "";
+          data.about = row.about || "";
+          data.cover = row.cover || "";
+          data.logo = row.logo || "";
+          data.website = row.website || "";
+          data.industry = row.industry || "";
+          data.company_size = row.company_size || "";
+          return sb.from("products").select("id, client_key, image, images, name, price, sort_order")
+            .eq("factory_id", row.id).order("sort_order");
+        }).then(function (productsRes) {
+          if (!productsRes || productsRes.error) return;
+          data.products = (productsRes.data || []).map(function (pr) {
+            return {
+              id: pr.id,
+              client_key: pr.client_key || newClientKey(),
+              image: pr.image || (pr.images && pr.images[0]) || "",
+              name: pr.name || "",
+              price: pr.price == null ? "" : String(pr.price)
+            };
+          });
+          allFactories[factoryId] = data;
+          try { localStorage.setItem(STORE_KEY, JSON.stringify(allFactories)); } catch (err) {}
+          renderProducts();
+          if (data.cover) fillSlot(coverEl, data.cover);
+          if (data.logo) fillSlot(logoEl, data.logo);
         }).catch(function (err) {
-          console.warn("factory owner check:", err && err.message);
+          console.warn("factory load:", err && err.message);
         });
       }
 
@@ -644,6 +688,10 @@
       if (!data.products) data.products = [];
 
       function save() {
+        if (!canEdit) return;
+        (data.products || []).forEach(function (item) {
+          if (!item.client_key) item.client_key = newClientKey();
+        });
         allFactories[factoryId] = data;
         try {
           localStorage.setItem(STORE_KEY, JSON.stringify(allFactories));
@@ -651,7 +699,59 @@
         } catch (err) {
           storageWarning.classList.add("show");
         }
+        if (!factoryRow || !window.sb) return;
+        savePending = true;
+        if (saveTimer) clearTimeout(saveTimer);
+        saveTimer = setTimeout(pushToDb, 700);
       }
+
+      function pushToDb() {
+        if (!canEdit || !factoryRow || !window.sb || !savePending) return Promise.resolve();
+        if (saveInFlight) { saveQueued = true; return Promise.resolve(); }
+        saveInFlight = true;
+        savePending = false;
+        return sb.rpc("save_factory_content", {
+          p_factory_id: factoryRow.id,
+          p_factory: {
+            name: data.name || "",
+            about: data.about || "",
+            cover: data.cover || "",
+            logo: data.logo || "",
+            website: data.website || "",
+            industry: data.industry || "",
+            company_size: data.company_size || ""
+          },
+          p_products: (data.products || []).map(function (pr) {
+            return {
+              client_key: pr.client_key,
+              images: pr.image ? [pr.image] : [],
+              name: pr.name || "",
+              price: pr.price == null ? "" : String(pr.price)
+            };
+          }),
+          p_posts: null,
+          p_expected_updated_at: factoryRow.updated_at || null
+        }).then(function (res) {
+          if (res.error) throw res.error;
+          if (res.data && res.data.factory) factoryRow.updated_at = res.data.factory.updated_at;
+          storageWarning.classList.remove("show");
+        }).catch(function (err) {
+          savePending = true;
+          console.warn("atomic app factory save:", err && err.message);
+          storageWarning.textContent = (err && err.message) || "تعذّر حفظ التغييرات على الخادم.";
+          storageWarning.classList.add("show");
+        }).then(function () {
+          saveInFlight = false;
+          if (saveQueued) { saveQueued = false; savePending = true; return pushToDb(); }
+          return null;
+        });
+      }
+
+      window.addEventListener("beforeunload", function (event) {
+        if (!savePending && !saveInFlight) return;
+        event.preventDefault();
+        event.returnValue = "";
+      });
 
       /* تصغير الصورة قبل الحفظ حتى لا تمتلئ مساحة التخزين بسرعة */
       function resizeImage(dataUrl, maxSize, done) {
@@ -683,8 +783,20 @@
         var reader = new FileReader();
         reader.onload = function (e) {
           resizeImage(e.target.result, target.maxSize, function (resized) {
-            target.onPicked(resized);
-            save();
+            target.onPicked(resized); // معاينة مؤقتة فقط
+            if (window.SFUpload && window.SF_USER) {
+              SFUpload.uploadDataUrl(resized, "factory-media", "factory-" + factoryId, "image")
+                .then(function (uploaded) {
+                  target.onPicked(uploaded.url);
+                  save();
+                })
+                .catch(function (err) {
+                  storageWarning.textContent = (err && err.message) || "تعذّر رفع الصورة.";
+                  storageWarning.classList.add("show");
+                });
+            } else {
+              save();
+            }
           });
         };
         reader.readAsDataURL(file);
@@ -862,7 +974,7 @@
 
       if (canEdit) {
         addProductBtn.addEventListener("click", function () {
-          data.products.push({ image: "", name: "", price: "" });
+          data.products.push({ client_key: newClientKey(), image: "", name: "", price: "" });
           save();
           renderProducts();
         });

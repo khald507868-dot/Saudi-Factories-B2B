@@ -17,6 +17,7 @@
 <script src="i18n.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase-config.js"></script>
+<script src="media-upload.js"></script>
 <script src="auth-guard.js"></script>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -947,10 +948,10 @@
         updateBtn.classList.toggle("enabled", filled);
       }
 
-      /* الحفظ لا يتم إلا بالضغط على زر "تحديث" */
-      function saveAccountData() {
+      /* يحفظ محليًا كنسخة تعافٍ، ثم يزامن المصدر الحقيقي مع Supabase. */
+      function buildAccountData() {
         var checkedGender = form.querySelector('input[name="gender"]:checked');
-        var accountData = {
+        return {
           accountType: accountType,
           name: nameInput.value.trim(),
           commercialRegister: crInput ? crInput.value.trim() : "",
@@ -963,9 +964,54 @@
           birthdate: document.getElementById("f-birthdate").value,
           companyImage: companyImageData
         };
+      }
+
+      function saveAccountData() {
+        var accountData = buildAccountData();
         try {
           localStorage.setItem("sf_account", JSON.stringify(accountData));
         } catch (err) {}
+        return accountData;
+      }
+
+      function saveAccountToServer(accountData) {
+        if (!window.sb || !window.SF_USER) {
+          return Promise.reject(new Error("يجب تسجيل الدخول قبل حفظ الملف الشخصي"));
+        }
+
+        return sb.from("profiles").update({
+          full_name: accountData.name,
+          gender: accountData.gender,
+          country_flag: accountData.countryFlag,
+          country_code: accountData.countryCode,
+          phone: accountData.phone,
+          email: accountData.email,
+          birthdate: accountData.birthdate || null,
+          company_image: accountData.companyImage || ""
+        }).eq("id", SF_USER.id).then(function (profileRes) {
+          if (profileRes.error) throw profileRes.error;
+          if (accountData.email && accountData.email !== SF_USER.email) {
+            return sb.auth.updateUser({ email: accountData.email });
+          }
+          return null;
+        }).then(function (authRes) {
+          if (authRes && authRes.error) throw authRes.error;
+          if (!isFactory) return null;
+          return sb.from("factories").update({
+            name: accountData.name,
+            commercial_register: accountData.commercialRegister,
+            address_city: (accountData.address && accountData.address.city) || "",
+            address_district: (accountData.address && accountData.address.district) || "",
+            address_short: (accountData.address && accountData.address.shortAddress) || "",
+            address_building: (accountData.address && accountData.address.building) || "",
+            address_secondary: (accountData.address && accountData.address.secondary) || "",
+            address_postal: (accountData.address && accountData.address.postal) || "",
+            address_street: (accountData.address && accountData.address.street) || ""
+          }).eq("owner_id", SF_USER.id);
+        }).then(function (factoryRes) {
+          if (factoryRes && factoryRes.error) throw factoryRes.error;
+          return accountData;
+        });
       }
 
       /* ===== تعبئة الحقول بالبيانات المسجّلة ===== */
@@ -1022,6 +1068,11 @@
           resizeImage(e.target.result, 400, function (resized) {
             companyImageData = resized;
             showCompanyImage(companyImageData);
+            if (window.SFUpload && window.SF_USER) {
+              SFUpload.uploadDataUrl(resized, "factory-media", "profile", "image")
+                .then(function (uploaded) { companyImageData = uploaded.url; })
+                .catch(function (err) { console.warn("company image upload:", err && err.message); });
+            }
           });
         };
         reader.readAsDataURL(file);
@@ -1082,8 +1133,17 @@
 
       form.addEventListener("submit", function (e) {
         e.preventDefault();
-        saveAccountData();
-        showConfirm();
+        var accountData = saveAccountData();
+        saveAccountToServer(accountData).then(function () {
+          showConfirm();
+        }).catch(function (err) {
+          console.warn("profile save:", err && err.message);
+          var message = document.getElementById("storage-warning");
+          if (message) {
+            message.textContent = (err && err.message) || "تعذّر حفظ التغييرات على الخادم.";
+            message.classList.add("show");
+          }
+        });
       });
 
       /* ===== قائمة الدول وأكواد الهواتف ===== */

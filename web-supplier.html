@@ -1331,7 +1331,7 @@
           countryCode: document.getElementById("country-code").textContent,
           phone: phoneInput.value.trim(),
           email: emailInput.value.trim(),
-          companyImage: companyImageData
+          companyImage: companyImageData.indexOf("http") === 0 ? companyImageData : ""
         };
         try {
           localStorage.setItem("sf_account", JSON.stringify(accountData));
@@ -1393,8 +1393,8 @@
         var reader = new FileReader();
         reader.onload = function (e) {
           resizeImage(e.target.result, 400, function (resized) {
-            companyImageData = resized;
-            imagePreview.src = companyImageData;
+            companyImageData = ""; // لا نخزن Base64؛ الرفع الدائم يتم من صفحة الملف بعد الدخول
+            imagePreview.src = resized; // معاينة مؤقتة في الذاكرة فقط
             imagePreview.style.display = "block";
             imageIcon.style.display = "none";
             saveAccountData();

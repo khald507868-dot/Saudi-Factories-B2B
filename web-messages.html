@@ -17,6 +17,7 @@
 <script src="i18n.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase-config.js"></script>
+<script src="messages-service.js"></script>
 <script src="auth-guard.js"></script>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -1097,11 +1098,33 @@
         var text = msgInput.value.trim();
         if (!text || !activeId) return;
 
-        pushMessage({ from: myRole, type: "text", text: text, at: Date.now() });
+        var inputText = text;
+        var finish = function () {
+          msgInput.value = "";
+          msgInput.style.height = "auto";
+          updateSendState();
+        };
 
-        msgInput.value = "";
-        msgInput.style.height = "auto";
-        updateSendState();
+        if (window.SFMessages && window.SF_USER && /^\d+$/.test(String(activeId))) {
+          sendBtn.disabled = true;
+          SFMessages.sendText(Number(activeId), inputText).then(function (saved) {
+            pushMessage({
+              id: saved.id,
+              from: "mine",
+              type: "text",
+              text: saved.body || inputText,
+              at: new Date(saved.created_at).getTime()
+            });
+            finish();
+          }).catch(function (err) {
+            showNote((err && err.message) || "تعذّر إرسال الرسالة.", true);
+            updateSendState();
+          });
+          return;
+        }
+
+        pushMessage({ from: myRole, type: "text", text: inputText, at: Date.now() });
+        finish();
       }
 
       function updateSendState() {
@@ -1130,6 +1153,15 @@
 
         showNote(I18N.t("msg_uploading"), false);
 
+        if (window.SFMessages && window.SF_USER && /^\d+$/.test(String(activeId))) {
+          SFMessages.sendAttachment(Number(activeId), file, "image").then(function (saved) {
+            pushMessage({ id: saved.id, from: "mine", type: "image", src: saved.signed_url, at: new Date(saved.created_at).getTime() });
+            hideNote();
+          }).catch(function (err) { showNote((err && err.message) || "تعذّر رفع الصورة.", true); });
+          input.value = "";
+          return;
+        }
+
         var reader = new FileReader();
         reader.onload = function (ev) {
           resizeImage(ev.target.result, 640, function (small) {
@@ -1155,6 +1187,15 @@
         }
 
         showNote(I18N.t("msg_uploading"), false);
+
+        if (window.SFMessages && window.SF_USER && /^\d+$/.test(String(activeId))) {
+          SFMessages.sendAttachment(Number(activeId), file, "video").then(function (saved) {
+            pushMessage({ id: saved.id, from: "mine", type: "video", src: saved.signed_url, at: new Date(saved.created_at).getTime() });
+            hideNote();
+          }).catch(function (err) { showNote((err && err.message) || "تعذّر رفع المقطع.", true); });
+          input.value = "";
+          return;
+        }
 
         var reader = new FileReader();
         reader.onload = function (ev) {
@@ -1311,25 +1352,31 @@
 
       function startChatWith(fid) {
         var id = "factory-" + fid;
+        closePicker();
+
+        if (window.SFMessages && window.SF_USER) {
+          showNote(I18N.t("msg_loading"), false);
+          SFMessages.ensureFactoryConversation(fid).then(function (thread) {
+            threads[thread.id] = thread;
+            renderThreadList();
+            openChat(thread.id);
+            hideNote();
+          }).catch(function (err) {
+            showNote((err && err.message) || "تعذّر فتح المحادثة.", true);
+          });
+          return;
+        }
 
         if (!threads[id]) {
           var saved = {};
-          try {
-            saved = JSON.parse(localStorage.getItem("sf_factories") || "{}") || {};
-          } catch (e) {}
+          try { saved = JSON.parse(localStorage.getItem("sf_factories") || "{}") || {}; } catch (e) {}
           var f = saved[fid] || {};
-
           threads[id] = {
-            name: factoryLabel(fid, saved),
-            role: "factory",
-            avatar: f.logo || "",
-            messages: [],
-            updated: Date.now()
+            name: factoryLabel(fid, saved), role: "factory", avatar: f.logo || "",
+            messages: [], updated: Date.now()
           };
           saveThreads();
         }
-
-        closePicker();
         openChat(id);
       }
 
@@ -1398,9 +1445,33 @@
         }
       }
 
-      loadThreads();
-      renderThreadList();
-      openFromQuery();
+      function bootstrapMessages() {
+        loadThreads();
+        if (window.SFMessages && window.SF_USER) {
+          SFMessages.load().then(function (remoteThreads) {
+            threads = remoteThreads;
+            renderThreadList();
+            openFromQuery();
+            SFMessages.subscribe(function () {
+              SFMessages.load().then(function (fresh) {
+                threads = fresh;
+                renderThreadList();
+                if (activeId && threads[activeId]) renderMessages();
+              }).catch(function () {});
+            });
+          }).catch(function (err) {
+            console.warn("messages load:", err && err.message);
+            renderThreadList();
+            openFromQuery();
+          });
+        } else {
+          renderThreadList();
+          openFromQuery();
+        }
+      }
+
+      if (window.SF_AUTH_READY) SF_AUTH_READY.then(bootstrapMessages);
+      else bootstrapMessages();
     })();
   </script>
 
