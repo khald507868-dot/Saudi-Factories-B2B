@@ -4,6 +4,8 @@
 
   var dict = {
     ar: {
+      product_add_to_cart: 'إضافة إلى السلة',
+      product_added_to_cart: 'تمت الإضافة إلى السلة',
       app_title: "المصانع السعودية",
       account_page_title: "حسابي - المصانع السعودية",
       profile_page_title: "ملفي الشخصي - المصانع السعودية",
@@ -256,6 +258,8 @@
       usertype_factory: "مصانع"
     },
     en: {
+      product_add_to_cart: 'Add to cart',
+      product_added_to_cart: 'Added to cart',
       app_title: "Saudi Factories",
       account_page_title: "My Account - Saudi Factories",
       profile_page_title: "My Profile - Saudi Factories",
@@ -508,6 +512,8 @@
       usertype_factory: "Factories"
     },
     fr: {
+      product_add_to_cart: 'Add to cart',
+      product_added_to_cart: 'Added to cart',
       app_title: "Usines Saoudiennes",
       account_page_title: "Mon compte - Usines Saoudiennes",
       profile_page_title: "Mon profil - Usines Saoudiennes",
@@ -760,6 +766,8 @@
       usertype_factory: "Usines"
     },
     es: {
+      product_add_to_cart: 'Add to cart',
+      product_added_to_cart: 'Added to cart',
       app_title: "Fábricas Saudíes",
       account_page_title: "Mi cuenta - Fábricas Saudíes",
       profile_page_title: "Mi perfil - Fábricas Saudíes",
@@ -1012,6 +1020,8 @@
       usertype_factory: "Fabricas"
     },
     de: {
+      product_add_to_cart: 'Add to cart',
+      product_added_to_cart: 'Added to cart',
       app_title: "Saudische Fabriken",
       account_page_title: "Mein Konto - Saudische Fabriken",
       profile_page_title: "Mein Profil - Saudische Fabriken",
@@ -1264,6 +1274,8 @@
       usertype_factory: "Fabriken"
     },
     it: {
+      product_add_to_cart: 'Add to cart',
+      product_added_to_cart: 'Added to cart',
       app_title: "Fabbriche Saudite",
       account_page_title: "Il mio account - Fabbriche Saudite",
       profile_page_title: "Il mio profilo - Fabbriche Saudite",
@@ -1516,6 +1528,8 @@
       usertype_factory: "Fabbriche"
     },
     pt: {
+      product_add_to_cart: 'Add to cart',
+      product_added_to_cart: 'Added to cart',
       app_title: "Fábricas Sauditas",
       account_page_title: "Minha conta - Fábricas Sauditas",
       profile_page_title: "Meu perfil - Fábricas Sauditas",
@@ -1768,6 +1782,8 @@
       usertype_factory: "Fabricas"
     },
     ru: {
+      product_add_to_cart: 'Add to cart',
+      product_added_to_cart: 'Added to cart',
       app_title: "Саудовские заводы",
       account_page_title: "Мой аккаунт - Саудовские заводы",
       profile_page_title: "Мой профиль - Саудовские заводы",
@@ -2020,6 +2036,8 @@
       usertype_factory: "Заводы"
     },
     tr: {
+      product_add_to_cart: 'Add to cart',
+      product_added_to_cart: 'Added to cart',
       app_title: "Suudi Fabrikaları",
       account_page_title: "Hesabım - Suudi Fabrikaları",
       profile_page_title: "Profilim - Suudi Fabrikaları",
@@ -2272,6 +2290,8 @@
       usertype_factory: "Fabrikalar"
     },
     fa: {
+      product_add_to_cart: 'Add to cart',
+      product_added_to_cart: 'Added to cart',
       app_title: "کارخانه‌های سعودی",
       account_page_title: "حساب من - کارخانه‌های سعودی",
       profile_page_title: "پروفایل من - کارخانه‌های سعودی",
@@ -2524,6 +2544,8 @@
       usertype_factory: "کارخانه‌ها"
     },
     ur: {
+      product_add_to_cart: 'Add to cart',
+      product_added_to_cart: 'Added to cart',
       app_title: "سعودی فیکٹریاں",
       account_page_title: "میرا اکاؤنٹ - سعودی فیکٹریاں",
       profile_page_title: "میری پروفائل - سعودی فیکٹریاں",
@@ -2776,6 +2798,8 @@
       usertype_factory: "فیکٹریاں"
     },
     hi: {
+      product_add_to_cart: 'Add to cart',
+      product_added_to_cart: 'Added to cart',
       app_title: "सऊदी फैक्ट्रियां",
       account_page_title: "मेरा खाता - सऊदी फैक्ट्रियां",
       profile_page_title: "मेरी प्रोफ़ाइल - सऊदी फैक्ट्रियां",
@@ -3028,6 +3052,8 @@
       usertype_factory: "फैक्ट्रियां"
     },
     zh: {
+      product_add_to_cart: 'Add to cart',
+      product_added_to_cart: 'Added to cart',
       app_title: "沙特工厂",
       account_page_title: "我的账户 - 沙特工厂",
       profile_page_title: "我的资料 - 沙特工厂",
@@ -3280,6 +3306,8 @@
       usertype_factory: "工厂"
     },
     ja: {
+      product_add_to_cart: 'Add to cart',
+      product_added_to_cart: 'Added to cart',
       app_title: "サウジ工場",
       account_page_title: "マイアカウント - サウジ工場",
       profile_page_title: "マイプロフィール - サウジ工場",
@@ -3532,6 +3560,8 @@
       usertype_factory: "工場"
     },
     ko: {
+      product_add_to_cart: 'Add to cart',
+      product_added_to_cart: 'Added to cart',
       app_title: "사우디 공장",
       account_page_title: "내 계정 - 사우디 공장",
       profile_page_title: "내 프로필 - 사우디 공장",
@@ -3784,6 +3814,8 @@
       usertype_factory: "공장"
     },
     id: {
+      product_add_to_cart: 'Add to cart',
+      product_added_to_cart: 'Added to cart',
       app_title: "Pabrik Saudi",
       account_page_title: "Akun Saya - Pabrik Saudi",
       profile_page_title: "Profil Saya - Pabrik Saudi",
@@ -4036,6 +4068,8 @@
       usertype_factory: "Pabrik"
     },
     ms: {
+      product_add_to_cart: 'Add to cart',
+      product_added_to_cart: 'Added to cart',
       app_title: "Kilang Saudi",
       account_page_title: "Akaun Saya - Kilang Saudi",
       profile_page_title: "Profil Saya - Kilang Saudi",
@@ -4288,6 +4322,8 @@
       usertype_factory: "Kilang"
     },
     th: {
+      product_add_to_cart: 'Add to cart',
+      product_added_to_cart: 'Added to cart',
       app_title: "โรงงานซาอุดี",
       account_page_title: "บัญชีของฉัน - โรงงานซาอุดี",
       profile_page_title: "โปรไฟล์ของฉัน - โรงงานซาอุดี",
@@ -4540,6 +4576,8 @@
       usertype_factory: "โรงงาน"
     },
     vi: {
+      product_add_to_cart: 'Add to cart',
+      product_added_to_cart: 'Added to cart',
       app_title: "Nhà máy Ả Rập Xê Út",
       account_page_title: "Tài khoản của tôi - Nhà máy Ả Rập Xê Út",
       profile_page_title: "Hồ sơ của tôi - Nhà máy Ả Rập Xê Út",
@@ -4792,6 +4830,8 @@
       usertype_factory: "Nha may"
     },
     he: {
+      product_add_to_cart: 'Add to cart',
+      product_added_to_cart: 'Added to cart',
       app_title: "מפעלים סעודיים",
       account_page_title: "החשבון שלי - מפעלים סעודיים",
       profile_page_title: "הפרופיל שלי - מפעלים סעודיים",
@@ -5044,6 +5084,8 @@
       usertype_factory: "מפעלים"
     },
     nl: {
+      product_add_to_cart: 'Add to cart',
+      product_added_to_cart: 'Added to cart',
       app_title: "Saoedische Fabrieken",
       account_page_title: "Mijn account - Saoedische Fabrieken",
       profile_page_title: "Mijn profiel - Saoedische Fabrieken",
@@ -5296,6 +5338,8 @@
       usertype_factory: "Fabrieken"
     },
     pl: {
+      product_add_to_cart: 'Add to cart',
+      product_added_to_cart: 'Added to cart',
       app_title: "Saudyjskie Fabryki",
       account_page_title: "Moje konto - Saudyjskie Fabryki",
       profile_page_title: "Mój profil - Saudyjskie Fabryki",
@@ -5548,6 +5592,8 @@
       usertype_factory: "Fabryki"
     },
     sv: {
+      product_add_to_cart: 'Add to cart',
+      product_added_to_cart: 'Added to cart',
       app_title: "Saudiska Fabriker",
       account_page_title: "Mitt konto - Saudiska Fabriker",
       profile_page_title: "Min profil - Saudiska Fabriker",
@@ -5800,6 +5846,8 @@
       usertype_factory: "Fabriker"
     },
     el: {
+      product_add_to_cart: 'Add to cart',
+      product_added_to_cart: 'Added to cart',
       app_title: "Σαουδικά Εργοστάσια",
       account_page_title: "Ο λογαριασμός μου - Σαουδικά Εργοστάσια",
       profile_page_title: "Το προφίλ μου - Σαουδικά Εργοστάσια",
@@ -6052,6 +6100,8 @@
       usertype_factory: "Ergostasia"
     },
     bn: {
+      product_add_to_cart: 'Add to cart',
+      product_added_to_cart: 'Added to cart',
       app_title: "সৌদি কারখানা",
       account_page_title: "আমার অ্যাকাউন্ট - সৌদি কারখানা",
       profile_page_title: "আমার প্রোফাইল - সৌদি কারখানা",
@@ -6304,6 +6354,8 @@
       usertype_factory: "কারখানা"
     },
     pa: {
+      product_add_to_cart: 'Add to cart',
+      product_added_to_cart: 'Added to cart',
       app_title: "ਸਾਊਦੀ ਫੈਕਟਰੀਆਂ",
       account_page_title: "ਮੇਰਾ ਖਾਤਾ - ਸਾਊਦੀ ਫੈਕਟਰੀਆਂ",
       profile_page_title: "ਮੇਰਾ ਪ੍ਰੋਫਾਈਲ - ਸਾਊਦੀ ਫੈਕਟਰੀਆਂ",
@@ -6556,6 +6608,8 @@
       usertype_factory: "ਫੈਕਟਰੀਆਂ"
     },
     ta: {
+      product_add_to_cart: 'Add to cart',
+      product_added_to_cart: 'Added to cart',
       app_title: "சவூதி தொழிற்சாலைகள்",
       account_page_title: "எனது கணக்கு - சவூதி தொழிற்சாலைகள்",
       profile_page_title: "எனது சுயவிவரம் - சவூதி தொழிற்சாலைகள்",
@@ -6808,6 +6862,8 @@
       usertype_factory: "தொழிற்சாலைகள்"
     },
     sw: {
+      product_add_to_cart: 'Add to cart',
+      product_added_to_cart: 'Added to cart',
       app_title: "Viwanda vya Saudi",
       account_page_title: "Akaunti Yangu - Viwanda vya Saudi",
       profile_page_title: "Wasifu Wangu - Viwanda vya Saudi",
@@ -7060,6 +7116,8 @@
       usertype_factory: "Viwanda"
     },
     am: {
+      product_add_to_cart: 'Add to cart',
+      product_added_to_cart: 'Added to cart',
       app_title: "የሳዑዲ ፋብሪካዎች",
       account_page_title: "የእኔ መለያ - የሳዑዲ ፋብሪካዎች",
       profile_page_title: "የእኔ መገለጫ - የሳዑዲ ፋብሪካዎች",
@@ -7312,6 +7370,8 @@
       usertype_factory: "ፋብሪካዎች"
     },
     ku: {
+      product_add_to_cart: 'Add to cart',
+      product_added_to_cart: 'Added to cart',
       app_title: "Fabrîkayên Siûdî",
       account_page_title: "Hesabê Min - Fabrîkayên Siûdî",
       profile_page_title: "Profîla Min - Fabrîkayên Siûdî",
