@@ -1029,7 +1029,7 @@
         }
       });
 
-      /* رسالة خطأ أسفل النموذج */
+      /* رسالة الحالة أسفل نموذج التسجيل */
       var errBox = document.createElement("div");
       errBox.style.cssText = "display:none;margin:12px 0;padding:12px 14px;" +
         "border-radius:10px;background:#fdecea;color:#a32020;" +
@@ -1038,6 +1038,15 @@
 
       function showError(msg) {
         errBox.textContent = msg;
+        errBox.style.background = "#fdecea";
+        errBox.style.color = "#a32020";
+        errBox.style.display = "block";
+      }
+
+      function showSuccess(msg) {
+        errBox.textContent = msg;
+        errBox.style.background = "#e9f7ef";
+        errBox.style.color = "#176b3a";
         errBox.style.display = "block";
       }
 
@@ -1080,7 +1089,19 @@
           options: {
             data: {
               account_type: accountType,
-              full_name: nameInput.value.trim()
+              full_name: nameInput.value.trim(),
+              gender: checkedGender ? checkedGender.value : "",
+              country_flag: document.getElementById("country-flag").textContent,
+              country_code: document.getElementById("country-code").textContent,
+              phone: phoneInput.value.trim(),
+              commercial_register: crInput ? crInput.value.trim() : "",
+              address_city: addressData.city || "",
+              address_district: addressData.district || "",
+              address_short: addressData.shortAddress || "",
+              address_building: addressData.building || "",
+              address_secondary: addressData.secondary || "",
+              address_postal: addressData.postal || "",
+              address_street: addressData.street || ""
             }
           }
         }).then(function (res) {
@@ -1091,40 +1112,24 @@
             return;
           }
 
-          /* الحساب أُنشئ — يُكمَّل الملف الشخصي وبيانات المصنع */
-          var uid = res.data.user ? res.data.user.id : null;
-          if (!uid) {
-            window.location.href = "app-home.html";
+          /* المشغّل handle_new_user أنشأ بيانات التسجيل داخل الخادم.
+             عند تفعيل تأكيد البريد لا توجد جلسة بعد signUp، لذلك لا
+             ننفذ تحديثات RLS من المتصفح. */
+          var user = res.data && res.data.user;
+          if (!user) {
+            showError("تعذّر إكمال إنشاء الحساب. حاول مرة أخرى.");
+            btn.disabled = false;
+            btn.textContent = originalLabel;
             return;
           }
 
-          var profilePayload = {
-            full_name: nameInput.value.trim(),
-            gender: checkedGender ? checkedGender.value : "",
-            country_flag: document.getElementById("country-flag").textContent,
-            country_code: document.getElementById("country-code").textContent,
-            phone: phoneInput.value.trim(),
-            email: emailInput.value.trim()
-          };
+          if (!res.data.session) {
+            showSuccess(I18N.t("signup_email_confirmation"));
+            btn.textContent = I18N.t("signup_confirmation_sent");
+            return;
+          }
 
-          return sb.from("profiles").update(profilePayload).eq("id", uid)
-            .then(function () {
-              if (!isFactory) return null;
-              return sb.from("factories").update({
-                name: nameInput.value.trim(),
-                commercial_register: crInput ? crInput.value.trim() : "",
-                address_city: addressData.city,
-                address_district: addressData.district,
-                address_short: addressData.shortAddress,
-                address_building: addressData.building,
-                address_secondary: addressData.secondary,
-                address_postal: addressData.postal,
-                address_street: addressData.street
-              }).eq("owner_id", uid);
-            })
-            .then(function () {
-              window.location.href = "app-home.html";
-            });
+          window.location.href = "app-home.html";
         }).catch(function (err) {
           showError(arabicError(err && err.message ? err.message : String(err)));
           btn.disabled = false;

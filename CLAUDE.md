@@ -469,7 +469,9 @@ alert settled it in one line.
 
 ### Signup flow
 
-The register tab (`web-login.html` / `web-supplier.html` / `app-register.html`) → `sb.auth.signUp()` with `account_type` and `full_name` in user metadata. An `after insert on auth.users` trigger creates the `profiles` row — **plus**, for factories, a `factories` row at `status = 'pending'`. The page then `update`s both; it never `insert`s them.
+The register tab (`web-login.html` / `web-supplier.html` / `app-register.html`) → `sb.auth.signUp()` with all initial profile/factory fields in user metadata. The `after insert on auth.users` trigger `handle_new_user` creates the complete `profiles` row — **plus**, for factories, a `factories` row at `status = 'pending'`. The canonical definition lives in `schema.sql`; `fix-signup-email-confirmation.sql` is the focused migration for the existing hosted database.
+
+**Email confirmation changes the client flow:** with confirmation enabled, a successful `signUp()` returns a user but no session. Therefore the register pages must **never** update `profiles` or `factories` after signup; RLS would reject those writes because `auth.uid()` is null. They show the email-confirmation message and wait for the user to sign in. If confirmation is disabled in a development environment and a session is returned, the trigger has still created the rows and the page may redirect normally.
 
 So a factory account **always** has a factory row from the moment it exists, invisible to the public until an admin approves it. `account_type` cannot be changed afterward (the guard reverts it) — a mistake at signup means a new account.
 
@@ -482,11 +484,12 @@ So a factory account **always** has a factory row from the moment it exists, inv
   | page | calls |
   |---|---|
   | `web-factory` | 8 — reads `factories`/`products`/`posts`, writes all three |
-  | `web-login`, `web-supplier` | 3 each |
+  | `web-login`, `web-supplier` | 1 each — login reads the profile; registration writes no tables directly |
   | `web-factories`, `index` | 1 each — **the 1000-card generators were deleted 2026-08-24** at the owner's request ("احذف جميع المصانع الوهمية"); both now read real rows and RLS does the filtering, so **don't add `eq("status","approved")`** — it would hide the owner's own pending factory from them |
   | `web-admin` | 3 |
-  | `app-admin`, `app-register` | 2 each |
+  | `app-admin` | 2 |
   | `web-account`, `web-settings`, `web-profile`, `app-login`, `app-factory` | 1 each |
+  | `app-register` | 0 — registration data is handled by `handle_new_user` |
   | **everything else, both paths** | **0** |
 
   `web-cart`, `web-messages`, `web-product`, `web-help` and the whole app path except `app-login`/`app-register`/`app-admin`/`app-factory` make **zero**. Cart, messaging, and product detail still render from `localStorage` — **don't describe them as showing real data.**
