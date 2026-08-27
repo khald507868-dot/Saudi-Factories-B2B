@@ -17,6 +17,7 @@
 <script src="i18n.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase-config.js"></script>
+<script src="commerce-service.js"></script>
 <script src="auth-guard.js"></script>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -447,6 +448,13 @@
     z-index: 10;
   }
 
+  .manual-payment-note {
+    flex: 1;
+    font-size: 10.5px;
+    line-height: 1.35;
+    color: #5c6b62;
+  }
+
   .checkout-bar .total {
     display: flex;
     flex-direction: column;
@@ -542,7 +550,9 @@
     </div>
   </header>
 
-  <div class="empty-state">
+  <div id="cart-items" style="display:none; margin:16px 14px 0;"></div>
+
+  <div class="empty-state" id="empty-cart-state">
     <span class="icon-wrap">
       <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"></path></svg>
     </span>
@@ -644,6 +654,7 @@
   </div>
 
   <div class="checkout-bar">
+    <span class="manual-payment-note">الدفع الإلكتروني غير مفعّل حاليًا — بعد إرسال الطلب سيتواصل معك المصنع لتنسيق الدفع.</span>
     <span class="total">
       <span class="total-label" data-i18n="cart_total_label">الإجمالي</span>
       <span class="total-value">0 ر.س</span>
@@ -703,6 +714,10 @@
       var trigger = document.getElementById("protection-trigger");
       var overlay = document.getElementById("protection-modal-overlay");
       var closeBtn = document.getElementById("protection-modal-close");
+      var cartItemsEl = document.getElementById("cart-items");
+      var emptyCartEl = document.getElementById("empty-cart-state");
+      var totalEl = document.querySelector(".total-value");
+      var checkoutBtn = document.querySelector(".checkout-btn");
 
       function openModal() {
         overlay.classList.add("open");
@@ -722,6 +737,58 @@
       document.addEventListener("keydown", function (e) {
         if (e.key === "Escape") closeModal();
       });
+
+      function renderCart(items) {
+        var total = 0;
+        cartItemsEl.innerHTML = "";
+        items.forEach(function (item) {
+          var product = item.products || {};
+          var price = Number(product.price || 0);
+          var quantity = Number(item.quantity || 0);
+          total += price * quantity;
+          var row = document.createElement("div");
+          row.style.cssText = "background:#fff;border-radius:14px;padding:14px;margin-bottom:10px;box-shadow:0 2px 10px rgba(4,54,27,.06);display:flex;justify-content:space-between;gap:12px;";
+          row.innerHTML = "<div><strong></strong><div style='color:#5c6b62;font-size:12px;'></div></div><strong></strong>";
+          row.querySelector("strong").textContent = product.name || "منتج";
+          row.querySelector("div div").textContent = (product.factories && product.factories.name) || "";
+          row.querySelectorAll("strong")[1].textContent = (price * quantity).toFixed(2) + " ر.س";
+          cartItemsEl.appendChild(row);
+        });
+        var hasItems = items.length > 0;
+        cartItemsEl.style.display = hasItems ? "block" : "none";
+        emptyCartEl.style.display = hasItems ? "none" : "flex";
+        totalEl.textContent = total.toFixed(2) + " ر.س";
+        checkoutBtn.disabled = !hasItems;
+        return total;
+      }
+
+      function loadCart() {
+        if (!window.SFCommerce || !window.SF_USER) return;
+        SFCommerce.loadCart().then(function (items) {
+          renderCart(items);
+          checkoutBtn.onclick = function () {
+            var factories = {};
+            items.forEach(function (item) {
+              var p = item.products || {};
+              factories[p.factory_id] = true;
+            });
+            var ids = Object.keys(factories);
+            if (ids.length !== 1) {
+              alert("قسّم السلة إلى طلب مستقل لكل مصنع");
+              return;
+            }
+            checkoutBtn.disabled = true;
+            SFCommerce.createOrder(ids[0]).then(function (order) {
+              alert("تم إرسال الطلب رقم " + order.id + " بنجاح. سيتواصل معك المصنع لتنسيق الدفع.");
+              return SFCommerce.loadCart();
+            }).then(renderCart).catch(function (err) {
+              checkoutBtn.disabled = false;
+              alert((err && err.message) || "تعذّر إنشاء الطلب");
+            });
+          };
+        }).catch(function (err) { console.warn("cart load:", err && err.message); });
+      }
+      if (window.SF_AUTH_READY) SF_AUTH_READY.then(loadCart); else loadCart();
     })();
   </script>
 

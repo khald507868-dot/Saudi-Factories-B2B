@@ -17,6 +17,7 @@
 <script src="i18n.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase-config.js"></script>
+<script src="media-upload.js"></script>
 <script>var SF_PUBLIC_PAGE = true;</script>
 <script src="auth-guard.js"></script>
 <style>
@@ -1399,95 +1400,129 @@
       if (!data.products) data.products = [];
 
       /* ===== الحفظ =====
-         مسار واحد لكل كتابة. يكتب في القاعدة حين تتوفّر،
-         ويحتفظ بنسخة محلّية كمخزن مؤقّت للعمل بلا اتصال.
-         والتأخير يجمع ضربات المفاتيح المتتابعة في طلب واحد. */
+         نسخة localStorage هنا كمسودة تعافٍ فقط؛ المصدر النهائي هو
+         RPC واحدة تنفذ تحديث المصنع والمنتجات والمنشورات داخل معاملة. */
       var saveTimer = null;
       var savePending = false;
+      var saveInFlight = false;
+      var saveQueued = false;
 
-      function save() {
-        /* الحاجز الأخير في الواجهة: أي مسار كتابة يمرّ من هنا.
-           والحاجز الحقيقي RLS على الخادم — هذا لتوفير الطلبات
-           الفاشلة لا للأمان. */
-        if (!canEdit) return;
+      function newClientKey() {
+        if (window.crypto && typeof window.crypto.randomUUID === "function") {
+          return window.crypto.randomUUID();
+        }
+        return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
+          var r = Math.random() * 16 | 0;
+          return (c === "x" ? r : (r & 3 | 8)).toString(16);
+        });
+      }
 
-        /* نسخة محلّية فورية: لا تُفقد الكتابة إن انقطع الاتصال */
+      function ensureClientKeys() {
+        (data.products || []).forEach(function (item) {
+          if (!item.client_key) item.client_key = newClientKey();
+        });
+        (data.posts || []).forEach(function (item) {
+          if (!item.client_key) item.client_key = newClientKey();
+        });
+      }
+
+      function showSaveProblem(message) {
+        storageWarning.textContent = message || "تعذّر حفظ التغييرات. تحقق من الاتصال ثم حاول مرة أخرى.";
+        storageWarning.classList.add("show");
+      }
+
+      function saveLocalDraft() {
         allFactories[factoryId] = data;
         try {
           localStorage.setItem(STORE_KEY, JSON.stringify(allFactories));
-          storageWarning.classList.remove("show");
+          return true;
         } catch (err) {
-          storageWarning.classList.add("show");
+          showSaveProblem("تعذّر حفظ المسودة المحلية؛ ارفع الصور إلى التخزين أولًا.");
+          return false;
         }
+      }
 
+      function save() {
+        if (!canEdit) return;
+        ensureClientKeys();
+        saveLocalDraft();
         if (!factoryRow) return;
+
         savePending = true;
         if (saveTimer) clearTimeout(saveTimer);
         saveTimer = setTimeout(pushToDb, 700);
       }
 
-      /* دفع بيانات المصنع إلى القاعدة.
-         المنتجات والمنشورات لهما جدولان مستقلّان، فتُدفع كلٌّ
-         على حدة عبر حذف الصفوف وإعادة إدراجها — أبسط من
-         مطابقة الفروق، والأعداد صغيرة (خمس منتجات لا آلاف). */
       function pushToDb() {
-        if (!canEdit || !factoryRow || !window.sb) return;
+        if (!canEdit || !factoryRow || !window.sb || !savePending) {
+          return Promise.resolve();
+        }
+        if (saveInFlight) {
+          saveQueued = true;
+          return Promise.resolve();
+        }
+
+        ensureClientKeys();
+        saveInFlight = true;
         savePending = false;
+        storageWarning.classList.remove("show");
 
-        sb.from("factories").update({
-          name:         data.name || "",
-          about:        data.about || "",
-          cover:        data.cover || "",
-          logo:         data.logo || "",
-          website:      data.website || "",
-          industry:     data.industry || "",
-          company_size: data.company_size || ""
-        }).eq("id", factoryRow.id).then(function (res) {
-          if (res.error) console.warn("factory save:", res.error.message);
+        return sb.rpc("save_factory_content", {
+          p_factory_id: factoryRow.id,
+          p_factory: {
+            name: data.name || "",
+            about: data.about || "",
+            cover: data.cover || "",
+            logo: data.logo || "",
+            website: data.website || "",
+            industry: data.industry || "",
+            company_size: data.company_size || ""
+          },
+          p_products: (data.products || []).map(function (pr) {
+            return {
+              client_key: pr.client_key,
+              images: (pr.images || []).slice(0, 5),
+              name: pr.name || "",
+              price: pr.price == null ? "" : String(pr.price)
+            };
+          }),
+          p_posts: (data.posts || []).map(function (po) {
+            return {
+              client_key: po.client_key,
+              body: po.body || "",
+              image: po.image || "",
+              video: po.video || ""
+            };
+          }),
+          p_expected_updated_at: factoryRow.updated_at || null
+        }).then(function (res) {
+          if (res.error) throw res.error;
+          if (res.data && res.data.factory) {
+            factoryRow.updated_at = res.data.factory.updated_at;
+          }
+          saveLocalDraft();
+          storageWarning.classList.remove("show");
+        }).catch(function (err) {
+          savePending = true;
+          console.warn("atomic factory save:", err && err.message);
+          showSaveProblem(err && err.message);
+        }).then(function () {
+          saveInFlight = false;
+          if (saveQueued) {
+            saveQueued = false;
+            savePending = true;
+            return pushToDb();
+          }
+          return null;
         });
-
-        /* المنتجات */
-        sb.from("products").delete().eq("factory_id", factoryRow.id)
-          .then(function () {
-            var rows = (data.products || []).map(function (pr, i) {
-              return {
-                factory_id: factoryRow.id,
-                images: (pr.images || []).slice(0, 5),
-                name: pr.name || "",
-                price: pr.price ? Number(pr.price) : null,
-                sort_order: i
-              };
-            });
-            if (!rows.length) return null;
-            return sb.from("products").insert(rows);
-          })
-          .then(function (res) {
-            if (res && res.error) console.warn("products save:", res.error.message);
-          });
-
-        /* المنشورات */
-        sb.from("posts").delete().eq("factory_id", factoryRow.id)
-          .then(function () {
-            var rows = (data.posts || []).map(function (po) {
-              return {
-                factory_id: factoryRow.id,
-                body: po.body || "",
-                image: po.image || "",
-                video: po.video || "",
-                created_at: po.created_at || new Date().toISOString()
-              };
-            });
-            if (!rows.length) return null;
-            return sb.from("posts").insert(rows);
-          })
-          .then(function (res) {
-            if (res && res.error) console.warn("posts save:", res.error.message);
-          });
       }
 
-      /* الكتابة المعلّقة تُدفع قبل مغادرة الصفحة */
-      window.addEventListener("beforeunload", function () {
-        if (savePending) pushToDb();
+      /* لا نعتمد على طلب شبكة أثناء الإغلاق. نحذّر المستخدم فقط كي
+         يبقى حتى يكتمل الحفظ المؤكد في الخادم. */
+      window.addEventListener("beforeunload", function (event) {
+        if (!savePending && !saveInFlight) return;
+        event.preventDefault();
+        event.returnValue = "";
       });
 
       /* تصغير الصورة قبل الحفظ حتى لا تمتلئ مساحة التخزين بسرعة */
@@ -1523,8 +1558,17 @@
         var reader = new FileReader();
         reader.onload = function (e) {
           resizeImage(e.target.result, target.maxSize, function (resized) {
-            target.onPicked(resized);
-            save();
+            target.onPicked(resized); // معاينة مؤقتة فقط
+            if (window.SFUpload && window.SF_USER) {
+              SFUpload.uploadDataUrl(resized, "factory-media", "factory-" + factoryId, "image")
+                .then(function (uploaded) {
+                  target.onPicked(uploaded.url);
+                  save();
+                })
+                .catch(function (err) { showSaveProblem(err && err.message); });
+            } else {
+              save();
+            }
           });
         };
         reader.readAsDataURL(file);
@@ -1555,12 +1599,16 @@
           return;
         }
 
-        var reader = new FileReader();
-        reader.onload = function (e) {
-          onPicked(e.target.result);
-          save();
-        };
-        reader.readAsDataURL(file);
+        if (window.SFUpload && window.SF_USER) {
+          SFUpload.uploadFile(file, "factory-media", "factory-" + factoryId, "video")
+            .then(function (uploaded) {
+              onPicked(uploaded.url);
+              save();
+            })
+            .catch(function (err) { showSaveProblem(err && err.message); });
+        } else {
+          alert("يجب تسجيل الدخول لرفع المقطع");
+        }
       });
 
       function fillSlot(el, dataUrl) {
@@ -1823,9 +1871,14 @@
         return data.industry;
       }
 
+      function safeExternalUrl(raw) {
+        var value = String(raw || "").trim();
+        return /^https?:\/\//i.test(value) ? value : "#";
+      }
+
       function renderAbout() {
         document.getElementById("v-website").textContent = data.website || "";
-        document.getElementById("v-website").href = data.website || "#";
+        document.getElementById("v-website").href = safeExternalUrl(data.website);
         document.getElementById("v-industry").textContent = industryLabel();
         document.getElementById("v-size").textContent = data.company_size || "";
         document.getElementById("v-hq").textContent = hqText();
@@ -2106,7 +2159,7 @@
 
       if (canEdit && addPostBtn) {
         addPostBtn.addEventListener("click", function () {
-          data.posts.unshift({ body: "", image: "", video: "", created_at: new Date().toISOString() });
+          data.posts.unshift({ client_key: newClientKey(), body: "", image: "", video: "", created_at: new Date().toISOString() });
           save();
           renderPosts();
         });
@@ -2460,7 +2513,7 @@
 
       if (canEdit) {
         addProductBtn.addEventListener("click", function () {
-          data.products.push({ images: [], name: "", price: "" });
+          data.products.push({ client_key: newClientKey(), images: [], name: "", price: "" });
           save();
           renderProducts();
           renderHead();
@@ -2493,6 +2546,8 @@
 
         data.products = (products || []).map(function (pr) {
           return {
+            id: pr.id,
+            client_key: pr.client_key || newClientKey(),
             images: pr.images && pr.images.length ? pr.images
                     : (pr.image ? [pr.image] : []),
             name: pr.name || "",
@@ -2502,6 +2557,8 @@
 
         data.posts = (posts || []).map(function (po) {
           return {
+            id: po.id,
+            client_key: po.client_key || newClientKey(),
             body: po.body || "",
             image: po.image || "",
             video: po.video || "",
@@ -2529,7 +2586,7 @@
       if (window.sb && window.SF_AUTH_READY) {
         SF_AUTH_READY.then(function () {
           return sb.from("factories")
-            .select("id, owner_id, status, name, about, cover, logo, website, industry, company_size, address_city, address_district")
+            .select("id, owner_id, status, name, about, cover, logo, website, industry, company_size, address_city, address_district, updated_at")
             .eq("id", factoryId)
             .maybeSingle();
         }).then(function (res) {
