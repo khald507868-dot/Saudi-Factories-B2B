@@ -269,6 +269,49 @@
 
   .act-btn.outline:active { background: #f0f4f1; }
 
+
+/* شريط المشتريات السفليّ — يظهر بعد الإضافة للسلة.
+   مركّز بـ translateX(-50%) لا بـ right/left: لا يحتاج نظيرًا لـ dir=ltr.
+   والحشو السفليّ يحترم شريط الهاتف السفليّ (52px) والـ safe-area. */
+.cart-toast {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%) translateY(140%);
+  bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  max-width: calc(100% - 28px);
+  padding: 12px 18px;
+  border-radius: 14px;
+  background: #0f3d21;
+  color: #ffffff;
+  box-shadow: 0 6px 22px rgba(4, 54, 27, .28);
+  font-size: 14px;
+  opacity: 0;
+  pointer-events: none;
+  transition: transform .28s ease, opacity .28s ease;
+}
+.cart-toast.is-open {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+.cart-toast-count { font-weight: 700; white-space: nowrap; }
+.cart-toast-link {
+  color: #ffffff;
+  text-decoration: none;
+  font-weight: 700;
+  white-space: nowrap;
+  padding: 7px 15px;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, .17);
+}
+.cart-toast-link:hover { background: rgba(255, 255, 255, .27); }
+@media (prefers-reduced-motion: reduce) {
+  .cart-toast { transition: none; }
+}
 </style>
 <link rel="stylesheet" href="mobile.css">
 <link rel="stylesheet" href="desktop.css">
@@ -427,6 +470,31 @@
             escapeHTML(I18N.t("product_start_chat")) + '</a>' +
         '</div>';
 
+      /* شريط سفليّ يظهر بعد الإضافة: يعدّ ما في السلة ويفتحها.
+         مركّز أفقيًا لا ملصقًا بحافة، فيستقيم في اتجاهي القراءة معًا. */
+      var cartBar = null;
+      function showCartBar() {
+        if (!cartBar) {
+          cartBar = document.createElement("div");
+          cartBar.className = "cart-toast";
+          cartBar.innerHTML =
+            '<span class="cart-toast-count"></span>' +
+            '<a class="cart-toast-link" href="web-cart.html"></a>';
+          document.body.appendChild(cartBar);
+        }
+        cartBar.querySelector(".cart-toast-link").textContent = I18N.t("cart_view_cart");
+        var countEl = cartBar.querySelector(".cart-toast-count");
+        countEl.textContent = I18N.t("product_added_to_cart");
+        cartBar.classList.add("is-open");
+        if (window.SFCommerce && window.SFCommerce.loadCart) {
+          SFCommerce.loadCart().then(function (items) {
+            var n = 0;
+            (items || []).forEach(function (it) { n += Number(it.quantity || 0); });
+            if (n > 0) countEl.textContent = n + " " + I18N.t("cart_items_count");
+          }).catch(function () {});
+        }
+      }
+
       function bindCartButton() {
         var cartButton = wrap.querySelector(".add-cart-btn");
         if (!cartButton) return;
@@ -436,7 +504,13 @@
           cartButton.disabled = true;
           SFCommerce.addToCart(product.id, 1).then(function () {
             cartButton.textContent = I18N.t("product_added_to_cart");
-            setTimeout(function () { window.location.href = "web-cart.html"; }, 350);
+            /* لا نقل قسري للسلة (طلب المالك): يبقى المشتري ليواصل
+               التسوّق، وشريط سفليّ يبيّن عدد المشتريات ويفتح السلة. */
+            setTimeout(function () {
+              cartButton.disabled = false;
+              cartButton.textContent = I18N.t("product_add_to_cart");
+            }, 1600);
+            showCartBar();
           }).catch(function (err) {
             cartButton.disabled = false;
             cartButton.textContent = err && err.message ? err.message : I18N.t("fx_failed");
