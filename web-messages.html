@@ -1398,12 +1398,42 @@
       function openFromQuery() {
         var params = new URLSearchParams(window.location.search);
 
-        /* ?open=<threadId> — تأتي من لوحة المراسلات في صفحة المصنع،
-           وتفتح محادثة قائمة بمعرّفها مباشرة بدل إنشائها من رقم مصنع. */
+        /* ?open=<threadId> — تأتي من لوحة المراسلات في صفحة المصنع.
+           صيغتان تصلان هنا: رقم المحادثة من الخادم ("12")،
+           والمعرّف القديم من localStorage ("factory-8"). الثانية لا تطابق
+           مفاتيح threads بعد ربط الرسائل بالقاعدة — فكانت المحادثة
+           تظهر في اللوحة ولا تُفتح هنا. نقبل الاثنتين. */
         var openId = params.get("open");
-        if (openId && threads[openId]) {
-          openChat(openId);
-          return;
+        if (openId) {
+          if (threads[openId]) { openChat(openId); return; }
+
+          var m = String(openId).match(/^factory-(\d+)$/);
+          if (m) {
+            var wantFactory = Number(m[1]);
+            var found = null;
+            Object.keys(threads).forEach(function (k) {
+              if (!found && Number(threads[k].factory_id) === wantFactory) found = k;
+            });
+            if (found) { openChat(found); return; }
+
+            /* لا محادثة بعد — أنشئها على الخادم ثمّ افتحها. */
+            if (window.SFMessages && window.SF_USER) {
+              SFMessages.ensureFactoryConversation(wantFactory).then(function () {
+                return SFMessages.load();
+              }).then(function (fresh) {
+                threads = fresh;
+                renderThreadList();
+                var hit = null;
+                Object.keys(threads).forEach(function (k) {
+                  if (!hit && Number(threads[k].factory_id) === wantFactory) hit = k;
+                });
+                if (hit) openChat(hit);
+              }).catch(function (err) {
+                console.warn("open conversation:", err && err.message);
+              });
+            }
+            return;
+          }
         }
 
         var fid = params.get("factory");
