@@ -525,6 +525,87 @@
     color: #04361b;
     font-weight: 700;
   }
+
+/* صفّ السلة: صورة + وصف + عدّاد وحذف.
+   flex يتبع اتجاه القراءة تلقائيًا، فلا يلزم نظير لـ dir=ltr. */
+.cart-row {
+  background: #fff;
+  border-radius: 14px;
+  padding: 12px;
+  margin-bottom: 10px;
+  box-shadow: 0 2px 10px rgba(4, 54, 27, .06);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.cart-row .ci-thumb {
+  width: 68px;
+  height: 68px;
+  flex: 0 0 68px;
+  border-radius: 10px;
+  background: #eef2ef;
+  overflow: hidden;
+}
+.cart-row .ci-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.cart-row .ci-mid { flex: 1 1 auto; min-width: 0; }
+.cart-row .ci-name {
+  display: block;
+  font-size: 15px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cart-row .ci-factory { color: #5c6b62; font-size: 12px; margin-top: 2px; }
+.cart-row .ci-unit { color: #5c6b62; font-size: 12px; margin-top: 4px; }
+.cart-row .ci-end {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 7px;
+  flex: 0 0 auto;
+}
+.cart-row .ci-price { font-size: 15px; white-space: nowrap; }
+.cart-row .ci-qty {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  border: 1px solid #d9e2dc;
+  border-radius: 9px;
+  overflow: hidden;
+}
+.cart-row .ci-qty button {
+  width: 30px;
+  height: 30px;
+  border: 0;
+  background: #f4f7f5;
+  color: #0f3d21;
+  font-size: 17px;
+  line-height: 1;
+  cursor: pointer;
+}
+.cart-row .ci-qty button:hover:not(:disabled) { background: #e6ece8; }
+.cart-row .ci-qty button:disabled { opacity: .5; cursor: default; }
+.cart-row .ci-count {
+  min-width: 34px;
+  text-align: center;
+  font-weight: 700;
+  font-size: 14px;
+}
+.cart-row .ci-remove {
+  border: 0;
+  background: none;
+  color: #a3413a;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 2px 4px;
+}
+.cart-row .ci-remove:hover:not(:disabled) { text-decoration: underline; }
+.cart-row .ci-remove:disabled { opacity: .5; cursor: default; }
 </style>
 <link rel="stylesheet" href="mobile.css">
 <link rel="stylesheet" href="desktop.css">
@@ -752,12 +833,74 @@
           var price = Number(product.price || 0);
           var quantity = Number(item.quantity || 0);
           total += price * quantity;
+
+          /* صورة المنتج: رابط Storage فقط — قيم base64 القديمة مقصوصة عند 2048 حرفًا. */
+          var img = "";
+          (product.images || []).forEach(function (u) {
+            if (!img && typeof u === "string" && u.indexOf("http") === 0) img = u;
+          });
+          if (!img && typeof product.image === "string" && product.image.indexOf("http") === 0) img = product.image;
+
           var row = document.createElement("div");
-          row.style.cssText = "background:#fff;border-radius:14px;padding:14px;margin-bottom:10px;box-shadow:0 2px 10px rgba(4,54,27,.06);display:flex;justify-content:space-between;gap:12px;";
-          row.innerHTML = "<div><strong class='ci-name'></strong><div class='ci-factory' style='color:#5c6b62;font-size:12px;'></div></div><strong class='ci-price'></strong>";
+          row.className = "cart-row";
+          row.innerHTML =
+            '<div class="ci-thumb"></div>' +
+            '<div class="ci-mid">' +
+              '<strong class="ci-name"></strong>' +
+              '<div class="ci-factory"></div>' +
+              '<div class="ci-unit"></div>' +
+            '</div>' +
+            '<div class="ci-end">' +
+              '<strong class="ci-price"></strong>' +
+              '<div class="ci-qty">' +
+                '<button type="button" class="ci-minus" aria-label="إنقاص">−</button>' +
+                '<span class="ci-count"></span>' +
+                '<button type="button" class="ci-plus" aria-label="زيادة">+</button>' +
+              '</div>' +
+              '<button type="button" class="ci-remove">حذف</button>' +
+            '</div>';
+
+          if (img) {
+            var im = document.createElement("img");
+            im.src = img;
+            im.alt = product.name || "";
+            im.loading = "lazy";
+            row.querySelector(".ci-thumb").appendChild(im);
+          }
           row.querySelector(".ci-name").textContent = product.name || "منتج";
           row.querySelector(".ci-factory").textContent = (product.factories && product.factories.name) || "";
+          row.querySelector(".ci-unit").textContent = price.toFixed(2) + " ر.س للحبة";
           row.querySelector(".ci-price").textContent = (price * quantity).toFixed(2) + " ر.س";
+          row.querySelector(".ci-count").textContent = quantity;
+
+          /* كلّ تغيير يمرّ بالخادم ثمّ يُعاد البناء من ردّه،
+             فلا ينحرف المعروض عنّ المحفوظ إن رُفضت الكتابة. */
+          function apply(promise, btns) {
+            btns.forEach(function (b) { if (b) b.disabled = true; });
+            promise.then(function () {
+              return SFCommerce.loadCart();
+            }).then(function (fresh) {
+              renderCart(fresh);
+            }).catch(function (err) {
+              btns.forEach(function (b) { if (b) b.disabled = false; });
+              alert((err && err.message) || "تعذّر التحديث");
+            });
+          }
+
+          var minus = row.querySelector(".ci-minus");
+          var plus = row.querySelector(".ci-plus");
+          var del = row.querySelector(".ci-remove");
+          var all = [minus, plus, del];
+          minus.addEventListener("click", function () {
+            apply(SFCommerce.setQuantity(item.id, quantity - 1), all);
+          });
+          plus.addEventListener("click", function () {
+            apply(SFCommerce.setQuantity(item.id, quantity + 1), all);
+          });
+          del.addEventListener("click", function () {
+            apply(SFCommerce.removeItem(item.id), all);
+          });
+
           cartItemsEl.appendChild(row);
         });
         var hasItems = items.length > 0;
@@ -765,34 +908,39 @@
         emptyCartEl.style.display = hasItems ? "none" : "flex";
         totalEl.textContent = total.toFixed(2) + " ر.س";
         checkoutBtn.disabled = !hasItems;
+        /* يُربط هنا لا في loadCart: بعد حذف منتج أو تغيير كمية
+           كان الزرّ يحتجز قائمة قديمة تشمل المحذوف. */
+        bindCheckout(items);
         return total;
+      }
+
+      function bindCheckout(items) {
+        checkoutBtn.onclick = function () {
+          var factories = {};
+          items.forEach(function (item) {
+            var p = item.products || {};
+            factories[p.factory_id] = true;
+          });
+          var ids = Object.keys(factories);
+          if (ids.length !== 1) {
+            alert("قسّم السلة إلى طلب مستقل لكل مصنع");
+            return;
+          }
+          checkoutBtn.disabled = true;
+          SFCommerce.createOrder(ids[0]).then(function (order) {
+            alert("تم إرسال الطلب رقم " + order.id + " بنجاح. سيتواصل معك المصنع لتنسيق الدفع.");
+            return SFCommerce.loadCart();
+          }).then(renderCart).catch(function (err) {
+            checkoutBtn.disabled = false;
+            alert((err && err.message) || "تعذّر إنشاء الطلب");
+          });
+        };
       }
 
       function loadCart() {
         if (!window.SFCommerce || !window.SF_USER) return;
-        SFCommerce.loadCart().then(function (items) {
-          renderCart(items);
-          checkoutBtn.onclick = function () {
-            var factories = {};
-            items.forEach(function (item) {
-              var p = item.products || {};
-              factories[p.factory_id] = true;
-            });
-            var ids = Object.keys(factories);
-            if (ids.length !== 1) {
-              alert("قسّم السلة إلى طلب مستقل لكل مصنع");
-              return;
-            }
-            checkoutBtn.disabled = true;
-            SFCommerce.createOrder(ids[0]).then(function (order) {
-              alert("تم إرسال الطلب رقم " + order.id + " بنجاح. سيتواصل معك المصنع لتنسيق الدفع.");
-              return SFCommerce.loadCart();
-            }).then(renderCart).catch(function (err) {
-              checkoutBtn.disabled = false;
-              alert((err && err.message) || "تعذّر إنشاء الطلب");
-            });
-          };
-        }).catch(function (err) { console.warn("cart load:", err && err.message); });
+        SFCommerce.loadCart().then(renderCart)
+          .catch(function (err) { console.warn("cart load:", err && err.message); });
       }
       if (window.SF_AUTH_READY) SF_AUTH_READY.then(loadCart); else loadCart();
     })();

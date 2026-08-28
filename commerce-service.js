@@ -29,6 +29,27 @@
         return res.data;
       });
     },
+    /* تعديل الكمية والحذف: سياسة cart_items_own تغطّي for all
+     * مشروطة بـ owns_cart، فالخادم يرفض المسّ بسلة لا تخصّ المستخدم. */
+    setQuantity: function (itemId, quantity) {
+      var q = Number(quantity);
+      if (!(q > 0)) return this.removeItem(itemId);
+      if (q > 100000) return Promise.reject(new Error("الكمية كبيرة جداً"));
+      return ready().then(function () {
+        return root.sb.from("cart_items").update({ quantity: q }).eq("id", itemId).select();
+      }).then(function (res) {
+        if (res.error) throw res.error;
+        return res.data;
+      });
+    },
+    removeItem: function (itemId) {
+      return ready().then(function () {
+        return root.sb.from("cart_items").delete().eq("id", itemId).select();
+      }).then(function (res) {
+        if (res.error) throw res.error;
+        return res.data;
+      });
+    },
     createOrder: function (factoryId) {
       return ready().then(function () {
         return root.sb.rpc("create_order_from_cart", {
