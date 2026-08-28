@@ -449,7 +449,14 @@
         if (!row) return;
         product = row;
         factory = row.factories || factory;
-        var liveImage = row.image || (row.images && row.images[0]) || factory.cover || "";
+        /* رابط Storage أولاً — دالة الحفظ تقصّ عند 2048 حرفًا،
+           فتصل قيمة base64 مقصوصة لا يعرضها المتصفّح. */
+        var liveImage = "";
+        (row.images || []).forEach(function (u) {
+          if (!liveImage && typeof u === "string" && u.indexOf("http") === 0) liveImage = u;
+        });
+        if (!liveImage && typeof row.image === "string" && row.image.indexOf("http") === 0) liveImage = row.image;
+        if (!liveImage) liveImage = factory.cover || "";
         var hero = wrap.querySelector(".product-hero");
         if (hero) hero.innerHTML = liveImage ? '<img alt="" src="' + escapeHTML(liveImage) + '">' : imageIcon;
         var title = wrap.querySelector(".prod-name");

@@ -1340,7 +1340,15 @@
         var html = '';
         rows.forEach(function (row) {
           var factory = row.factories || {};
-          var image = row.image || factory.cover || '';
+          /* رابط Storage أولاً: دالة الحفظ تقصّ كل قيمة عند 2048 حرفًا،
+             وهو حدّ مصمّم لرابط (~170 حرفًا) لا لـ base64 (عشرات الآلاف)،
+             فـ row.image يصل جذاذة تالفة لا يعرضها المتصفّح. */
+          var image = '';
+          (row.images || []).forEach(function (u) {
+            if (!image && typeof u === 'string' && u.indexOf('http') === 0) image = u;
+          });
+          if (!image && typeof row.image === 'string' && row.image.indexOf('http') === 0) image = row.image;
+          if (!image) image = factory.cover || '';
           var name = row.name || factory.name || '';
           var price = row.price || '';
 
@@ -1380,7 +1388,7 @@
 
       ready.then(function () {
         return sb.from('products')
-          .select('id, factory_id, name, price, image, factories(name, cover)')
+          .select('id, factory_id, name, price, image, images, factories(name, cover)')
           .order('sort_order')
           .limit(LIMIT);
       }).then(function (res) {

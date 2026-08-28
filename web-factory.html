@@ -1489,7 +1489,12 @@
           }).map(function (pr) {
             return {
               client_key: pr.client_key,
-              images: (pr.images || []).slice(0, 5),
+              /* روابط Storage فقط: save_factory_content يقصّ كل قيمة
+                 عند 2048 حرفًا وهو حدّ رابط، فـ base64 يصل مقصوصًا
+                 ويُعطّل عرض الصورة للمشترين. الرفع يتمّ عبر SFUpload. */
+              images: (pr.images || []).filter(function (u) {
+                return typeof u === "string" && u.indexOf("http") === 0;
+              }).slice(0, 5),
               name: pr.name || "",
               price: pr.price == null ? "" : String(pr.price)
             };
