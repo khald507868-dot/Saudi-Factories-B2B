@@ -748,10 +748,10 @@
           total += price * quantity;
           var row = document.createElement("div");
           row.style.cssText = "background:#fff;border-radius:14px;padding:14px;margin-bottom:10px;box-shadow:0 2px 10px rgba(4,54,27,.06);display:flex;justify-content:space-between;gap:12px;";
-          row.innerHTML = "<div><strong></strong><div style='color:#5c6b62;font-size:12px;'></div></div><strong></strong>";
-          row.querySelector("strong").textContent = product.name || "منتج";
-          row.querySelector("div div").textContent = (product.factories && product.factories.name) || "";
-          row.querySelectorAll("strong")[1].textContent = (price * quantity).toFixed(2) + " ر.س";
+          row.innerHTML = "<div><strong class='ci-name'></strong><div class='ci-factory' style='color:#5c6b62;font-size:12px;'></div></div><strong class='ci-price'></strong>";
+          row.querySelector(".ci-name").textContent = product.name || "منتج";
+          row.querySelector(".ci-factory").textContent = (product.factories && product.factories.name) || "";
+          row.querySelector(".ci-price").textContent = (price * quantity).toFixed(2) + " ر.س";
           cartItemsEl.appendChild(row);
         });
         var hasItems = items.length > 0;
