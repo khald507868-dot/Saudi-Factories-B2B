@@ -739,6 +739,12 @@
       });
 
       function renderCart(items) {
+        /* تجاهل أي صفّ منتج بلا اسم ولا سعر: منعُ حفظه من صفحة
+           المصنع هو الأصل، وهذا حاجز ثانٍ لصفوف أُنشئت قبله. */
+        items = (items || []).filter(function (it) {
+          var p = it.products || {};
+          return String(p.name || "").trim() !== "" || Number(p.price || 0) > 0;
+        });
         var total = 0;
         cartItemsEl.innerHTML = "";
         items.forEach(function (item) {

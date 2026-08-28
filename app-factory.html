@@ -721,7 +721,14 @@
             industry: data.industry || "",
             company_size: data.company_size || ""
           },
-          p_products: (data.products || []).map(function (pr) {
+          /* منتج بلا اسم ولا سعر ولا صورة لا يُرسل للقاعدة —
+             نفس ترشيح web-factory.html. زر إضافة منتج يدفع صفّاً
+             فارغًا ليُعبّأ، فإن حُفظ ظهر للمشترين بـ 0.00 ر.س. */
+          p_products: (data.products || []).filter(function (pr) {
+            var nm = String(pr.name || "").trim();
+            var pc = String(pr.price == null ? "" : pr.price).trim();
+            return nm !== "" || pc !== "" || !!pr.image;
+          }).map(function (pr) {
             return {
               client_key: pr.client_key,
               images: pr.image ? [pr.image] : [],
