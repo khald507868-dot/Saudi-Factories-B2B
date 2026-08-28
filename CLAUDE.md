@@ -84,8 +84,11 @@ grep -oh 'href="[a-z][a-z0-9._-]*\.html' *.html | sed 's/href="//' | sort -u \
 grep -o 'href="app-[a-z-]*\.html' web-*.html | sort -u
 grep -o 'href="web-[a-z-]*\.html' app-*.html | sort -u
 
-# which pages actually query the database (prose mentions don't count)
-for f in web-*.html index.html; do echo "$(grep -oc 'sb\.from(' "$f" || true) $f"; done
+# which pages actually query the database -- count the services too, and note
+# index.html quotes it sb.from('products') with SINGLE quotes
+for f in web-*.html index.html; do
+  echo "$(grep -oc "sb\.from(\|sb\.rpc(\|SFCommerce\.\|SFMessages\.\|SFUpload\." "$f" || true) $f"
+done
 
 # which pages really load a shared asset (tag, not name — see the grep trap)
 grep -c '<link[^>]*desktop\.css' index.html
@@ -188,9 +191,13 @@ Edit listeners are registered at build time, so a change in ownership needs one 
 
 The page renders from `localStorage` first and swaps in database rows when they arrive, because ownership isn't known until the network answers and the owner shouldn't stare at a blank page.
 
-### Messaging
+### Messaging — backed by the database since 2026-08-27
 
-Stored entirely in `localStorage` under `sf_messages`. **Not migrated to the backend** — `conversations` and `messages` tables exist but nothing reads or writes them, so both sides of a conversation are the same browser. Don't describe it as real-time or as delivering anything to a factory; say it's local-only.
+**This section used to say messaging was `localStorage`-only. That is no longer true**, and the stale claim misled a session. `messages-service.js` (`SFMessages`) reads and writes the `conversations` / `messages` tables, and `SFMessages.subscribe` opens a realtime subscription — the two sides of a conversation are now genuinely different browsers.
+
+`web-messages.html` and `app-messages.html` still *define* `STORE_KEY = "sf_messages"` and still paint from it on first load, but `SFMessages.load()` then does `threads = remoteThreads` — a **whole-object replacement**, not a merge. Grepping for `sf_messages` therefore finds hits on pages that are fully server-backed; check what assigns to `threads` instead.
+
+**Thread keys are the conversation's database id** (`String(row.id)`), not the old `factory-<n>` form. The msg-dock in `web-factory.html` still builds `?open=factory-<n>` links from the legacy shape, so `openFromQuery()` accepts **both**: it tries the key directly, then falls back to matching on `factory_id`, and creates the conversation server-side if none exists. **Any new code that keys a thread must not assume either format.**
 
 ### Mobile layer (`mobile.css`)
 
@@ -297,6 +304,105 @@ Coverage tiers, the `awk` insertion technique, and the orphaned keys (which must
 
 **Wire new UI to i18n immediately.** Hardcoding Arabic into new buttons produced a visibly mixed interface and the question "لماذا يوجد بالعربي والانقليزي". Check for an existing key first.
 
+## The service layer — the exception to "no shared page-JS"
+
+**Added 2026-08-27 in four merged PRs, and it contradicts a rule stated elsewhere in this file.**
+Sections below still say *"this project has no shared page-JS file"* as the reason `.dash-side` and
+the four-line factory-id query are duplicated per page. **That reason no longer holds** — four shared
+JS files now exist. The duplication is still there, but treat it as history, not as a rule to uphold.
+
+Each file is the same IIFE-over-`global` shape as `i18n.js` and `auth-guard.js`, and each opens with a
+`ready()` guard that rejects (with an Arabic message) unless both `sb` and `SF_USER` exist.
+
+| file | global | methods | loaded by |
+|---|---|---|---|
+| `commerce-service.js` | `SFCommerce` | `loadCart` `addToCart` `setQuantity` `removeItem` `createOrder` | `web-cart`, `app-cart`, `web-product` |
+| `messages-service.js` | `SFMessages` | `load` `ensureFactoryConversation` `sendText` `sendAttachment` `subscribe` | `web-messages`, `app-messages` |
+| `media-upload.js` | `SFUpload` | `uploadFile` `uploadDataUrl` | `web-factory`, `app-factory`, `web-profile`, `app-profile` |
+| `payment-provider.js` | `SFPayment` | `isEnabled` `start` | **no page loads it** |
+
+**Script order gained a slot.** It is now `i18n` → CDN → `supabase-config` (defines `sb`) → *services*
+→ `auth-guard`. Services must come after `supabase-config`; they read `SF_USER` lazily so they may sit
+either side of `auth-guard`, and both orders are present in the tree.
+
+**`grep 'sb.from('` is no longer a valid census of which pages touch the database.** `web-cart` and
+`web-messages` report **zero** while being the most database-driven pages in the project — they go
+through the services. Count `SFCommerce\.|SFMessages\.|SFUpload\.|sb\.rpc(` too, and note that
+`index.html` quotes its call as `sb.from('products')` with single quotes, which a double-quoted grep
+misses.
+
+### Server-side RPCs — where the money logic lives
+
+Four RPCs are called from the client: `get_or_create_cart`, `add_to_cart`, `create_order_from_cart`,
+`save_factory_content`.
+
+**`create_order_from_cart` accepts no amount from the client.** It computes
+`sum(quantity * coalesce(custom_price, price))` inside PostgreSQL and takes the buyer from
+`auth.uid()`. Price tampering is impossible *structurally*, not by a policy someone could forget.
+It also rejects an empty cart, caps quantity at 100000, refuses to mix two factories in one order,
+and de-duplicates via `idempotency_key`. **Never add a total/price parameter to this function.**
+
+**`save_factory_content` truncates every value with `left(value, 2048)`.** That limit is sized for a
+URL (~170 chars), not for base64 (tens of thousands) — a base64 image sent through it arrives as a
+corrupt fragment that renders as a grey box. This shipped: images looked lost, but the Storage upload
+had worked all along and the intact URL was sitting in `images[1]` while pages read the truncated
+`image` column. **Send Storage URLs only; filter `u.indexOf("http") === 0` before saving, and prefer
+`images[]` over `image` when reading.**
+
+### Storage buckets
+
+`factory-media` (covers, logos, product images, post video) and `chat-media` (message attachments).
+A `post-media` string appears once. Paths are `<user-id>/<folder>/<uuid>.<ext>`; Storage policies do
+the authorization, and an anonymous upload or delete is refused with `403`.
+
+### Migrations live in `supabase/migrations/`
+
+Three ordered files, all applied to the live database (verified 2026-08-28). **They are not
+`schema.sql`-style re-runnable-in-any-order** — apply in filename order.
+
+The ~20 loose `.sql` files still in the repo root are the older one-offs and check scripts described
+further down; they are not part of the migration sequence.
+
+Verifying what is actually applied, without `psql`: query the live REST API with the publishable key
+(see *Auditing the backend yourself* below), or paste `check-migrations.sql` into the SQL Editor.
+
+### Static validation (CI)
+
+`.github/workflows/validate.yml` runs `scripts/validate-static.py` on push and PR to `master`. It
+`node --check`s every inline `<script>` in every HTML file and checks dollar-quoting in the
+migrations. **It cannot run locally — there is no `node` here** — but the SQL half can:
+
+```bash
+python -c "
+from pathlib import Path
+for f in sorted(Path('supabase/migrations').glob('*.sql')):
+    t = f.read_text(encoding='utf-8')
+    if t.count('\$fn\$') % 2: print(f.name, 'unbalanced dollar quotes')
+"
+```
+
+Both files sat in the repo root at first, where GitHub never reads them and the declared
+`scripts/validate-static.py` path did not exist — so the check silently never ran. Moved 2026-08-28.
+
+### Auditing the backend yourself
+
+The publishable key in `supabase-config.js` is enough to read the database over REST, so you can
+verify data and attack RLS without waiting for the owner to paste anything:
+
+```bash
+KEY=$(grep -oE 'sb_publishable_[A-Za-z0-9_-]+' supabase-config.js | head -1)
+curl -s "https://yhofxryhlrrwzztfowpa.supabase.co/rest/v1/products?select=id,name,price" \
+  -H "apikey: $KEY" -H "Authorization: Bearer $KEY"
+```
+
+**Test security by attacking, and always send `Prefer: return=representation`.** A blocked write
+often answers `HTTP 200`/`204` — a success code — and only the returned `[]` proves zero rows were
+touched. Reading the status alone would have scored a *failed* privilege-escalation attempt as a
+breach. A full 13-attack pass is recorded in `SECURITY-AUDIT-2026-08-28.md`.
+
+Writes and deletes are blocked by the permission classifier, and that is correct — hand the owner a
+guarded `.sql` file instead. Keep `print()` output ASCII: this console is cp1252 and dies on Arabic.
+
 ## Backend (Supabase)
 
 The app got a real backend partway through its life, so **the codebase is mid-migration**: auth is on the server, everything else runs on `localStorage`. **Assume any page is *not* wired to the database unless you've checked.**
@@ -353,7 +459,7 @@ A page opts in by declaring the flag **before** `auth-guard.js` loads:
 
 The guard then skips the redirect when there's no session, but **still reads the session if one exists** — so the page knows whether the visitor is signed in (`SF_USER`).
 
-`sfRequireLogin(nextPage)` is the other half: returns `true` when signed in, otherwise sends the visitor to the register page. **It is defined but not yet called anywhere** — buy/cart/message buttons don't gate. Wiring them is the unfinished half of the owner's Alibaba flow.
+`sfRequireLogin(nextPage)` is the other half: returns `true` when signed in, otherwise sends the visitor to the register page. **It is now wired** — `web-product.html` calls it on both the add-to-cart button and the message buttons. The rest of the flow is gated a second way, at the service layer: every `SFCommerce` / `SFMessages` / `SFUpload` method starts with a `ready()` guard that rejects without `SF_USER`, so an ungated button fails with an Arabic message rather than a silent no-op.
 
 ### Password reset (`web-reset.html`) — web path only
 
@@ -479,32 +585,52 @@ So a factory account **always** has a factory row from the moment it exists, inv
 
 - **Email confirmation is now ENABLED**, and **`Allow anonymous sign-ins` must stay OFF.** Anonymous sign-ins were switched on by accident once; they hand every visitor the `authenticated` role, which opens every RLS policy written for signed-in users. If a policy suddenly looks too permissive, check that toggle before rewriting the policy.
 - **Supabase's built-in email sender is rate-limited** (a few messages per hour) — fine for testing, not for launch. A real sender (Resend or similar) is an outstanding item.
-- **The UI is mostly un-wired from the database.** Counting `sb.from(` per page — the only reliable test, since prose mentions don't count:
+- **Every `web-` page now reads real data — the fake-data generators are gone.** Verified
+  2026-08-28: no `for (i=1; i<=1000)` factory generator survives anywhere. Remember the census
+  caveat from the service-layer section — `grep 'sb.from('` under-reports badly.
 
-  | page | calls |
+  | page | data source |
   |---|---|
-  | `web-factory` | 8 — reads `factories`/`products`/`posts`, writes all three |
-  | `web-login`, `web-supplier` | 1 each — login reads the profile; registration writes no tables directly |
-  | `web-factories`, `index` | 1 each — **the 1000-card generators were deleted 2026-08-24** at the owner's request ("احذف جميع المصانع الوهمية"); both now read real rows and RLS does the filtering, so **don't add `eq("status","approved")`** — it would hide the owner's own pending factory from them |
-  | `web-admin` | 3 |
-  | `app-admin` | 2 |
-  | `web-account`, `web-settings`, `web-profile`, `app-login`, `app-factory` | 1 each |
-  | `app-register` | 0 — registration data is handled by `handle_new_user` |
-  | **everything else, both paths** | **0** |
+  | `index` | `products` + `factories` (`LIMIT = 24`) |
+  | `web-factories` | `factories` — RLS filters, so **don't add `eq("status","approved")`**; it would hide the owner's own pending factory from them |
+  | `web-factory` | `factories`/`products`/`posts` + `save_factory_content` + `SFUpload` |
+  | `web-product` | `products` — paints from `localStorage` first, then `applyLiveProduct(row)` swaps in the server row |
+  | `web-cart` | `SFCommerce` end to end: load, quantity, remove, order |
+  | `web-messages` | `SFMessages` with a realtime subscription |
+  | `web-account`, `web-settings`, `web-admin` | `factories` |
+  | `web-profile` | `profiles` + `factories` + `SFUpload` |
+  | `web-help`, `web-reset` | none — deliberate; `web-reset` must open for someone who cannot sign in |
 
-  `web-cart`, `web-messages`, `web-product`, `web-help` and the whole app path except `app-login`/`app-register`/`app-admin`/`app-factory` make **zero**. Cart, messaging, and product detail still render from `localStorage` — **don't describe them as showing real data.**
+  **The app path lags behind.** `app-cart` and `app-messages` do load the services, but the rest of
+  the app path is still mostly `localStorage`. `app-factory` renders its content from
+  `localStorage`; its database call reads `owner_id` for the ownership check only.
 
-  **The three dashboard pages' single call is the same 4-line query, duplicated.** `web-account`, `web-settings`, and `web-profile` each read `factories.id` by `owner_id` for one reason only: to build the "مصنعي" sidebar link, whose href needs a factory id the client cannot know. `web-admin` carries a fourth copy. It is duplicated rather than shared because this project has no shared page-JS file — the same reason `.dash-side` is duplicated per page. **Changing that link means a four-file edit**, and in `web-admin.html` the copy must stay **above** the `is_admin` gate that returns early, or it never runs for a non-admin factory owner.
+  **The three dashboard pages' single call is the same 4-line query, duplicated.** `web-account`,
+  `web-settings`, and `web-profile` each read `factories.id` by `owner_id` for one reason only: to
+  build the "مصنعي" sidebar link, whose href needs a factory id the client cannot know.
+  `web-admin` carries a fourth copy. **Changing that link means a four-file edit**, and in
+  `web-admin.html` the copy must stay **above** the `is_admin` gate that returns early, or it never
+  runs for a non-admin factory owner. (This was once justified by "no shared page-JS file" — see the
+  service-layer section; that justification has expired, the duplication has not.)
 
-  **`app-factory` renders its content from `localStorage`**; its single call reads `owner_id` for the ownership check only.
+- **The cart writes optimistically and reconciles from the server.** `−`/`+` repaint the row and the
+  total immediately, then a 400ms debounce sends one `setQuantity` for a burst of clicks. If the
+  write is refused, the page alerts and re-renders from `loadCart()` — the server stays the source of
+  truth. Pending writes are flushed before `createOrder` and on `beforeunload`, so an order is never
+  built on a quantity the server has not seen. **Delete is not debounced** — it is irreversible, so it
+  fires immediately and dims the row.
+
+  `web-product.html` deliberately does **not** redirect to the cart after adding (the owner asked to
+  keep shopping); it shows a bottom bar whose count comes from `loadCart()`, not a local counter.
 
 - **`web-factory.html` saves through a debounce, and products/posts are delete-then-insert.** `save()` writes `localStorage` immediately (so nothing is lost offline), then queues `pushToDb()` after 700ms; `beforeunload` flushes anything pending. Products and posts are replaced wholesale rather than diffed — fine at five products, and the reason a save is one round-trip per table, not per row.
 - **`web-product.html` renders from `localStorage`, and deliberately never refuses.** An earlier version bailed out with a "product not found" message when `sf_factories` held no entry for the requested index; that contradicted the card the user had just clicked. The page now always renders, showing what exists and hiding what doesn't, with the title falling back product name → factory name → `مصنع <n>`. **Don't reintroduce the guard.** (The `product_not_found` i18n key is now unused but stays — see the archive on not mass-deleting keys.)
 
   The original reason was that `web-home.html` fabricated bestseller cards for all 1000 factory slots, so most pointed at empty ones. **That generator is gone** — `index.html` now reads up to `LIMIT = 24` real rows from `products`, filtered by RLS. The guard still shouldn't come back: the page is public and reachable by direct URL.
 - `region_id` is never written at signup (no region field), so the map cannot find a region's factories.
-- Images are base64 in `localStorage`; the storage buckets exist but nothing writes to them.
-- `posts` and `custom_prices` are schema-only — the factory feed and private-price-in-chat are the next UI work.
+- **Images now upload to Storage** via `SFUpload`; `localStorage` base64 remains only as the first paint on some pages. Legacy rows may still hold a base64 `image` truncated at 2048 chars — see `save_factory_content` above; read `images[]` and prefer the `http` entry.
+- `posts` has a UI in `web-factory` (the المنشورات tab); `custom_prices` is still schema-only, though `create_order_from_cart` already honours it when pricing an order — private-price-in-chat is the remaining UI work.
+- **Online payment is deferred by explicit owner decision (2026-08-28).** Orders run on manual payment: the buyer submits, the factory contacts them. `payment-provider.js` is a neutral boundary that refuses every attempt and holds no keys — that is the design, not a gap. **Don't re-litigate it, and don't add gateway keys to any file here**; there is no server-side code to use them from. Payment-brand logos belong with the gateway too — three attempts at hand-drawing mada / Apple Pay / stc pay in SVG all shipped visibly broken and were reverted; the gateway supplies licensed assets on contract.
 - **Commercial-register verification is deferred by explicit owner decision.** It cannot be done client-side; the agreed plan is manual review of `pending` factories. **Don't re-litigate this.**
 
 ## Working with the owner
