@@ -827,6 +827,7 @@
           return String(p.name || "").trim() !== "" || Number(p.price || 0) > 0;
         });
         var total = 0;
+        var pending = [];
         cartItemsEl.innerHTML = "";
         items.forEach(function (item) {
           var product = item.products || {};
@@ -875,31 +876,64 @@
 
           /* كلّ تغيير يمرّ بالخادم ثمّ يُعاد البناء من ردّه،
              فلا ينحرف المعروض عنّ المحفوظ إن رُفضت الكتابة. */
-          function apply(promise, btns) {
-            btns.forEach(function (b) { if (b) b.disabled = true; });
-            promise.then(function () {
-              return SFCommerce.loadCart();
-            }).then(function (fresh) {
-              renderCart(fresh);
-            }).catch(function (err) {
-              btns.forEach(function (b) { if (b) b.disabled = false; });
-              alert((err && err.message) || "تعذّر التحديث");
-            });
-          }
-
           var minus = row.querySelector(".ci-minus");
           var plus = row.querySelector(".ci-plus");
           var del = row.querySelector(".ci-remove");
-          var all = [minus, plus, del];
-          minus.addEventListener("click", function () {
-            apply(SFCommerce.setQuantity(item.id, quantity - 1), all);
-          });
-          plus.addEventListener("click", function () {
-            apply(SFCommerce.setQuantity(item.id, quantity + 1), all);
-          });
+
+          /* العدّاد يتحرّك فورًا ثمّ يُرسل بعد سكون 400ms.
+             كان كلّ ضغطة تنتظر رحلتين للخادم (تعديل ثمّ إعادة تحميل
+             السلة كاملة) والأزرار معطّلة خلالهما، فبدا بطيئًا.
+             الآن: ضغطات متتالية تُدمج في طلب واحد، والخادم يبقى
+             المرجع: إن رُفضت الكتابة تُعاد السلة من ردّه. */
+          function paint(q) {
+            item.quantity = q;
+            row.querySelector(".ci-count").textContent = q;
+            row.querySelector(".ci-price").textContent = (price * q).toFixed(2) + " ر.س";
+            var sum = 0;
+            items.forEach(function (it) {
+              var pp = it.products || {};
+              sum += Number(pp.price || 0) * Number(it.quantity || 0);
+            });
+            totalEl.textContent = sum.toFixed(2) + " ر.س";
+            minus.disabled = q <= 1;
+          }
+
+          function flush() {
+            if (item._timer) { clearTimeout(item._timer); item._timer = null; }
+            var q = Number(item.quantity || 0);
+            if (q === Number(item._sent)) return;
+            item._sent = q;
+            SFCommerce.setQuantity(item.id, q).catch(function (err) {
+              alert((err && err.message) || "تعذّر التحديث");
+              SFCommerce.loadCart().then(renderCart).catch(function () {});
+            });
+          }
+
+          function bump(delta) {
+            var q = Number(item.quantity || 0) + delta;
+            if (q < 1) return;
+            paint(q);
+            if (item._timer) clearTimeout(item._timer);
+            item._timer = setTimeout(flush, 400);
+          }
+
+          item._sent = quantity;
+          minus.disabled = quantity <= 1;
+          minus.addEventListener("click", function () { bump(-1); });
+          plus.addEventListener("click", function () { bump(1); });
           del.addEventListener("click", function () {
-            apply(SFCommerce.removeItem(item.id), all);
+            if (item._timer) { clearTimeout(item._timer); item._timer = null; }
+            minus.disabled = true; plus.disabled = true; del.disabled = true;
+            row.style.opacity = "0.45";
+            SFCommerce.removeItem(item.id).then(function () {
+              return SFCommerce.loadCart();
+            }).then(renderCart).catch(function (err) {
+              row.style.opacity = "";
+              minus.disabled = false; plus.disabled = false; del.disabled = false;
+              alert((err && err.message) || "تعذّر الحذف");
+            });
           });
+          pending.push(flush);
 
           cartItemsEl.appendChild(row);
         });
@@ -910,11 +944,16 @@
         checkoutBtn.disabled = !hasItems;
         /* يُربط هنا لا في loadCart: بعد حذف منتج أو تغيير كمية
            كان الزرّ يحتجز قائمة قديمة تشمل المحذوف. */
-        bindCheckout(items);
+        bindCheckout(items, pending);
+        /* مغادرة الصفحة قبل انقضاء الـ 400ms تُرسِل ما تبقّى —
+           وإلا ضاعت آخر ضغطة على العدّاد. */
+        window.onbeforeunload = function () {
+          pending.forEach(function (f) { f(); });
+        };
         return total;
       }
 
-      function bindCheckout(items) {
+      function bindCheckout(items, pending) {
         checkoutBtn.onclick = function () {
           var factories = {};
           items.forEach(function (item) {
@@ -926,6 +965,8 @@
             alert("قسّم السلة إلى طلب مستقل لكل مصنع");
             return;
           }
+          /* أرسِل أيّ كمية لم تصل الخادم بعد، وإلا بُني الطلب على قديم. */
+          pending.forEach(function (f) { f(); });
           checkoutBtn.disabled = true;
           SFCommerce.createOrder(ids[0]).then(function (order) {
             alert("تم إرسال الطلب رقم " + order.id + " بنجاح. سيتواصل معك المصنع لتنسيق الدفع.");
