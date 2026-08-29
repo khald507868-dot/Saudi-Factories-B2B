@@ -898,14 +898,15 @@
             minus.disabled = q <= 1;
           }
 
+          /* يُرجِع وعدًا ليُنتظر قبل إنشاء الطلب. */
           function flush() {
             if (item._timer) { clearTimeout(item._timer); item._timer = null; }
             var q = Number(item.quantity || 0);
-            if (q === Number(item._sent)) return;
+            if (q === Number(item._sent)) return Promise.resolve();
             item._sent = q;
-            SFCommerce.setQuantity(item.id, q).catch(function (err) {
+            return SFCommerce.setQuantity(item.id, q).catch(function (err) {
               alert((err && err.message) || "تعذّر التحديث");
-              SFCommerce.loadCart().then(renderCart).catch(function () {});
+              return SFCommerce.loadCart().then(renderCart).catch(function () {});
             });
           }
 
@@ -965,10 +966,12 @@
             alert("قسّم السلة إلى طلب مستقل لكل مصنع");
             return;
           }
-          /* أرسِل أيّ كمية لم تصل الخادم بعد، وإلا بُني الطلب على قديم. */
-          pending.forEach(function (f) { f(); });
+          /* يُنتظر وصول كلّ كمية معلّقة قبل إنشاء الطلب.
+             إرسالها بلا انتظار يجعل الخادم يحسب الإجمالي من كمية قديمة. */
           checkoutBtn.disabled = true;
-          SFCommerce.createOrder(ids[0]).then(function (order) {
+          Promise.all(pending.map(function (f) { return f(); })).then(function () {
+            return SFCommerce.createOrder(ids[0]);
+          }).then(function (order) {
             alert("تم إرسال الطلب رقم " + order.id + " بنجاح. سيتواصل معك المصنع لتنسيق الدفع.");
             return SFCommerce.loadCart();
           }).then(renderCart).catch(function (err) {
