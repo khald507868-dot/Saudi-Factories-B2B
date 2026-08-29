@@ -18,6 +18,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase-config.js"></script>
 <script src="media-upload.js"></script>
+<script src="messages-service.js"></script>
 <script>var SF_PUBLIC_PAGE = true;</script>
 <script src="auth-guard.js"></script>
 <style>
@@ -1219,9 +1220,8 @@
     </a>
   </header>
 
-  <!-- لوحة المراسلات — مطويّة في الزاوية السفلية، تنفتح بالسهم.
-       المحادثات من sf_messages — أي من هذا المتصفّح وحده،
-       فجدولا conversations و messages لمّا تُقرأا بعد. -->
+  <!-- لوحة المراسلات — مطويّة في الزاوية السفلية، وتقرأ محادثات
+       الحساب المصرّح بها من Supabase. -->
   <div class="msg-dock" id="msg-dock">
     <button type="button" class="msg-dock-head" id="msg-dock-head" aria-expanded="false">
       <span class="msg-dock-avatar" id="msg-dock-avatar"></span>
@@ -1943,8 +1943,7 @@
       }
 
       /* ===== لوحة المراسلات =====
-         تقرأ sf_messages وتعرض المحادثات مرتّبة من الأحدث.
-         وكلّ صفّ يقود إلى المحادثة في web-messages.html. */
+         تقرأ محادثات الحساب من Supabase، وكل صف يقود إلى المحادثة. */
       var dockEl      = document.getElementById("msg-dock");
       var dockHeadEl  = document.getElementById("msg-dock-head");
       var dockListEl  = document.getElementById("msg-dock-list");
@@ -1963,12 +1962,8 @@
         return (d.getMonth() + 1) + "/" + d.getDate();
       }
 
-      function renderDock() {
-        var threads = {};
-        try {
-          threads = JSON.parse(localStorage.getItem("sf_messages") || "{}") || {};
-        } catch (e) {}
-
+      function renderDock(threads) {
+        threads = threads || {};
         var ids = Object.keys(threads).sort(function (a, b) {
           return (threads[b].updated || 0) - (threads[a].updated || 0);
         });
@@ -2006,7 +2001,9 @@
           last.className = "msg-dock-item-last";
           var msgs = t.messages || [];
           var lastMsg = msgs.length ? msgs[msgs.length - 1] : null;
-          last.textContent = lastMsg ? (lastMsg.text || "") : "";
+          last.textContent = lastMsg
+            ? (lastMsg.type === "image" ? "صورة" : lastMsg.type === "video" ? "مقطع فيديو" : (lastMsg.text || ""))
+            : "";
 
           txt.appendChild(nm);
           txt.appendChild(last);
@@ -2028,7 +2025,22 @@
           var open = dockEl.classList.toggle("is-open");
           dockHeadEl.setAttribute("aria-expanded", open ? "true" : "false");
         });
-        renderDock();
+        renderDock({});
+
+        if (window.SF_AUTH_READY && window.SFMessages) {
+          SF_AUTH_READY.then(function () {
+            if (!window.SF_USER) return null;
+            return SFMessages.load().then(function (serverThreads) {
+              renderDock(serverThreads);
+              SFMessages.subscribe(function () {
+                SFMessages.load().then(renderDock).catch(function () {});
+              });
+              return null;
+            });
+          }).catch(function (err) {
+            console.warn("message dock:", err && err.message);
+          });
+        }
       }
 
       /* ===== المنشورات =====

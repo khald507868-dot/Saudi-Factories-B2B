@@ -195,9 +195,9 @@ The page renders from `localStorage` first and swaps in database rows when they 
 
 **This section used to say messaging was `localStorage`-only. That is no longer true**, and the stale claim misled a session. `messages-service.js` (`SFMessages`) reads and writes the `conversations` / `messages` tables, and `SFMessages.subscribe` opens a realtime subscription — the two sides of a conversation are now genuinely different browsers.
 
-`web-messages.html` and `app-messages.html` still *define* `STORE_KEY = "sf_messages"` and still paint from it on first load, but `SFMessages.load()` then does `threads = remoteThreads` — a **whole-object replacement**, not a merge. Grepping for `sf_messages` therefore finds hits on pages that are fully server-backed; check what assigns to `threads` instead.
+`web-messages.html` and `app-messages.html` no longer read or write `sf_messages`: both wait for `SFMessages.load()` and paint only server rows. Text and attachment sends also fail visibly when the service is unavailable instead of falling back to browser-only messages.
 
-**Thread keys are the conversation's database id** (`String(row.id)`), not the old `factory-<n>` form. The msg-dock in `web-factory.html` still builds `?open=factory-<n>` links from the legacy shape, so `openFromQuery()` accepts **both**: it tries the key directly, then falls back to matching on `factory_id`, and creates the conversation server-side if none exists. **Any new code that keys a thread must not assume either format.**
+**Thread keys are the conversation's database id** (`String(row.id)`), not the old `factory-<n>` form. The msg-dock in `web-factory.html` now reads `SFMessages` and links with the database id. `openFromQuery()` still accepts a legacy `factory-<n>` link and converts it to a server conversation for old saved URLs.
 
 ### Mobile layer (`mobile.css`)
 
@@ -317,7 +317,7 @@ Each file is the same IIFE-over-`global` shape as `i18n.js` and `auth-guard.js`,
 | file | global | methods | loaded by |
 |---|---|---|---|
 | `commerce-service.js` | `SFCommerce` | `loadCart` `addToCart` `setQuantity` `removeItem` `createOrder` | `web-cart`, `app-cart`, `web-product` |
-| `messages-service.js` | `SFMessages` | `load` `ensureFactoryConversation` `sendText` `sendAttachment` `subscribe` | `web-messages`, `app-messages` |
+| `messages-service.js` | `SFMessages` | `load` `listFactories` `ensureFactoryConversation` `sendText` `sendAttachment` `subscribe` | `web-messages`, `app-messages`, `web-factory` |
 | `media-upload.js` | `SFUpload` | `uploadFile` `uploadDataUrl` | `web-factory`, `app-factory`, `web-profile`, `app-profile` |
 | `payment-provider.js` | `SFPayment` | `isEnabled` `start` | **no page loads it** |
 
@@ -405,7 +405,7 @@ guarded `.sql` file instead. Keep `print()` output ASCII: this console is cp1252
 
 ## Backend (Supabase)
 
-The app got a real backend partway through its life, so **the codebase is mid-migration**: auth is on the server, everything else runs on `localStorage`. **Assume any page is *not* wired to the database unless you've checked.**
+The app got a real backend partway through its life, so **the codebase is mid-migration**. Auth, factories, products, profiles, cart/orders, and messaging have server-backed paths; some pages still render a local recovery copy first. **Check the specific page and its shared service before assuming either state.**
 
 Project `yhofxryhlrrwzztfowpa`. Loaded as plain script tags:
 
@@ -508,7 +508,7 @@ if (name !== "home") document.body.classList.add("tab-" + name);
 
 **Page width is 970px, matching LinkedIn's main column — not its 1128px page.** LinkedIn splits 1128px into a ~970px column plus a right sidebar; this page has no sidebar, so filling 1128px read as wider than the reference. One value in `desktop.css`.
 
-**The message dock (`.msg-dock`) is fixed bottom-right**, collapsing via an `is-open` class and a `max-height` transition, and it reads `sf_messages`. Rows link to `web-messages.html?open=<threadId>`, handled at the top of `openFromQuery()`. It has an `html[dir="ltr"]` counterpart in both `web-factory.html` and `desktop.css` — it is a **mirror**, so keep both. **It will always render empty until messaging is wired to the database** (see *Messaging*); don't read an empty dock as a bug.
+**The message dock (`.msg-dock`) is fixed bottom-right**, collapsing via an `is-open` class and a `max-height` transition. It loads `SFMessages` from Supabase and links to `web-messages.html?open=<conversationId>`, handled at the top of `openFromQuery()`. It has an `html[dir="ltr"]` counterpart in both `web-factory.html` and `desktop.css` — it is a **mirror**, so keep both.
 
 An inline message button used to sit in the right-hand column; the owner had it removed as intrusive ("انها مزعجه"). Don't reintroduce one.
 

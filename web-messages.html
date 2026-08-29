@@ -862,13 +862,8 @@
     (function () {
       "use strict";
 
-      var STORE_KEY = "sf_messages";
-
-      /* نوع الحساب يحدّد أي طرف أنا في المحادثة:
-         حساب المصنع يرى رسائله كمصنع، وغيره كفرد */
-      var accountType = "";
-      try { accountType = localStorage.getItem("sf_account_type") || ""; } catch (e) {}
-      var myRole = accountType === "factory" ? "factory" : "individual";
+      /* تُضبط بعد اكتمال قراءة الجلسة والملف الشخصي من الخادم. */
+      var myRole = "individual";
 
       var threadListEl = document.getElementById("thread-list");
       var emptyStateEl = document.getElementById("empty-state");
@@ -889,25 +884,7 @@
 
       var threads = {};
       var activeId = null;
-
-      function loadThreads() {
-        try {
-          threads = JSON.parse(localStorage.getItem(STORE_KEY) || "{}") || {};
-        } catch (e) {
-          threads = {};
-        }
-      }
-
-      function saveThreads() {
-        try {
-          localStorage.setItem(STORE_KEY, JSON.stringify(threads));
-          return true;
-        } catch (e) {
-          /* الحصّة ممتلئة: الوسائط هي أكبر مستهلك لها */
-          showNote(I18N.t("msg_too_large"), true);
-          return false;
-        }
-      }
+      var messageChannel = null;
 
       function escapeHTML(text) {
         return String(text)
@@ -987,7 +964,7 @@
             '<button type="button" class="thread" data-id="' + escapeHTML(ids[i]) + '">' +
               '<div class="thread-avatar">' +
                 (t.avatar
-                  ? '<img alt="" src="' + t.avatar + '">'
+                  ? '<img alt="" src="' + escapeHTML(t.avatar) + '">'
                   : escapeHTML(initial)) +
               '</div>' +
               '<div class="thread-info">' +
@@ -1021,15 +998,16 @@
             lastDay = k;
           }
 
-          var side = m.from === myRole ? "mine" : "theirs";
+          /* رسائل الخادم تستخدم mine/theirs، والنسخ القديمة استخدمت اسم الدور. */
+          var side = (m.from === "mine" || m.from === myRole) ? "mine" : "theirs";
           var isMedia = m.type === "image" || m.type === "video";
 
           html += '<div class="bubble ' + side + (isMedia ? ' bubble-media' : '') + '">';
 
           if (m.type === "image") {
-            html += '<img alt="" src="' + m.src + '">';
+            html += '<img alt="" src="' + escapeHTML(m.src || "") + '">';
           } else if (m.type === "video") {
-            html += '<video src="' + m.src + '" controls playsinline></video>';
+            html += '<video src="' + escapeHTML(m.src || "") + '" controls playsinline></video>';
           }
 
           if (m.text) {
@@ -1061,7 +1039,7 @@
           : I18N.t("msg_role_individual");
 
         peerAvatar.innerHTML = t.avatar
-          ? '<img alt="" src="' + t.avatar + '">'
+          ? '<img alt="" src="' + escapeHTML(t.avatar) + '">'
           : escapeHTML((t.name || "?").trim().charAt(0));
 
         renderMessages();
@@ -1083,15 +1061,20 @@
         if (!t) return;
 
         t.messages = t.messages || [];
-        t.messages.push(msg);
-        t.updated = msg.at;
-
-        if (saveThreads()) {
-          renderMessages();
-        } else {
-          /* تراجع عن الإضافة إذا فشل الحفظ حتى لا تختلف الشاشة عن المخزَّن */
-          t.messages.pop();
+        var replaced = false;
+        if (msg.id != null) {
+          for (var i = 0; i < t.messages.length; i++) {
+            if (String(t.messages[i].id) === String(msg.id)) {
+              t.messages[i] = msg;
+              replaced = true;
+              break;
+            }
+          }
         }
+        if (!replaced) t.messages.push(msg);
+        t.messages.sort(function (a, b) { return (a.at || 0) - (b.at || 0); });
+        t.updated = msg.at;
+        renderMessages();
       }
 
       function sendText() {
@@ -1105,82 +1088,37 @@
           updateSendState();
         };
 
-        if (window.SFMessages && window.SF_USER && /^\d+$/.test(String(activeId))) {
-          sendBtn.disabled = true;
-          SFMessages.sendText(Number(activeId), inputText).then(function (saved) {
-            pushMessage({
-              id: saved.id,
-              from: "mine",
-              type: "text",
-              text: saved.body || inputText,
-              at: new Date(saved.created_at).getTime()
-            });
-            finish();
-          }).catch(function (err) {
-            showNote((err && err.message) || "تعذّر إرسال الرسالة.", true);
-            updateSendState();
-          });
+        if (!window.SFMessages || !window.SF_USER || !/^\d+$/.test(String(activeId))) {
+          showNote("تعذّر الاتصال بخدمة الرسائل. أعد تحميل الصفحة.", true);
           return;
         }
 
-        pushMessage({ from: myRole, type: "text", text: inputText, at: Date.now() });
-        finish();
+        sendBtn.disabled = true;
+        SFMessages.sendText(Number(activeId), inputText).then(function (saved) {
+          pushMessage({
+            id: saved.id,
+            from: "mine",
+            type: "text",
+            text: saved.body || inputText,
+            at: new Date(saved.created_at).getTime()
+          });
+          finish();
+        }).catch(function (err) {
+          showNote((err && err.message) || "تعذّر إرسال الرسالة.", true);
+          updateSendState();
+        });
       }
 
       function updateSendState() {
         sendBtn.disabled = !msgInput.value.trim();
       }
 
-      /* تصغير الصورة قبل التخزين — نفس أسلوب باقي الصفحات */
-      function resizeImage(dataUrl, maxSize, done) {
-        var img = new Image();
-        img.onload = function () {
-          var scale = Math.min(1, maxSize / Math.max(img.width, img.height));
-          var canvas = document.createElement("canvas");
-          canvas.width = Math.round(img.width * scale);
-          canvas.height = Math.round(img.height * scale);
-          canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
-          done(canvas.toDataURL("image/jpeg", 0.8));
-        };
-        img.onerror = function () { done(dataUrl); };
-        img.src = dataUrl;
-      }
-
-      /* مسار واحد للصور سواء جاءت من المعرض أو من الكاميرا */
+      /* الصور والمقاطع تُرفع إلى الحاوية الخاصة ثم تُسجّل كرسالة. */
       function handleImageFile(input) {
         var file = input.files && input.files[0];
         if (!file || !activeId) { input.value = ""; return; }
 
-        showNote(I18N.t("msg_uploading"), false);
-
-        if (window.SFMessages && window.SF_USER && /^\d+$/.test(String(activeId))) {
-          SFMessages.sendAttachment(Number(activeId), file, "image").then(function (saved) {
-            pushMessage({ id: saved.id, from: "mine", type: "image", src: saved.signed_url, at: new Date(saved.created_at).getTime() });
-            hideNote();
-          }).catch(function (err) { showNote((err && err.message) || "تعذّر رفع الصورة.", true); });
-          input.value = "";
-          return;
-        }
-
-        var reader = new FileReader();
-        reader.onload = function (ev) {
-          resizeImage(ev.target.result, 640, function (small) {
-            pushMessage({ from: myRole, type: "image", src: small, at: Date.now() });
-            hideNote();
-          });
-        };
-        reader.readAsDataURL(file);
-        input.value = "";
-      }
-
-      /* ومسار واحد للمقاطع كذلك */
-      function handleVideoFile(input) {
-        var file = input.files && input.files[0];
-        if (!file || !activeId) { input.value = ""; return; }
-
-        /* المقاطع تُخزَّن كما هي (لا يمكن ضغطها بلا مكتبة)، فتُرفض الكبيرة
-           مبكراً حتى لا تُفجّر حصّة localStorage البالغة ~5MB */
-        if (file.size > 2 * 1024 * 1024) {
+        if (!/^image\//.test(file.type || "") || file.size > 10 * 1024 * 1024) {
           showNote(I18N.t("msg_too_large"), true);
           input.value = "";
           return;
@@ -1188,21 +1126,41 @@
 
         showNote(I18N.t("msg_uploading"), false);
 
-        if (window.SFMessages && window.SF_USER && /^\d+$/.test(String(activeId))) {
-          SFMessages.sendAttachment(Number(activeId), file, "video").then(function (saved) {
-            pushMessage({ id: saved.id, from: "mine", type: "video", src: saved.signed_url, at: new Date(saved.created_at).getTime() });
-            hideNote();
-          }).catch(function (err) { showNote((err && err.message) || "تعذّر رفع المقطع.", true); });
+        if (!window.SFMessages || !window.SF_USER || !/^\d+$/.test(String(activeId))) {
+          showNote("تعذّر الاتصال بخدمة الرسائل. أعد تحميل الصفحة.", true);
           input.value = "";
           return;
         }
 
-        var reader = new FileReader();
-        reader.onload = function (ev) {
-          pushMessage({ from: myRole, type: "video", src: ev.target.result, at: Date.now() });
+        SFMessages.sendAttachment(Number(activeId), file, "image").then(function (saved) {
+          pushMessage({ id: saved.id, from: "mine", type: "image", src: saved.signed_url, at: new Date(saved.created_at).getTime() });
           hideNote();
-        };
-        reader.readAsDataURL(file);
+        }).catch(function (err) { showNote((err && err.message) || "تعذّر رفع الصورة.", true); });
+        input.value = "";
+      }
+
+      function handleVideoFile(input) {
+        var file = input.files && input.files[0];
+        if (!file || !activeId) { input.value = ""; return; }
+
+        if (!/^video\//.test(file.type || "") || file.size > 25 * 1024 * 1024) {
+          showNote(I18N.t("msg_too_large"), true);
+          input.value = "";
+          return;
+        }
+
+        showNote(I18N.t("msg_uploading"), false);
+
+        if (!window.SFMessages || !window.SF_USER || !/^\d+$/.test(String(activeId))) {
+          showNote("تعذّر الاتصال بخدمة الرسائل. أعد تحميل الصفحة.", true);
+          input.value = "";
+          return;
+        }
+
+        SFMessages.sendAttachment(Number(activeId), file, "video").then(function (saved) {
+          pushMessage({ id: saved.id, from: "mine", type: "video", src: saved.signed_url, at: new Date(saved.created_at).getTime() });
+          hideNote();
+        }).catch(function (err) { showNote((err && err.message) || "تعذّر رفع المقطع.", true); });
         input.value = "";
       }
 
@@ -1302,47 +1260,47 @@
       var newChatInline = document.getElementById("new-chat-inline");
       var pickClose = document.getElementById("pick-close");
 
-      var FACTORY_COUNT = 1000;
-
-      function factoryLabel(fid, saved) {
-        var f = saved[fid] || {};
-        return f.name || (I18N.t("msg_role_factory") + " " + fid);
-      }
+      var factoryChoices = [];
 
       function renderPickList(filter) {
-        var saved = {};
-        try {
-          saved = JSON.parse(localStorage.getItem("sf_factories") || "{}") || {};
-        } catch (e) {}
-
         filter = (filter || "").trim().toLowerCase();
 
         var html = "";
-        var shown = 0;
-
-        for (var i = 0; i < FACTORY_COUNT && shown < 60; i++) {
-          var label = factoryLabel(i, saved);
+        for (var i = 0; i < factoryChoices.length; i++) {
+          var f = factoryChoices[i];
+          var label = f.name || (I18N.t("msg_role_factory") + " " + f.id);
           if (filter && label.toLowerCase().indexOf(filter) === -1) continue;
 
-          var f = saved[i] || {};
           html +=
-            '<button type="button" class="pick-item" data-fid="' + i + '">' +
+            '<button type="button" class="pick-item" data-fid="' + escapeHTML(f.id) + '">' +
               '<span class="thread-avatar" style="width:32px;height:32px;font-size:13px;">' +
-                (f.logo ? '<img alt="" src="' + f.logo + '">' : escapeHTML(label.charAt(0))) +
+                (f.logo ? '<img alt="" src="' + escapeHTML(f.logo) + '">' : escapeHTML(label.charAt(0))) +
               '</span>' +
               '<span>' + escapeHTML(label) + '</span>' +
             '</button>';
-          shown++;
         }
 
-        pickList.innerHTML = html;
+        pickList.innerHTML = html || '<div style="padding:16px;text-align:center;color:#6b756e;">لا توجد مصانع مطابقة</div>';
       }
 
       function openPicker() {
-        renderPickList("");
+        if (myRole === "factory") {
+          showNote("حساب المصنع يستقبل محادثات العملاء من هذه الصفحة.", true);
+          return;
+        }
+
+        pickList.innerHTML = '<div style="padding:16px;text-align:center;color:#6b756e;">جارٍ تحميل المصانع…</div>';
         pickSearch.value = "";
         pickOverlay.classList.add("open");
         document.body.style.overflow = "hidden";
+
+        SFMessages.listFactories().then(function (rows) {
+          factoryChoices = rows;
+          renderPickList("");
+        }).catch(function (err) {
+          pickList.innerHTML = '<div style="padding:16px;text-align:center;color:#a12727;">' +
+            escapeHTML((err && err.message) || "تعذّر تحميل المصانع") + '</div>';
+        });
       }
 
       function closePicker() {
@@ -1351,33 +1309,16 @@
       }
 
       function startChatWith(fid) {
-        var id = "factory-" + fid;
         closePicker();
-
-        if (window.SFMessages && window.SF_USER) {
-          showNote(I18N.t("msg_loading"), false);
-          SFMessages.ensureFactoryConversation(fid).then(function (thread) {
-            threads[thread.id] = thread;
-            renderThreadList();
-            openChat(thread.id);
-            hideNote();
-          }).catch(function (err) {
-            showNote((err && err.message) || "تعذّر فتح المحادثة.", true);
-          });
-          return;
-        }
-
-        if (!threads[id]) {
-          var saved = {};
-          try { saved = JSON.parse(localStorage.getItem("sf_factories") || "{}") || {}; } catch (e) {}
-          var f = saved[fid] || {};
-          threads[id] = {
-            name: factoryLabel(fid, saved), role: "factory", avatar: f.logo || "",
-            messages: [], updated: Date.now()
-          };
-          saveThreads();
-        }
-        openChat(id);
+        showNote(I18N.t("msg_loading"), false);
+        SFMessages.ensureFactoryConversation(fid).then(function (thread) {
+          threads[String(thread.id)] = thread;
+          renderThreadList();
+          openChat(String(thread.id));
+          hideNote();
+        }).catch(function (err) {
+          showNote((err && err.message) || "تعذّر فتح المحادثة.", true);
+        });
       }
 
       newChatBtn.addEventListener("click", openPicker);
@@ -1397,108 +1338,116 @@
       /* فتح محادثة مباشرة عبر ?factory=<id> القادم من صفحة المصنع */
       function openFromQuery() {
         var params = new URLSearchParams(window.location.search);
+        var shouldAutoSend = params.get("send") === "1";
 
-        /* ?open=<threadId> — تأتي من لوحة المراسلات في صفحة المصنع.
-           صيغتان تصلان هنا: رقم المحادثة من الخادم ("12")،
-           والمعرّف القديم من localStorage ("factory-8"). الثانية لا تطابق
-           مفاتيح threads بعد ربط الرسائل بالقاعدة — فكانت المحادثة
-           تظهر في اللوحة ولا تُفتح هنا. نقبل الاثنتين. */
+        function applyDraft() {
+          var draft = params.get("draft");
+          if (!draft) return;
+          msgInput.value = draft;
+          msgInput.style.height = "auto";
+          msgInput.style.height = msgInput.scrollHeight + "px";
+          updateSendState();
+          msgInput.focus();
+
+          if (shouldAutoSend) {
+            shouldAutoSend = false;
+            /* إزالة الأمر من العنوان تمنع تكرار الطلب إن أُعيد تحميل الصفحة. */
+            params.delete("send");
+            params.delete("draft");
+            var query = params.toString();
+            window.history.replaceState(null, "", window.location.pathname + (query ? "?" + query : ""));
+            window.setTimeout(sendText, 0);
+          }
+        }
+
+        function openFactory(factoryId) {
+          var found = null;
+          Object.keys(threads).forEach(function (key) {
+            if (!found && Number(threads[key].factory_id) === Number(factoryId)) found = key;
+          });
+
+          if (found) {
+            openChat(found);
+            applyDraft();
+            return;
+          }
+
+          showNote(I18N.t("msg_loading"), false);
+          SFMessages.ensureFactoryConversation(factoryId).then(function (thread) {
+            var key = String(thread.id);
+            threads[key] = thread;
+            renderThreadList();
+            openChat(key);
+            applyDraft();
+            hideNote();
+          }).catch(function (err) {
+            showNote((err && err.message) || "تعذّر فتح المحادثة.", true);
+          });
+        }
+
+        /* ?open=<threadId> يأتي من لوحة المصنع. ندعم أيضًا روابط
+           factory-<id> القديمة بتحويلها إلى محادثة خادمية. */
         var openId = params.get("open");
         if (openId) {
-          if (threads[openId]) { openChat(openId); return; }
+          if (threads[openId]) {
+            openChat(openId);
+            applyDraft();
+            return;
+          }
 
           var m = String(openId).match(/^factory-(\d+)$/);
           if (m) {
-            var wantFactory = Number(m[1]);
-            var found = null;
-            Object.keys(threads).forEach(function (k) {
-              if (!found && Number(threads[k].factory_id) === wantFactory) found = k;
-            });
-            if (found) { openChat(found); return; }
-
-            /* لا محادثة بعد — أنشئها على الخادم ثمّ افتحها. */
-            if (window.SFMessages && window.SF_USER) {
-              SFMessages.ensureFactoryConversation(wantFactory).then(function () {
-                return SFMessages.load();
-              }).then(function (fresh) {
-                threads = fresh;
-                renderThreadList();
-                var hit = null;
-                Object.keys(threads).forEach(function (k) {
-                  if (!hit && Number(threads[k].factory_id) === wantFactory) hit = k;
-                });
-                if (hit) openChat(hit);
-              }).catch(function (err) {
-                console.warn("open conversation:", err && err.message);
-              });
-            }
+            openFactory(Number(m[1]));
             return;
           }
         }
 
         var fid = params.get("factory");
-        if (fid === null) return;
-
-        var id = "factory-" + fid;
-
-        if (!threads[id]) {
-          var fname = "";
-          var favatar = "";
-          try {
-            var all = JSON.parse(localStorage.getItem("sf_factories") || "{}") || {};
-            var f = all[fid] || {};
-            fname = f.name || "";
-            favatar = f.logo || "";
-          } catch (e) {}
-
-          threads[id] = {
-            name: fname || (I18N.t("msg_role_factory") + " " + fid),
-            role: "factory",
-            avatar: favatar,
-            messages: [],
-            updated: Date.now()
-          };
-          saveThreads();
-        }
-
-        openChat(id);
-
-        /* ‎?draft=‎ يملأ خانة الكتابة بنصّ مبدئي ولا يُرسله —
-           تأتي به أزرار "استفسار" و"طلب عرض سعر" في صفحة
-           المنتج، ليراجعه المستخدم ويعدّله قبل الإرسال. */
-        var draft = params.get("draft");
-        if (draft) {
-          msgInput.value = draft;
-          msgInput.style.height = "auto";
-          msgInput.style.height = msgInput.scrollHeight + "px";
-          msgInput.focus();
-        }
+        if (fid !== null) openFactory(fid);
       }
 
       function bootstrapMessages() {
-        loadThreads();
-        if (window.SFMessages && window.SF_USER) {
-          SFMessages.load().then(function (remoteThreads) {
-            threads = remoteThreads;
-            renderThreadList();
-            openFromQuery();
-            SFMessages.subscribe(function () {
-              SFMessages.load().then(function (fresh) {
-                threads = fresh;
-                renderThreadList();
-                if (activeId && threads[activeId]) renderMessages();
-              }).catch(function () {});
-            });
-          }).catch(function (err) {
-            console.warn("messages load:", err && err.message);
-            renderThreadList();
-            openFromQuery();
-          });
-        } else {
+        if (!window.SFMessages || !window.SF_USER) {
           renderThreadList();
-          openFromQuery();
+          showNote("يجب تسجيل الدخول لاستخدام الرسائل.", true);
+          return;
         }
+
+        myRole = window.SF_PROFILE && SF_PROFILE.account_type === "factory"
+          ? "factory"
+          : "individual";
+
+        if (myRole === "factory") {
+          newChatBtn.style.display = "none";
+          newChatInline.style.display = "none";
+        }
+
+        showNote(I18N.t("msg_loading"), false);
+        SFMessages.load().then(function (remoteThreads) {
+          threads = remoteThreads;
+          renderThreadList();
+          hideNote();
+          openFromQuery();
+
+          messageChannel = SFMessages.subscribe(function () {
+            SFMessages.load().then(function (fresh) {
+              threads = fresh;
+              renderThreadList();
+              if (activeId && threads[activeId]) renderMessages();
+            }).catch(function (err) {
+              console.warn("messages refresh:", err && err.message);
+            });
+          });
+        }).catch(function (err) {
+          console.warn("messages load:", err && err.message);
+          renderThreadList();
+          showNote((err && err.message) || "تعذّر تحميل الرسائل.", true);
+        });
       }
+
+      window.addEventListener("beforeunload", function () {
+        if (messageChannel && window.sb) sb.removeChannel(messageChannel);
+      });
 
       if (window.SF_AUTH_READY) SF_AUTH_READY.then(bootstrapMessages);
       else bootstrapMessages();
