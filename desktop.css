@@ -1269,7 +1269,10 @@
     border-bottom: none !important;
   }
 
-  .chat-page .top-bar h1 { font-size: 22px !important; }
+  .chat-page .top-bar h1 {
+    font-size: 22px !important;
+    transform: translateY(10px);
+  }
 
   /* زر الرجوع لا لزوم له: القائمة ظاهرة دائماً */
   .chat-page .back-btn { display: none !important; }
