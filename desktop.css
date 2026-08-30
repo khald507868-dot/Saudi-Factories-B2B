@@ -61,6 +61,7 @@
      تحمل شعار الصفحة المستقل. */
   body:has(.page-logo) {
     position: relative;
+    background: linear-gradient(to bottom, #ffffff 0 62px, #f6f7f6 62px) !important;
   }
 
   body:has(.page-logo)::before {
