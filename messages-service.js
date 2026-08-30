@@ -10,6 +10,10 @@
     "profiles!conversations_individual_id_fkey(full_name, company_image), " +
     "messages(id, sender_id, body, attachment_url, attachment_type, created_at)";
   var MESSAGE_SELECT = "id, sender_id, body, attachment_url, attachment_type, created_at";
+  var ATTACHMENT_LIMITS = {
+    image: { max: 5 * 1024 * 1024, types: ["image/jpeg", "image/png", "image/webp", "image/gif"] },
+    video: { max: 50 * 1024 * 1024, types: ["video/mp4", "video/webm", "video/quicktime"] }
+  };
 
   function ready() {
     if (!root.sb || !root.SF_USER) return Promise.reject(new Error("يجب تسجيل الدخول للرسائل"));
@@ -285,22 +289,41 @@
     },
 
     sendAttachment: function (conversationId, file, type) {
+      var uploadedPath = null;
       return ready().then(function () {
-        var extension = (file.name || "bin").split(".").pop().toLowerCase().replace(/[^a-z0-9]/g, "") || "bin";
+        var id = validConversationId(conversationId);
+        var rule = ATTACHMENT_LIMITS[type];
+        if (!id || !file || !rule || rule.types.indexOf(file.type) === -1 || file.size > rule.max) {
+          throw new Error("نوع الملف أو حجمه غير مسموح");
+        }
+        var extension = ({
+          "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/gif": "gif",
+          "video/mp4": "mp4", "video/webm": "webm", "video/quicktime": "mov"
+        })[file.type];
         var path = root.SF_USER.id + "/" + (root.crypto && root.crypto.randomUUID ? root.crypto.randomUUID() : String(Date.now())) + "." + extension;
-        return root.sb.storage.from("chat-media").upload(path, file, { upsert: false, contentType: file.type || undefined });
+        return root.sb.storage.from("chat-media").upload(path, file, {
+          upsert: false,
+          contentType: file.type,
+          cacheControl: "3600"
+        });
       }).then(function (uploadRes) {
         if (uploadRes.error) throw uploadRes.error;
+        uploadedPath = uploadRes.data.path;
         return root.sb.from("messages").insert({
           conversation_id: Number(conversationId),
           sender_id: root.SF_USER.id,
           body: "",
-          attachment_url: uploadRes.data.path,
+          attachment_url: uploadedPath,
           attachment_type: type
         }).select(MESSAGE_SELECT).single();
       }).then(function (messageRes) {
         if (messageRes.error) throw messageRes.error;
         return signMessages([messageRes.data]).then(function (rows) { return rows[0]; });
+      }).catch(function (error) {
+        if (!uploadedPath || !root.sb) throw error;
+        return root.sb.storage.from("chat-media").remove([uploadedPath]).catch(function () {}).then(function () {
+          throw error;
+        });
       });
     },
 
