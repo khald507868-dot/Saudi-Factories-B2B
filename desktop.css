@@ -27,10 +27,6 @@
      شريط أبيض أسفل الصفحات ذات الارتفاع المحدد (الرسائل). */
   html { background: #f6f7f6; }
 
-  html:has(.page-logo) {
-    background: linear-gradient(to bottom, #ffffff 0 76px, #f6f7f6 76px);
-  }
-
   body {
     max-width: none !important;
     margin: 0 !important;
@@ -65,7 +61,6 @@
      تحمل شعار الصفحة المستقل. */
   body:has(.page-logo) {
     position: relative;
-    background: linear-gradient(to bottom, #ffffff 0 76px, #f6f7f6 76px) !important;
   }
 
   body:has(.page-logo)::before {
