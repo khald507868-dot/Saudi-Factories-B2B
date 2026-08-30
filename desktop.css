@@ -1086,13 +1086,14 @@
   }
 
   .page-logo .wm-rule {
-    height: 2px;
-    border-radius: 2px;
-    background: linear-gradient(to left, #1f6b42, #45a06a, #c9a227);
+    width: 310px;
+    height: 1px;
+    border-radius: 1px;
+    background: #b9d9c1;
   }
 
   html[dir="ltr"] .page-logo .wm-rule {
-    background: linear-gradient(to right, #1f6b42, #45a06a, #c9a227);
+    background: #b9d9c1;
   }
 
   /* ============================================================
