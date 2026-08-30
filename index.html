@@ -19,6 +19,7 @@
 <script src="supabase-config.js"></script>
 <script>var SF_PUBLIC_PAGE = true;</script>
 <script src="auth-guard.js"></script>
+<script src="messages-badge.js"></script>
 <script src="regions-geo.js"></script>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -1454,8 +1455,8 @@
       }
 
       /* روابط الفئات المسطّحة بعد زر ☰ في نفس الشريط */
-      /* تمرير شريط الفئات: وقوف المؤشر على أحد الطرفين
-         يُمرّر تلقائياً، والضغط يقفز قفزة واحدة، والعجلة تعمل أيضاً. */
+      /* الشريط يتنقل بهدوء بين الفئات تلقائياً، ويتوقف عند المرور
+         عليه كي تبقى القراءة والضغط على أي فئة مريحة. */
       function setupCatScroll(box) {
         var L = document.getElementById("dt-catnav-left");
         var R = document.getElementById("dt-catnav-right");
@@ -1515,6 +1516,36 @@
         var rtlNow = document.documentElement.getAttribute("dir") === "rtl";
         hold(rtlNow ? L : R, true);
         hold(rtlNow ? R : L, false);
+
+        /* حركة تلقائية هادئة: 12 بكسل تقريباً في الثانية،
+           وتعكس اتجاهها عند النهاية بدلاً من القفز إلى البداية. */
+        var autoPaused = false;
+        var autoDirection = 1;
+        var lastFrame = 0;
+        function autoMove(now) {
+          if (!lastFrame) lastFrame = now;
+          var elapsed = Math.min(now - lastFrame, 60);
+          lastFrame = now;
+          var max = maxScroll();
+
+          if (!autoPaused && max > 1) {
+            var pos = Math.abs(box.scrollLeft);
+            if (pos >= max - 1) autoDirection = -1;
+            else if (pos <= 1) autoDirection = 1;
+            step(null, autoDirection > 0, elapsed * 0.012);
+          }
+          requestAnimationFrame(autoMove);
+        }
+
+        /* يشمل المساحة كاملةً والأسهم، ولا يتوقف الشريط عند المرور
+           على عنصر داخلي فقط ثم يعود للتحرك أثناء اختيار الفئة. */
+        var pauseArea = box.closest(".dt-catbar-inner") || box;
+        pauseArea.addEventListener("mouseenter", function () { autoPaused = true; });
+        pauseArea.addEventListener("mouseleave", function () {
+          autoPaused = false;
+          lastFrame = 0;
+        });
+        requestAnimationFrame(autoMove);
 
         /* عجلة الفأرة الرأسية تُحوّل إلى تمرير أفقي */
         box.addEventListener("wheel", function (e) {

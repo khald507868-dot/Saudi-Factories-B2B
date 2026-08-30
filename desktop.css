@@ -1168,22 +1168,30 @@
      تضبط min-height: 100vh على body للجوال، وهي تتغلّب
      على height فيمتدّ المستند تحت البطاقات فيظهر بياض. */
   body.chat-page {
-    max-width: 1180px !important;
+    max-width: 1320px !important;
     margin: 0 auto !important;
     padding: 18px 24px !important;
     height: 100vh;
     max-height: 100vh;
     min-height: 0 !important;
     display: grid;
-    grid-template-columns: 330px 1fr;
-    grid-template-rows: auto 1fr;
+    grid-template-columns: 360px minmax(0, 1fr);
+    grid-template-rows: auto auto minmax(0, 1fr);
     column-gap: 18px;
     row-gap: 12px;
     overflow: hidden;
   }
 
+  .chat-page .page-logo {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    margin-top: 0 !important;
+    margin-bottom: 2px !important;
+  }
+
   .chat-page .top-bar {
     grid-column: 1 / -1;
+    grid-row: 2;
     display: flex !important;
     align-items: center;
     gap: 12px;
@@ -1202,11 +1210,12 @@
     display: flex !important;
     flex-direction: column;
     grid-column: 1;
-    grid-row: 2;
+    grid-row: 3;
     position: relative;   /* مرساة زرّ المحادثة الجديدة */
     background: #ffffff;
     border: 1px solid #e6ebe8;
     border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(4,54,27,0.06);
     overflow: hidden;
     min-height: 0;
   }
@@ -1222,10 +1231,11 @@
     display: flex !important;
     flex-direction: column;
     grid-column: 2;
-    grid-row: 2;
-    background: #ffffff;
+    grid-row: 3;
+    background: #f8fbf9;
     border: 1px solid #e6ebe8;
     border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(4,54,27,0.06);
     overflow: hidden;
     min-height: 0;
   }
@@ -1235,6 +1245,7 @@
     overflow-y: auto;
     min-height: 0;
     padding: 16px !important;
+    scroll-behavior: smooth;
   }
 
   /* المُنشئ يلتصق بأسفل بطاقة المحادثة بدل تثبيته بالنافذة */
@@ -1245,14 +1256,14 @@
     border-top: 1px solid #eef2ef;
   }
 
-  /* زر محادثة جديدة يبقى ظاهراً داخل عمود القائمة */
+  /* زر محادثة جديدة يبقى في رأس الصفحة ولا يطفو بعيدًا عن التخطيط */
   .chat-page .new-chat-btn {
-    position: absolute !important;
-    inset: auto 22px 22px auto !important;
+    position: static !important;
+    inset: auto !important;
   }
 
   html[dir="ltr"] .chat-page .new-chat-btn {
-    inset: auto auto 22px 22px !important;
+    inset: auto !important;
   }
 
   /* .chat-peer يتحكم به السكربت عند فتح محادثة — لا يُجبر هنا */

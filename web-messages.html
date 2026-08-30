@@ -19,6 +19,7 @@
 <script src="supabase-config.js"></script>
 <script src="messages-service.js"></script>
 <script src="auth-guard.js"></script>
+<script src="messages-badge.js"></script>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -85,21 +86,33 @@
     display: flex;
     align-items: center;
     gap: 11px;
-    padding: 11px 14px;
+    padding: 12px;
+    margin: 4px 8px;
     background: #ffffff;
-    border-bottom: 1px solid #eef1ef;
+    border: 1px solid transparent;
+    border-radius: 14px;
     cursor: pointer;
     text-align: right;
-    width: 100%;
-    border-left: none;
-    border-right: none;
-    border-top: none;
+    width: calc(100% - 16px);
     font-family: inherit;
   }
 
   html[dir="ltr"] .thread { text-align: left; }
 
   .thread:active { background: #f4f8f6; }
+
+  .thread:hover { background: #f7faf8; }
+
+  .thread.active {
+    background: #edf6f0;
+    border-color: #cfe2d5;
+    box-shadow: inset -3px 0 0 #1f6b42;
+  }
+
+  html[dir="ltr"] .thread.active { box-shadow: inset 3px 0 0 #1f6b42; }
+
+  .thread.unread .thread-name,
+  .thread.unread .thread-last { font-weight: 800; }
 
   .thread-avatar {
     width: 44px;
@@ -149,8 +162,60 @@
     font-size: 10.5px;
     color: #9aa8a0;
     flex-shrink: 0;
-    align-self: flex-start;
-    margin-top: 3px;
+    white-space: nowrap;
+  }
+
+  .thread-meta {
+    min-width: 34px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 7px;
+    flex-shrink: 0;
+  }
+
+  html[dir="ltr"] .thread-meta { align-items: flex-start; }
+
+  .unread-badge {
+    min-width: 22px;
+    height: 22px;
+    padding: 0 6px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #1f6b42;
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 800;
+    box-shadow: 0 4px 10px rgba(31,107,66,0.2);
+  }
+
+  .thread-skeleton {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    margin: 6px 10px;
+    padding: 12px;
+    border-radius: 14px;
+    background: #ffffff;
+  }
+
+  .skeleton-dot,
+  .skeleton-line {
+    background: linear-gradient(90deg, #e8eeea 25%, #f7faf8 50%, #e8eeea 75%);
+    background-size: 200% 100%;
+    animation: messageShimmer 1.2s infinite;
+  }
+
+  .skeleton-dot { width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0; }
+  .skeleton-copy { flex: 1; display: grid; gap: 8px; }
+  .skeleton-line { height: 10px; border-radius: 999px; }
+  .skeleton-line.short { width: 58%; }
+
+  @keyframes messageShimmer {
+    from { background-position: 200% 0; }
+    to { background-position: -200% 0; }
   }
 
   /* ===== حالة الفراغ ===== */
@@ -224,6 +289,54 @@
     position: relative;
     z-index: 1;
   }
+
+  .chat-empty,
+  .messages-empty,
+  .messages-loading {
+    margin: auto;
+    text-align: center;
+    color: #6f8778;
+    padding: 28px;
+  }
+
+  .chat-empty svg {
+    width: 56px;
+    height: 56px;
+    stroke: #9fb5a7;
+    fill: none;
+    stroke-width: 1.5;
+    margin-bottom: 12px;
+  }
+
+  .chat-empty strong,
+  .messages-empty strong {
+    display: block;
+    color: #04361b;
+    font-size: 15px;
+    margin-bottom: 5px;
+  }
+
+  .messages-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+  }
+
+  .loading-spinner {
+    width: 22px;
+    height: 22px;
+    border: 3px solid #dce7df;
+    border-top-color: #1f6b42;
+    border-radius: 50%;
+    animation: messageSpin .7s linear infinite;
+  }
+
+  @keyframes messageSpin { to { transform: rotate(360deg); } }
+
+  .chat-view.chat-ready .chat-empty { display: none; }
+  .chat-view:not(.chat-ready) .messages-area { display: none; }
+  .chat-view:not(.chat-ready) .composer { opacity: .5; pointer-events: none; }
 
   .day-sep {
     align-self: center;
@@ -753,6 +866,13 @@
   <!-- ===== شاشة المحادثة ===== -->
   <div class="chat-view" id="chat-view">
     <div class="upload-note" id="upload-note"></div>
+    <div class="chat-empty" id="chat-empty">
+      <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+      </svg>
+      <strong>اختر محادثة</strong>
+      <span>اختر محادثة من القائمة لعرض الرسائل</span>
+    </div>
     <div class="messages-area" id="messages-area"></div>
 
     <div class="composer">
@@ -872,6 +992,7 @@
       var sendBtn = document.getElementById("send-btn");
       var backBtn = document.getElementById("back-btn");
       var listTitle = document.getElementById("list-title");
+      var chatView = document.getElementById("chat-view");
       var chatPeer = document.getElementById("chat-peer");
       var peerName = document.getElementById("peer-name");
       var peerRole = document.getElementById("peer-role");
@@ -885,6 +1006,8 @@
       var threads = {};
       var activeId = null;
       var messageChannel = null;
+      var loadToken = 0;
+      var refreshTimer = null;
 
       function escapeHTML(text) {
         return String(text)
@@ -929,6 +1052,18 @@
       }
 
       /* ===== قائمة المحادثات ===== */
+      function renderThreadSkeletons() {
+        emptyStateEl.style.display = "none";
+        var html = "";
+        for (var i = 0; i < 4; i++) {
+          html += '<div class="thread-skeleton" aria-hidden="true">' +
+            '<span class="skeleton-dot"></span>' +
+            '<span class="skeleton-copy"><span class="skeleton-line short"></span>' +
+            '<span class="skeleton-line"></span></span></div>';
+        }
+        threadListEl.innerHTML = html;
+      }
+
       function renderThreadList() {
         var ids = Object.keys(threads);
 
@@ -949,19 +1084,23 @@
         for (var i = 0; i < ids.length; i++) {
           var t = threads[ids[i]];
           var msgs = t.messages || [];
-          var last = msgs[msgs.length - 1];
+          var last = t.lastMessage || msgs[msgs.length - 1];
 
           var preview = "";
           if (last) {
             if (last.type === "image") preview = I18N.t("msg_photo");
             else if (last.type === "video") preview = I18N.t("msg_video");
             else preview = last.text || "";
+            if (last.from === "mine" && preview) preview = "أنت: " + preview;
           }
 
           var initial = (t.name || "?").trim().charAt(0);
+          var unread = Math.max(0, Number(t.unread || 0));
+          var rowClass = "thread" + (ids[i] === activeId ? " active" : "") + (unread ? " unread" : "");
+          var unreadText = unread > 99 ? "99+" : String(unread);
 
           html +=
-            '<button type="button" class="thread" data-id="' + escapeHTML(ids[i]) + '">' +
+            '<button type="button" class="' + rowClass + '" data-id="' + escapeHTML(ids[i]) + '">' +
               '<div class="thread-avatar">' +
                 (t.avatar
                   ? '<img alt="" src="' + escapeHTML(t.avatar) + '">'
@@ -969,10 +1108,11 @@
               '</div>' +
               '<div class="thread-info">' +
                 '<div class="thread-name">' + escapeHTML(t.name || "") + '</div>' +
-                '<div class="thread-last">' + escapeHTML(preview) + '</div>' +
+                '<div class="thread-last">' + escapeHTML(preview || "ابدأ المحادثة") + '</div>' +
               '</div>' +
-              '<div class="thread-time">' +
-                (t.updated ? formatTime(t.updated) : "") +
+              '<div class="thread-meta">' +
+                '<span class="thread-time">' + (t.updated ? formatTime(t.updated) : "") + '</span>' +
+                (unread ? '<span class="unread-badge" aria-label="' + unreadText + ' رسائل غير مقروءة">' + unreadText + '</span>' : '') +
               '</div>' +
             '</button>';
         }
@@ -981,11 +1121,32 @@
       }
 
       /* ===== شاشة المحادثة ===== */
+      function scrollToLatest() {
+        window.requestAnimationFrame(function () {
+          messagesArea.scrollTop = messagesArea.scrollHeight;
+          if (window.innerWidth < 1024) window.scrollTo(0, document.body.scrollHeight);
+        });
+      }
+
+      function renderMessageLoading() {
+        messagesArea.innerHTML = '<div class="messages-loading"><span class="loading-spinner"></span><span>جارٍ تحميل المحادثة…</span></div>';
+      }
+
       function renderMessages() {
         var t = threads[activeId];
         if (!t) return;
 
         var msgs = t.messages || [];
+        if (!t.messagesLoaded) {
+          renderMessageLoading();
+          return;
+        }
+
+        if (!msgs.length) {
+          messagesArea.innerHTML = '<div class="messages-empty"><strong>ابدأ المحادثة</strong><span>اكتب أول رسالة في الأسفل</span></div>';
+          return;
+        }
+
         var html = "";
         var lastDay = "";
 
@@ -1021,15 +1182,56 @@
         }
 
         messagesArea.innerHTML = html;
-        window.scrollTo(0, document.body.scrollHeight);
+        scrollToLatest();
+      }
+
+      function loadConversationMessages(id, force) {
+        var t = threads[id];
+        if (!t) return Promise.resolve();
+
+        var token = ++loadToken;
+        var previousUnread = Number(t.unread || 0);
+        t.unread = 0;
+        renderThreadList();
+
+        var messagesJob = (!force && t.messagesLoaded)
+          ? Promise.resolve(t.messages || [])
+          : SFMessages.loadMessages(Number(id));
+        var readJob = previousUnread > 0
+          ? SFMessages.markRead(Number(id))
+          : Promise.resolve(0);
+
+        if (!t.messagesLoaded || force) renderMessageLoading();
+
+        return Promise.all([messagesJob, readJob]).then(function (results) {
+          if (token !== loadToken || activeId !== id || !threads[id]) return;
+          var current = threads[id];
+          current.messages = results[0] || [];
+          current.messagesLoaded = true;
+          current.unread = 0;
+          if (current.messages.length) {
+            current.lastMessage = current.messages[current.messages.length - 1];
+            current.updated = current.lastMessage.at || current.updated;
+          }
+          renderThreadList();
+          renderMessages();
+        }).catch(function (err) {
+          if (token !== loadToken || activeId !== id || !threads[id]) return;
+          threads[id].unread = previousUnread;
+          renderThreadList();
+          messagesArea.innerHTML = '<div class="messages-empty"><strong>تعذّر تحميل المحادثة</strong><span>' +
+            escapeHTML((err && err.message) || "أعد المحاولة") + '</span></div>';
+        });
       }
 
       function openChat(id) {
+        id = String(id);
         activeId = id;
         var t = threads[id];
         if (!t) return;
 
         document.body.classList.add("in-chat");
+        chatView.classList.add("chat-ready");
         listTitle.style.display = "none";
         chatPeer.style.display = "flex";
 
@@ -1042,15 +1244,21 @@
           ? '<img alt="" src="' + escapeHTML(t.avatar) + '">'
           : escapeHTML((t.name || "?").trim().charAt(0));
 
-        renderMessages();
+        renderThreadList();
+        if (t.messagesLoaded) renderMessages();
+        else renderMessageLoading();
+        loadConversationMessages(id, false);
         msgInput.focus();
       }
 
       function closeChat() {
+        loadToken++;
         activeId = null;
         document.body.classList.remove("in-chat");
+        chatView.classList.remove("chat-ready");
         listTitle.style.display = "";
         chatPeer.style.display = "none";
+        messagesArea.innerHTML = "";
         hideNote();
         renderThreadList();
       }
@@ -1073,7 +1281,11 @@
         }
         if (!replaced) t.messages.push(msg);
         t.messages.sort(function (a, b) { return (a.at || 0) - (b.at || 0); });
+        t.messagesLoaded = true;
+        t.lastMessage = msg;
+        t.unread = 0;
         t.updated = msg.at;
+        renderThreadList();
         renderMessages();
       }
 
@@ -1406,6 +1618,35 @@
         if (fid !== null) openFactory(fid);
       }
 
+      function mergeRemoteThreads(fresh) {
+        Object.keys(fresh || {}).forEach(function (id) {
+          var previous = threads[id];
+          if (previous && previous.messagesLoaded) {
+            fresh[id].messages = previous.messages || [];
+            fresh[id].messagesLoaded = true;
+          }
+        });
+        threads = fresh || {};
+      }
+
+      function scheduleRealtimeRefresh(change) {
+        window.clearTimeout(refreshTimer);
+        refreshTimer = window.setTimeout(function () {
+          var changed = (change && (change.new || change.old)) || {};
+          var changedId = changed.conversation_id == null ? "" : String(changed.conversation_id);
+
+          SFMessages.load().then(function (fresh) {
+            mergeRemoteThreads(fresh);
+            renderThreadList();
+            if (activeId && threads[activeId] && (!changedId || changedId === activeId)) {
+              loadConversationMessages(activeId, true);
+            }
+          }).catch(function (err) {
+            console.warn("messages refresh:", err && err.message);
+          });
+        }, 90);
+      }
+
       function bootstrapMessages() {
         if (!window.SFMessages || !window.SF_USER) {
           renderThreadList();
@@ -1422,22 +1663,14 @@
           newChatInline.style.display = "none";
         }
 
-        showNote(I18N.t("msg_loading"), false);
+        renderThreadSkeletons();
         SFMessages.load().then(function (remoteThreads) {
-          threads = remoteThreads;
+          mergeRemoteThreads(remoteThreads);
           renderThreadList();
           hideNote();
           openFromQuery();
 
-          messageChannel = SFMessages.subscribe(function () {
-            SFMessages.load().then(function (fresh) {
-              threads = fresh;
-              renderThreadList();
-              if (activeId && threads[activeId]) renderMessages();
-            }).catch(function (err) {
-              console.warn("messages refresh:", err && err.message);
-            });
-          });
+          messageChannel = SFMessages.subscribe(scheduleRealtimeRefresh);
         }).catch(function (err) {
           console.warn("messages load:", err && err.message);
           renderThreadList();
@@ -1446,6 +1679,7 @@
       }
 
       window.addEventListener("beforeunload", function () {
+        window.clearTimeout(refreshTimer);
         if (messageChannel && window.sb) sb.removeChannel(messageChannel);
       });
 
