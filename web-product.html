@@ -27,6 +27,7 @@
 <script src="supabase-config.js"></script>
 <script>var SF_PUBLIC_PAGE = true;</script>
 <script src="auth-guard.js"></script>
+<script src="messages-badge.js"></script>
 <script src="commerce-service.js"></script>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -315,6 +316,7 @@
 </style>
 <link rel="stylesheet" href="mobile.css">
 <link rel="stylesheet" href="desktop.css">
+<link rel="stylesheet" href="green-frames.css">
 </head>
 <body class="store-page">
   <!-- شعار الصفحة — متحرّك، موحّد في كل صفحات الموقع -->
@@ -404,16 +406,17 @@
          والصفحة تعرض ما توفّر، وتُخفي ما غاب. */
 
       /* ===== نصوص الرسائل الجاهزة =====
-         تُمرَّر إلى صفحة المحادثات عبر ‎?draft=‎ فتُملأ خانة
-         الكتابة ولا تُرسل — يراجعها المستخدم أولاً. */
+         الاستفسار يبقى مسودة للمراجعة، أمّا طلب عرض السعر فيُرسل
+         تلقائيًا بعد إنشاء المحادثة. */
       var subject      = name || factoryName;
       var inquiryDraft = I18N.t("product_draft_inquiry") + " " + subject;
       var quoteDraft   = I18N.t("product_draft_quote") + " " + subject +
                          "\n" + I18N.t("product_draft_qty") + " ";
 
-      function chatURL(draft) {
+      function chatURL(draft, autoSend) {
         var url = "web-messages.html?factory=" + encodeURIComponent(factoryId);
         if (draft) url += "&draft=" + encodeURIComponent(draft);
+        if (autoSend) url += "&send=1";
         return url;
       }
 
@@ -464,7 +467,7 @@
             escapeHTML(product.id) + '">' + escapeHTML(I18N.t("product_add_to_cart")) + '</button>' : '') +
           '<a class="act-btn primary" href="' + escapeHTML(chatURL(inquiryDraft)) + '">' +
             escapeHTML(I18N.t("product_send_inquiry")) + '</a>' +
-          '<a class="act-btn outline" href="' + escapeHTML(chatURL(quoteDraft)) + '">' +
+          '<a class="act-btn outline" href="' + escapeHTML(chatURL(quoteDraft, true)) + '">' +
             escapeHTML(I18N.t("product_request_quote")) + '</a>' +
           '<a class="act-btn outline" href="' + escapeHTML(chatURL("")) + '">' +
             escapeHTML(I18N.t("product_start_chat")) + '</a>' +

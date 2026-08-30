@@ -56,6 +56,25 @@
     border-color: #1c6b34;
   }
 
+  /* فاصل هادئ أسفل ترويسة الصفحات الداخلية، مثل الفاصل أسفل
+     شريط البحث في الرئيسية. لا يظهر في صفحات التطبيق التي لا
+     تحمل شعار الصفحة المستقل. */
+  body:has(.page-logo) {
+    position: relative;
+  }
+
+  body:has(.page-logo)::before {
+    content: "";
+    position: absolute;
+    top: 76px;
+    left: 50%;
+    width: 100vw;
+    height: 1px;
+    background: #c7dfce;
+    transform: translateX(-50%);
+    pointer-events: none;
+  }
+
   /* الشريط السفلي يختفي: التنقّل ينتقل للأعلى */
   .bottom-nav { display: none !important; }
 
@@ -190,8 +209,8 @@
   .dt-icon {
     width: 40px;
     height: 40px;
-    border: none;
-    background: none;
+    border: 1px solid #c7dfce;
+    background: #ffffff;
     border-radius: 10px;
     display: flex;
     align-items: center;
@@ -199,9 +218,15 @@
     cursor: pointer;
     position: relative;
     text-decoration: none;
+    transition: background 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+    box-shadow: 0 2px 6px rgba(4,54,27,0.04);
   }
 
-  .dt-icon:hover { background: #f0f4f1; }
+  .dt-icon:hover {
+    background: #f0f7f2;
+    border-color: #8fbe9e;
+    box-shadow: 0 4px 10px rgba(4,54,27,0.10);
+  }
   .dt-icon svg { width: 22px; height: 22px; stroke: #04361b; fill: none; stroke-width: 1.9; }
 
   .dt-btn {
@@ -270,6 +295,7 @@
   /* ===== شريط الفئات تحت الرأس ===== */
   .dt-catbar {
     background: #ffffff;
+    border-top: 1px solid #c7dfce;
     border-bottom: 1px solid #e6ebe8;
   }
 
@@ -798,6 +824,7 @@
     padding: 18px 0;
     position: sticky;
     top: 20px;
+    margin-top: 18px;
   }
 
   .dash-side-head {
@@ -975,6 +1002,7 @@
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 14px;
+    margin-top: 18px;
   }
 
   .dash-stat {
@@ -1157,6 +1185,41 @@
   .doc-page .content-wrap { padding: 0 !important; margin: 0 !important; }
   .doc-page .contact-title { font-size: 16px !important; }
 
+  /* صفحة المساعدة: الشعار يثبت يسار الترويسة، بينما يبقى عنوان
+     المساعدة وبطاقة التواصل في وسط الصفحة. */
+  .doc-page .page-logo {
+    position: absolute;
+    top: 24px;
+    left: calc(50% - 50vw + 64px);
+    margin: 0 !important;
+    z-index: 1;
+  }
+
+  html[dir="rtl"] .doc-page .page-logo {
+    left: calc(50% - 50vw + 64px);
+    right: auto;
+  }
+
+  body.doc-page:has(.page-logo)::before {
+    top: 82px;
+  }
+
+  .doc-page .page-header {
+    padding: 98px 0 14px !important;
+    text-align: center;
+  }
+
+  .doc-page .content-wrap {
+    max-width: 480px !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+  }
+
+  .doc-page .contact-title {
+    margin: 4px 0 10px;
+    text-align: center;
+  }
+
   /* ============================================================
      صفحة الرسائل (messages.html)
      على الجوال تتبادل قائمةُ المحادثات والمحادثةُ الظهور عبر
@@ -1168,31 +1231,43 @@
      تضبط min-height: 100vh على body للجوال، وهي تتغلّب
      على height فيمتدّ المستند تحت البطاقات فيظهر بياض. */
   body.chat-page {
-    max-width: 1180px !important;
+    max-width: 1320px !important;
     margin: 0 auto !important;
     padding: 18px 24px !important;
     height: 100vh;
     max-height: 100vh;
     min-height: 0 !important;
     display: grid;
-    grid-template-columns: 330px 1fr;
-    grid-template-rows: auto 1fr;
+    grid-template-columns: 360px minmax(0, 1fr);
+    grid-template-rows: auto auto minmax(0, 1fr);
     column-gap: 18px;
     row-gap: 12px;
     overflow: hidden;
   }
 
+  .chat-page .page-logo {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    margin-top: 0 !important;
+    margin-bottom: 2px !important;
+  }
+
   .chat-page .top-bar {
     grid-column: 1 / -1;
+    grid-row: 2;
     display: flex !important;
     align-items: center;
     gap: 12px;
+    margin-top: 0 !important;
     padding: 0 0 4px !important;
     background: transparent !important;
     border-bottom: none !important;
   }
 
-  .chat-page .top-bar h1 { font-size: 22px !important; }
+  .chat-page .top-bar h1 {
+    font-size: 22px !important;
+    transform: translateY(10px);
+  }
 
   /* زر الرجوع لا لزوم له: القائمة ظاهرة دائماً */
   .chat-page .back-btn { display: none !important; }
@@ -1202,11 +1277,12 @@
     display: flex !important;
     flex-direction: column;
     grid-column: 1;
-    grid-row: 2;
+    grid-row: 3;
     position: relative;   /* مرساة زرّ المحادثة الجديدة */
     background: #ffffff;
     border: 1px solid #e6ebe8;
     border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(4,54,27,0.06);
     overflow: hidden;
     min-height: 0;
   }
@@ -1222,10 +1298,11 @@
     display: flex !important;
     flex-direction: column;
     grid-column: 2;
-    grid-row: 2;
+    grid-row: 3;
     background: #ffffff;
     border: 1px solid #e6ebe8;
     border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(4,54,27,0.06);
     overflow: hidden;
     min-height: 0;
   }
@@ -1235,6 +1312,7 @@
     overflow-y: auto;
     min-height: 0;
     padding: 16px !important;
+    scroll-behavior: smooth;
   }
 
   /* المُنشئ يلتصق بأسفل بطاقة المحادثة بدل تثبيته بالنافذة */
@@ -1245,14 +1323,14 @@
     border-top: 1px solid #eef2ef;
   }
 
-  /* زر محادثة جديدة يبقى ظاهراً داخل عمود القائمة */
+  /* زر محادثة جديدة يبقى في رأس الصفحة ولا يطفو بعيدًا عن التخطيط */
   .chat-page .new-chat-btn {
-    position: absolute !important;
-    inset: auto 22px 22px auto !important;
+    position: static !important;
+    inset: auto !important;
   }
 
   html[dir="ltr"] .chat-page .new-chat-btn {
-    inset: auto auto 22px 22px !important;
+    inset: auto !important;
   }
 
   /* .chat-peer يتحكم به السكربت عند فتح محادثة — لا يُجبر هنا */

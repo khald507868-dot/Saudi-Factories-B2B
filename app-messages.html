@@ -20,6 +20,7 @@
 <script src="supabase-config.js"></script>
 <script src="messages-service.js"></script>
 <script src="auth-guard.js"></script>
+<script src="messages-badge.js"></script>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -86,21 +87,39 @@
     display: flex;
     align-items: center;
     gap: 11px;
-    padding: 11px 14px;
+    padding: 13px 12px;
+    margin: 8px 10px;
     background: #ffffff;
-    border-bottom: 1px solid #eef1ef;
+    border: 1px solid #dbe7df;
+    border-radius: 14px;
     cursor: pointer;
     text-align: right;
-    width: 100%;
-    border-left: none;
-    border-right: none;
-    border-top: none;
+    width: calc(100% - 20px);
     font-family: inherit;
+    box-shadow: 0 3px 10px rgba(4,54,27,0.045);
+    transition: background 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
   }
 
   html[dir="ltr"] .thread { text-align: left; }
 
-  .thread:active { background: #f4f8f6; }
+  .thread:active { background: #f4f8f6; transform: scale(0.99); }
+
+  .thread:hover {
+    background: #f7faf8;
+    border-color: #bcd6c5;
+    box-shadow: 0 6px 15px rgba(4,54,27,0.08);
+  }
+
+  .thread.active {
+    background: #edf6f0;
+    border-color: #cfe2d5;
+    box-shadow: inset -3px 0 0 #1f6b42, 0 5px 14px rgba(4,54,27,0.08);
+  }
+
+  html[dir="ltr"] .thread.active { box-shadow: inset 3px 0 0 #1f6b42, 0 5px 14px rgba(4,54,27,0.08); }
+
+  .thread.unread .thread-name,
+  .thread.unread .thread-last { font-weight: 800; }
 
   .thread-avatar {
     width: 44px;
@@ -150,8 +169,60 @@
     font-size: 10.5px;
     color: #9aa8a0;
     flex-shrink: 0;
-    align-self: flex-start;
-    margin-top: 3px;
+    white-space: nowrap;
+  }
+
+  .thread-meta {
+    min-width: 34px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 7px;
+    flex-shrink: 0;
+  }
+
+  html[dir="ltr"] .thread-meta { align-items: flex-start; }
+
+  .unread-badge {
+    min-width: 22px;
+    height: 22px;
+    padding: 0 6px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #1f6b42;
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 800;
+    box-shadow: 0 4px 10px rgba(31,107,66,0.2);
+  }
+
+  .thread-skeleton {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    margin: 6px 10px;
+    padding: 12px;
+    border-radius: 14px;
+    background: #ffffff;
+  }
+
+  .skeleton-dot,
+  .skeleton-line {
+    background: linear-gradient(90deg, #e8eeea 25%, #f7faf8 50%, #e8eeea 75%);
+    background-size: 200% 100%;
+    animation: messageShimmer 1.2s infinite;
+  }
+
+  .skeleton-dot { width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0; }
+  .skeleton-copy { flex: 1; display: grid; gap: 8px; }
+  .skeleton-line { height: 10px; border-radius: 999px; }
+  .skeleton-line.short { width: 58%; }
+
+  @keyframes messageShimmer {
+    from { background-position: 200% 0; }
+    to { background-position: -200% 0; }
   }
 
   /* ===== حالة الفراغ ===== */
@@ -225,6 +296,54 @@
     position: relative;
     z-index: 1;
   }
+
+  .chat-empty,
+  .messages-empty,
+  .messages-loading {
+    margin: auto;
+    text-align: center;
+    color: #6f8778;
+    padding: 28px;
+  }
+
+  .chat-empty svg {
+    width: 56px;
+    height: 56px;
+    stroke: #9fb5a7;
+    fill: none;
+    stroke-width: 1.5;
+    margin-bottom: 12px;
+  }
+
+  .chat-empty strong,
+  .messages-empty strong {
+    display: block;
+    color: #04361b;
+    font-size: 15px;
+    margin-bottom: 5px;
+  }
+
+  .messages-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+  }
+
+  .loading-spinner {
+    width: 22px;
+    height: 22px;
+    border: 3px solid #dce7df;
+    border-top-color: #1f6b42;
+    border-radius: 50%;
+    animation: messageSpin .7s linear infinite;
+  }
+
+  @keyframes messageSpin { to { transform: rotate(360deg); } }
+
+  .chat-view.chat-ready .chat-empty { display: none; }
+  .chat-view:not(.chat-ready) .messages-area { display: none; }
+  .chat-view:not(.chat-ready) .composer { opacity: .5; pointer-events: none; }
 
   .day-sep {
     align-self: center;
@@ -672,6 +791,7 @@
   }
 </style>
 <link rel="stylesheet" href="mobile.css">
+<link rel="stylesheet" href="green-frames.css">
 </head>
 <body class="chat-page">
   <!-- خريطة المملكة كعلامة مائية في الخلف: شكل فقط، بلا أسماء مناطق وبلا تفاعل -->
@@ -747,6 +867,13 @@
   <!-- ===== شاشة المحادثة ===== -->
   <div class="chat-view" id="chat-view">
     <div class="upload-note" id="upload-note"></div>
+    <div class="chat-empty" id="chat-empty">
+      <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+      </svg>
+      <strong>اختر محادثة</strong>
+      <span>اختر محادثة من القائمة لعرض الرسائل</span>
+    </div>
     <div class="messages-area" id="messages-area"></div>
 
     <div class="composer">
@@ -856,13 +983,7 @@
     (function () {
       "use strict";
 
-      var STORE_KEY = "sf_messages";
-
-      /* نوع الحساب يحدّد أي طرف أنا في المحادثة:
-         حساب المصنع يرى رسائله كمصنع، وغيره كفرد */
-      var accountType = "";
-      try { accountType = localStorage.getItem("sf_account_type") || ""; } catch (e) {}
-      var myRole = accountType === "factory" ? "factory" : "individual";
+      var myRole = "individual";
 
       var threadListEl = document.getElementById("thread-list");
       var emptyStateEl = document.getElementById("empty-state");
@@ -871,6 +992,7 @@
       var sendBtn = document.getElementById("send-btn");
       var backBtn = document.getElementById("back-btn");
       var listTitle = document.getElementById("list-title");
+      var chatView = document.getElementById("chat-view");
       var chatPeer = document.getElementById("chat-peer");
       var peerName = document.getElementById("peer-name");
       var peerRole = document.getElementById("peer-role");
@@ -883,25 +1005,9 @@
 
       var threads = {};
       var activeId = null;
-
-      function loadThreads() {
-        try {
-          threads = JSON.parse(localStorage.getItem(STORE_KEY) || "{}") || {};
-        } catch (e) {
-          threads = {};
-        }
-      }
-
-      function saveThreads() {
-        try {
-          localStorage.setItem(STORE_KEY, JSON.stringify(threads));
-          return true;
-        } catch (e) {
-          /* الحصّة ممتلئة: الوسائط هي أكبر مستهلك لها */
-          showNote(I18N.t("msg_too_large"), true);
-          return false;
-        }
-      }
+      var messageChannel = null;
+      var loadToken = 0;
+      var refreshTimer = null;
 
       function escapeHTML(text) {
         return String(text)
@@ -946,6 +1052,18 @@
       }
 
       /* ===== قائمة المحادثات ===== */
+      function renderThreadSkeletons() {
+        emptyStateEl.style.display = "none";
+        var html = "";
+        for (var i = 0; i < 4; i++) {
+          html += '<div class="thread-skeleton" aria-hidden="true">' +
+            '<span class="skeleton-dot"></span>' +
+            '<span class="skeleton-copy"><span class="skeleton-line short"></span>' +
+            '<span class="skeleton-line"></span></span></div>';
+        }
+        threadListEl.innerHTML = html;
+      }
+
       function renderThreadList() {
         var ids = Object.keys(threads);
 
@@ -966,30 +1084,35 @@
         for (var i = 0; i < ids.length; i++) {
           var t = threads[ids[i]];
           var msgs = t.messages || [];
-          var last = msgs[msgs.length - 1];
+          var last = t.lastMessage || msgs[msgs.length - 1];
 
           var preview = "";
           if (last) {
             if (last.type === "image") preview = I18N.t("msg_photo");
             else if (last.type === "video") preview = I18N.t("msg_video");
             else preview = last.text || "";
+            if (last.from === "mine" && preview) preview = "أنت: " + preview;
           }
 
           var initial = (t.name || "?").trim().charAt(0);
+          var unread = Math.max(0, Number(t.unread || 0));
+          var rowClass = "thread" + (ids[i] === activeId ? " active" : "") + (unread ? " unread" : "");
+          var unreadText = unread > 99 ? "99+" : String(unread);
 
           html +=
-            '<button type="button" class="thread" data-id="' + escapeHTML(ids[i]) + '">' +
+            '<button type="button" class="' + rowClass + '" data-id="' + escapeHTML(ids[i]) + '">' +
               '<div class="thread-avatar">' +
                 (t.avatar
-                  ? '<img alt="" src="' + t.avatar + '">'
+                  ? '<img alt="" src="' + escapeHTML(t.avatar) + '">'
                   : escapeHTML(initial)) +
               '</div>' +
               '<div class="thread-info">' +
                 '<div class="thread-name">' + escapeHTML(t.name || "") + '</div>' +
-                '<div class="thread-last">' + escapeHTML(preview) + '</div>' +
+                '<div class="thread-last">' + escapeHTML(preview || "ابدأ المحادثة") + '</div>' +
               '</div>' +
-              '<div class="thread-time">' +
-                (t.updated ? formatTime(t.updated) : "") +
+              '<div class="thread-meta">' +
+                '<span class="thread-time">' + (t.updated ? formatTime(t.updated) : "") + '</span>' +
+                (unread ? '<span class="unread-badge" aria-label="' + unreadText + ' رسائل غير مقروءة">' + unreadText + '</span>' : '') +
               '</div>' +
             '</button>';
         }
@@ -998,11 +1121,32 @@
       }
 
       /* ===== شاشة المحادثة ===== */
+      function scrollToLatest() {
+        window.requestAnimationFrame(function () {
+          messagesArea.scrollTop = messagesArea.scrollHeight;
+          if (window.innerWidth < 1024) window.scrollTo(0, document.body.scrollHeight);
+        });
+      }
+
+      function renderMessageLoading() {
+        messagesArea.innerHTML = '<div class="messages-loading"><span class="loading-spinner"></span><span>جارٍ تحميل المحادثة…</span></div>';
+      }
+
       function renderMessages() {
         var t = threads[activeId];
         if (!t) return;
 
         var msgs = t.messages || [];
+        if (!t.messagesLoaded) {
+          renderMessageLoading();
+          return;
+        }
+
+        if (!msgs.length) {
+          messagesArea.innerHTML = '<div class="messages-empty"><strong>ابدأ المحادثة</strong><span>اكتب أول رسالة في الأسفل</span></div>';
+          return;
+        }
+
         var html = "";
         var lastDay = "";
 
@@ -1015,15 +1159,15 @@
             lastDay = k;
           }
 
-          var side = m.from === myRole ? "mine" : "theirs";
+          var side = (m.from === "mine" || m.from === myRole) ? "mine" : "theirs";
           var isMedia = m.type === "image" || m.type === "video";
 
           html += '<div class="bubble ' + side + (isMedia ? ' bubble-media' : '') + '">';
 
           if (m.type === "image") {
-            html += '<img alt="" src="' + m.src + '">';
+            html += '<img alt="" src="' + escapeHTML(m.src || "") + '">';
           } else if (m.type === "video") {
-            html += '<video src="' + m.src + '" controls playsinline></video>';
+            html += '<video src="' + escapeHTML(m.src || "") + '" controls playsinline></video>';
           }
 
           if (m.text) {
@@ -1037,15 +1181,56 @@
         }
 
         messagesArea.innerHTML = html;
-        window.scrollTo(0, document.body.scrollHeight);
+        scrollToLatest();
+      }
+
+      function loadConversationMessages(id, force) {
+        var t = threads[id];
+        if (!t) return Promise.resolve();
+
+        var token = ++loadToken;
+        var previousUnread = Number(t.unread || 0);
+        t.unread = 0;
+        renderThreadList();
+
+        var messagesJob = (!force && t.messagesLoaded)
+          ? Promise.resolve(t.messages || [])
+          : SFMessages.loadMessages(Number(id));
+        var readJob = previousUnread > 0
+          ? SFMessages.markRead(Number(id))
+          : Promise.resolve(0);
+
+        if (!t.messagesLoaded || force) renderMessageLoading();
+
+        return Promise.all([messagesJob, readJob]).then(function (results) {
+          if (token !== loadToken || activeId !== id || !threads[id]) return;
+          var current = threads[id];
+          current.messages = results[0] || [];
+          current.messagesLoaded = true;
+          current.unread = 0;
+          if (current.messages.length) {
+            current.lastMessage = current.messages[current.messages.length - 1];
+            current.updated = current.lastMessage.at || current.updated;
+          }
+          renderThreadList();
+          renderMessages();
+        }).catch(function (err) {
+          if (token !== loadToken || activeId !== id || !threads[id]) return;
+          threads[id].unread = previousUnread;
+          renderThreadList();
+          messagesArea.innerHTML = '<div class="messages-empty"><strong>تعذّر تحميل المحادثة</strong><span>' +
+            escapeHTML((err && err.message) || "أعد المحاولة") + '</span></div>';
+        });
       }
 
       function openChat(id) {
+        id = String(id);
         activeId = id;
         var t = threads[id];
         if (!t) return;
 
         document.body.classList.add("in-chat");
+        chatView.classList.add("chat-ready");
         listTitle.style.display = "none";
         chatPeer.style.display = "flex";
 
@@ -1055,18 +1240,24 @@
           : I18N.t("msg_role_individual");
 
         peerAvatar.innerHTML = t.avatar
-          ? '<img alt="" src="' + t.avatar + '">'
+          ? '<img alt="" src="' + escapeHTML(t.avatar) + '">'
           : escapeHTML((t.name || "?").trim().charAt(0));
 
-        renderMessages();
+        renderThreadList();
+        if (t.messagesLoaded) renderMessages();
+        else renderMessageLoading();
+        loadConversationMessages(id, false);
         msgInput.focus();
       }
 
       function closeChat() {
+        loadToken++;
         activeId = null;
         document.body.classList.remove("in-chat");
+        chatView.classList.remove("chat-ready");
         listTitle.style.display = "";
         chatPeer.style.display = "none";
+        messagesArea.innerHTML = "";
         hideNote();
         renderThreadList();
       }
@@ -1077,15 +1268,24 @@
         if (!t) return;
 
         t.messages = t.messages || [];
-        t.messages.push(msg);
-        t.updated = msg.at;
-
-        if (saveThreads()) {
-          renderMessages();
-        } else {
-          /* تراجع عن الإضافة إذا فشل الحفظ حتى لا تختلف الشاشة عن المخزَّن */
-          t.messages.pop();
+        var replaced = false;
+        if (msg.id != null) {
+          for (var i = 0; i < t.messages.length; i++) {
+            if (String(t.messages[i].id) === String(msg.id)) {
+              t.messages[i] = msg;
+              replaced = true;
+              break;
+            }
+          }
         }
+        if (!replaced) t.messages.push(msg);
+        t.messages.sort(function (a, b) { return (a.at || 0) - (b.at || 0); });
+        t.messagesLoaded = true;
+        t.lastMessage = msg;
+        t.unread = 0;
+        t.updated = msg.at;
+        renderThreadList();
+        renderMessages();
       }
 
       function sendText() {
@@ -1097,76 +1297,55 @@
           msgInput.style.height = "auto";
           updateSendState();
         };
-        if (window.SFMessages && window.SF_USER && /^\d+$/.test(String(activeId))) {
-          sendBtn.disabled = true;
-          SFMessages.sendText(Number(activeId), inputText).then(function (saved) {
-            pushMessage({ id: saved.id, from: "mine", type: "text",
-              text: saved.body || inputText, at: new Date(saved.created_at).getTime() });
-            finish();
-          }).catch(function (err) {
-            showNote((err && err.message) || "تعذّر إرسال الرسالة.", true);
-            updateSendState();
-          });
+        if (!window.SFMessages || !window.SF_USER || !/^\d+$/.test(String(activeId))) {
+          showNote("تعذّر الاتصال بخدمة الرسائل. أعد تحميل الصفحة.", true);
           return;
         }
-        pushMessage({ from: myRole, type: "text", text: inputText, at: Date.now() });
+        sendBtn.disabled = true;
+        /* رسم فوريّ بمعرّف مؤقّت ثمّ تثبيت من ردّ الخادم —
+           نفس علاج web-messages: الانتظار قبل الرسم يبدو بطيئًا. */
+        var tempId = "tmp-" + Date.now();
+        pushMessage({ id: tempId, from: "mine", type: "text",
+          text: inputText, at: Date.now() });
         finish();
+
+        SFMessages.sendText(Number(activeId), inputText).then(function (saved) {
+          sentIds[String(saved.id)] = true;
+          var t = threads[activeId];
+          if (t && t.messages) {
+            for (var i = 0; i < t.messages.length; i++) {
+              if (String(t.messages[i].id) === tempId) {
+                t.messages[i].id = saved.id;
+                t.messages[i].text = saved.body || inputText;
+                t.messages[i].at = new Date(saved.created_at).getTime();
+                break;
+              }
+            }
+          }
+        }).catch(function (err) {
+          var t2 = threads[activeId];
+          if (t2 && t2.messages) {
+            t2.messages = t2.messages.filter(function (m) {
+              return String(m.id) !== tempId;
+            });
+            renderMessages();
+          }
+          msgInput.value = inputText;
+          showNote((err && err.message) || "تعذّر إرسال الرسالة.", true);
+          updateSendState();
+        });
       }
 
       function updateSendState() {
         sendBtn.disabled = !msgInput.value.trim();
       }
 
-      /* تصغير الصورة قبل التخزين — نفس أسلوب باقي الصفحات */
-      function resizeImage(dataUrl, maxSize, done) {
-        var img = new Image();
-        img.onload = function () {
-          var scale = Math.min(1, maxSize / Math.max(img.width, img.height));
-          var canvas = document.createElement("canvas");
-          canvas.width = Math.round(img.width * scale);
-          canvas.height = Math.round(img.height * scale);
-          canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
-          done(canvas.toDataURL("image/jpeg", 0.8));
-        };
-        img.onerror = function () { done(dataUrl); };
-        img.src = dataUrl;
-      }
-
-      /* مسار واحد للصور سواء جاءت من المعرض أو من الكاميرا */
+      /* الصور والمقاطع تُرفع إلى الحاوية الخاصة ثم تُسجّل كرسالة. */
       function handleImageFile(input) {
         var file = input.files && input.files[0];
         if (!file || !activeId) { input.value = ""; return; }
 
-        showNote(I18N.t("msg_uploading"), false);
-
-        if (window.SFMessages && window.SF_USER && /^\d+$/.test(String(activeId))) {
-          SFMessages.sendAttachment(Number(activeId), file, "image").then(function (saved) {
-            pushMessage({ id: saved.id, from: "mine", type: "image", src: saved.signed_url, at: new Date(saved.created_at).getTime() });
-            hideNote();
-          }).catch(function (err) { showNote((err && err.message) || "تعذّر رفع الصورة.", true); });
-          input.value = "";
-          return;
-        }
-
-        var reader = new FileReader();
-        reader.onload = function (ev) {
-          resizeImage(ev.target.result, 640, function (small) {
-            pushMessage({ from: myRole, type: "image", src: small, at: Date.now() });
-            hideNote();
-          });
-        };
-        reader.readAsDataURL(file);
-        input.value = "";
-      }
-
-      /* ومسار واحد للمقاطع كذلك */
-      function handleVideoFile(input) {
-        var file = input.files && input.files[0];
-        if (!file || !activeId) { input.value = ""; return; }
-
-        /* المقاطع تُخزَّن كما هي (لا يمكن ضغطها بلا مكتبة)، فتُرفض الكبيرة
-           مبكراً حتى لا تُفجّر حصّة localStorage البالغة ~5MB */
-        if (file.size > 2 * 1024 * 1024) {
+        if (!/^image\//.test(file.type || "") || file.size > 10 * 1024 * 1024) {
           showNote(I18N.t("msg_too_large"), true);
           input.value = "";
           return;
@@ -1174,21 +1353,41 @@
 
         showNote(I18N.t("msg_uploading"), false);
 
-        if (window.SFMessages && window.SF_USER && /^\d+$/.test(String(activeId))) {
-          SFMessages.sendAttachment(Number(activeId), file, "video").then(function (saved) {
-            pushMessage({ id: saved.id, from: "mine", type: "video", src: saved.signed_url, at: new Date(saved.created_at).getTime() });
-            hideNote();
-          }).catch(function (err) { showNote((err && err.message) || "تعذّر رفع المقطع.", true); });
+        if (!window.SFMessages || !window.SF_USER || !/^\d+$/.test(String(activeId))) {
+          showNote("تعذّر الاتصال بخدمة الرسائل. أعد تحميل الصفحة.", true);
           input.value = "";
           return;
         }
 
-        var reader = new FileReader();
-        reader.onload = function (ev) {
-          pushMessage({ from: myRole, type: "video", src: ev.target.result, at: Date.now() });
+        SFMessages.sendAttachment(Number(activeId), file, "image").then(function (saved) {
+          pushMessage({ id: saved.id, from: "mine", type: "image", src: saved.signed_url, at: new Date(saved.created_at).getTime() });
           hideNote();
-        };
-        reader.readAsDataURL(file);
+        }).catch(function (err) { showNote((err && err.message) || "تعذّر رفع الصورة.", true); });
+        input.value = "";
+      }
+
+      function handleVideoFile(input) {
+        var file = input.files && input.files[0];
+        if (!file || !activeId) { input.value = ""; return; }
+
+        if (!/^video\//.test(file.type || "") || file.size > 25 * 1024 * 1024) {
+          showNote(I18N.t("msg_too_large"), true);
+          input.value = "";
+          return;
+        }
+
+        showNote(I18N.t("msg_uploading"), false);
+
+        if (!window.SFMessages || !window.SF_USER || !/^\d+$/.test(String(activeId))) {
+          showNote("تعذّر الاتصال بخدمة الرسائل. أعد تحميل الصفحة.", true);
+          input.value = "";
+          return;
+        }
+
+        SFMessages.sendAttachment(Number(activeId), file, "video").then(function (saved) {
+          pushMessage({ id: saved.id, from: "mine", type: "video", src: saved.signed_url, at: new Date(saved.created_at).getTime() });
+          hideNote();
+        }).catch(function (err) { showNote((err && err.message) || "تعذّر رفع المقطع.", true); });
         input.value = "";
       }
 
@@ -1288,47 +1487,45 @@
       var newChatInline = document.getElementById("new-chat-inline");
       var pickClose = document.getElementById("pick-close");
 
-      var FACTORY_COUNT = 1000;
-
-      function factoryLabel(fid, saved) {
-        var f = saved[fid] || {};
-        return f.name || (I18N.t("msg_role_factory") + " " + fid);
-      }
+      var factoryChoices = [];
 
       function renderPickList(filter) {
-        var saved = {};
-        try {
-          saved = JSON.parse(localStorage.getItem("sf_factories") || "{}") || {};
-        } catch (e) {}
-
         filter = (filter || "").trim().toLowerCase();
 
         var html = "";
-        var shown = 0;
-
-        for (var i = 0; i < FACTORY_COUNT && shown < 60; i++) {
-          var label = factoryLabel(i, saved);
+        for (var i = 0; i < factoryChoices.length; i++) {
+          var f = factoryChoices[i];
+          var label = f.name || (I18N.t("msg_role_factory") + " " + f.id);
           if (filter && label.toLowerCase().indexOf(filter) === -1) continue;
 
-          var f = saved[i] || {};
           html +=
-            '<button type="button" class="pick-item" data-fid="' + i + '">' +
+            '<button type="button" class="pick-item" data-fid="' + escapeHTML(f.id) + '">' +
               '<span class="thread-avatar" style="width:32px;height:32px;font-size:13px;">' +
-                (f.logo ? '<img alt="" src="' + f.logo + '">' : escapeHTML(label.charAt(0))) +
+                (f.logo ? '<img alt="" src="' + escapeHTML(f.logo) + '">' : escapeHTML(label.charAt(0))) +
               '</span>' +
               '<span>' + escapeHTML(label) + '</span>' +
             '</button>';
-          shown++;
         }
 
-        pickList.innerHTML = html;
+        pickList.innerHTML = html || '<div style="padding:16px;text-align:center;color:#6b756e;">لا توجد مصانع مطابقة</div>';
       }
 
       function openPicker() {
-        renderPickList("");
+        if (myRole === "factory") {
+          showNote("حساب المصنع يستقبل محادثات العملاء من هذه الصفحة.", true);
+          return;
+        }
+        pickList.innerHTML = '<div style="padding:16px;text-align:center;color:#6b756e;">جارٍ تحميل المصانع…</div>';
         pickSearch.value = "";
         pickOverlay.classList.add("open");
         document.body.style.overflow = "hidden";
+        SFMessages.listFactories().then(function (rows) {
+          factoryChoices = rows;
+          renderPickList("");
+        }).catch(function (err) {
+          pickList.innerHTML = '<div style="padding:16px;text-align:center;color:#a12727;">' +
+            escapeHTML((err && err.message) || "تعذّر تحميل المصانع") + '</div>';
+        });
       }
 
       function closePicker() {
@@ -1337,29 +1534,17 @@
       }
 
       function startChatWith(fid) {
-        var id = "factory-" + fid;
         closePicker();
-        if (window.SFMessages && window.SF_USER) {
-          showNote(I18N.t("msg_loading"), false);
-          SFMessages.ensureFactoryConversation(fid).then(function (thread) {
-            threads[thread.id] = thread;
-            renderThreadList();
-            openChat(thread.id);
-            hideNote();
-          }).catch(function (err) {
-            showNote((err && err.message) || "تعذّر فتح المحادثة.", true);
-          });
-          return;
-        }
-        if (!threads[id]) {
-          var saved = {};
-          try { saved = JSON.parse(localStorage.getItem("sf_factories") || "{}") || {}; } catch (e) {}
-          var f = saved[fid] || {};
-          threads[id] = { name: factoryLabel(fid, saved), role: "factory", avatar: f.logo || "",
-            messages: [], updated: Date.now() };
-          saveThreads();
-        }
-        openChat(id);
+        showNote(I18N.t("msg_loading"), false);
+        SFMessages.ensureFactoryConversation(fid).then(function (thread) {
+          var id = String(thread.id);
+          threads[id] = thread;
+          renderThreadList();
+          openChat(id);
+          hideNote();
+        }).catch(function (err) {
+          showNote((err && err.message) || "تعذّر فتح المحادثة.", true);
+        });
       }
 
       newChatBtn.addEventListener("click", openPicker);
@@ -1381,56 +1566,83 @@
         var params = new URLSearchParams(window.location.search);
         var fid = params.get("factory");
         if (fid === null) return;
+        var found = null;
+        Object.keys(threads).forEach(function (key) {
+          if (!found && Number(threads[key].factory_id) === Number(fid)) found = key;
+        });
+        if (found) { openChat(found); return; }
+        startChatWith(fid);
+      }
 
-        var id = "factory-" + fid;
+      function mergeRemoteThreads(fresh) {
+        Object.keys(fresh || {}).forEach(function (id) {
+          var previous = threads[id];
+          if (previous && previous.messagesLoaded) {
+            fresh[id].messages = previous.messages || [];
+            fresh[id].messagesLoaded = true;
+          }
+        });
+        threads = fresh || {};
+      }
 
-        if (!threads[id]) {
-          var fname = "";
-          var favatar = "";
-          try {
-            var all = JSON.parse(localStorage.getItem("sf_factories") || "{}") || {};
-            var f = all[fid] || {};
-            fname = f.name || "";
-            favatar = f.logo || "";
-          } catch (e) {}
+      /* معرّفات رسائلي أنا — لا يُعاد التحميل من أجلها. */
+      var sentIds = {};
 
-          threads[id] = {
-            name: fname || (I18N.t("msg_role_factory") + " " + fid),
-            role: "factory",
-            avatar: favatar,
-            messages: [],
-            updated: Date.now()
-          };
-          saveThreads();
+      function scheduleRealtimeRefresh(change) {
+        var incoming = (change && (change.new || change.old)) || {};
+        if (incoming.id != null && sentIds[String(incoming.id)]) {
+          delete sentIds[String(incoming.id)];
+          return;
         }
+        window.clearTimeout(refreshTimer);
+        refreshTimer = window.setTimeout(function () {
+          var changed = (change && (change.new || change.old)) || {};
+          var changedId = changed.conversation_id == null ? "" : String(changed.conversation_id);
 
-        openChat(id);
+          SFMessages.load().then(function (fresh) {
+            mergeRemoteThreads(fresh);
+            renderThreadList();
+            if (activeId && threads[activeId] && (!changedId || changedId === activeId)) {
+              loadConversationMessages(activeId, true);
+            }
+          }).catch(function (err) {
+            console.warn("messages refresh:", err && err.message);
+          });
+        }, 90);
       }
 
       function bootstrapMessages() {
-        loadThreads();
-        if (window.SFMessages && window.SF_USER) {
-          SFMessages.load().then(function (remoteThreads) {
-            threads = remoteThreads;
-            renderThreadList();
-            openFromQuery();
-            SFMessages.subscribe(function () {
-              SFMessages.load().then(function (fresh) {
-                threads = fresh;
-                renderThreadList();
-                if (activeId && threads[activeId]) renderMessages();
-              }).catch(function () {});
-            });
-          }).catch(function (err) {
-            console.warn("messages load:", err && err.message);
-            renderThreadList();
-            openFromQuery();
-          });
-        } else {
+        if (!window.SFMessages || !window.SF_USER) {
+          renderThreadList();
+          showNote("يجب تسجيل الدخول لاستخدام الرسائل.", true);
+          return;
+        }
+
+        myRole = window.SF_PROFILE && SF_PROFILE.account_type === "factory"
+          ? "factory"
+          : "individual";
+        if (myRole === "factory") {
+          newChatBtn.style.display = "none";
+          newChatInline.style.display = "none";
+        }
+
+        renderThreadSkeletons();
+        SFMessages.load().then(function (remoteThreads) {
+          mergeRemoteThreads(remoteThreads);
           renderThreadList();
           openFromQuery();
-        }
+          messageChannel = SFMessages.subscribe(scheduleRealtimeRefresh);
+        }).catch(function (err) {
+          console.warn("messages load:", err && err.message);
+          renderThreadList();
+          showNote((err && err.message) || "تعذّر تحميل الرسائل.", true);
+        });
       }
+
+      window.addEventListener("beforeunload", function () {
+        window.clearTimeout(refreshTimer);
+        if (messageChannel && window.sb) sb.removeChannel(messageChannel);
+      });
       if (window.SF_AUTH_READY) SF_AUTH_READY.then(bootstrapMessages);
       else bootstrapMessages();
     })();

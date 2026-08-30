@@ -20,6 +20,7 @@
 <script src="supabase-config.js"></script>
 <script src="commerce-service.js"></script>
 <script src="auth-guard.js"></script>
+<script src="messages-badge.js"></script>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -216,6 +217,25 @@
     white-space: nowrap;
   }
 
+  .payment-logo {
+    width: 46px;
+    height: 24px;
+    object-fit: contain;
+    display: block;
+    background: #ffffff;
+    border: 1px solid #e1ebe3;
+    border-radius: 6px;
+    padding: 3px 4px;
+    box-sizing: border-box;
+  }
+
+  .payment-icons .payment-logo {
+    width: 31px;
+    height: 18px;
+    padding: 2px 3px;
+    border-radius: 4px;
+  }
+
   .protection-item .check-icon {
     width: 18px;
     height: 18px;
@@ -374,8 +394,9 @@
   }
 
   .protection-detail-section {
-    padding: 16px 0;
+    padding: 20px 24px;
     border-top: 1px solid #eef1ee;
+    box-sizing: border-box;
   }
 
   .detail-heading {
@@ -420,8 +441,13 @@
   .payment-icons-row {
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
-    margin: 10px 0;
+    justify-content: center;
+    gap: 8px;
+    margin: 12px 0 10px;
+    padding: 8px 10px;
+    background: #f7faf7;
+    border: 1px solid #e4eee6;
+    border-radius: 10px;
   }
 
   .detail-link {
@@ -528,6 +554,7 @@
   }
 </style>
 <link rel="stylesheet" href="mobile.css">
+<link rel="stylesheet" href="green-frames.css">
 </head>
 <body>
 
@@ -563,10 +590,11 @@
       <div class="protection-item">
         <span class="item-label" data-i18n="cart_protection_payments">مدفوعات آمنة</span>
         <span class="payment-icons">
-          <span class="payment-badge">mada</span>
-          <span class="payment-badge">VISA</span>
-          <span class="payment-badge">MC</span>
-          <span class="payment-badge">Pay</span>
+          <img class="payment-logo" src="assets/payments/mada.jpg" alt="مدى">
+          <img class="payment-logo" src="assets/payments/visa.jpg" alt="Visa">
+          <img class="payment-logo" src="assets/payments/mastercard.webp" alt="Mastercard">
+          <img class="payment-logo" src="assets/payments/apple-pay.png" alt="Apple Pay">
+          <img class="payment-logo" src="assets/payments/stc-pay.png" alt="STC Pay">
         </span>
       </div>
       <div class="protection-item">
@@ -624,11 +652,11 @@
           <p data-i18n="protection_payments_desc1">ادفع من خلال طرق الدفع المحلية المفضلة لديك أو التحويلات المصرفية أو خطط الدفع المؤجلة.</p>
           <p data-i18n="protection_payments_desc2">كل معاملة تُجريها من خلال المصانع السعودية محمية بتشفير SSL وبروتوكولات حماية البيانات.</p>
           <div class="payment-icons-row">
-            <span class="payment-badge">mada</span>
-            <span class="payment-badge">VISA</span>
-            <span class="payment-badge">MC</span>
-            <span class="payment-badge">Apple Pay</span>
-            <span class="payment-badge">STC Pay</span>
+            <img class="payment-logo" src="assets/payments/mada.jpg" alt="مدى">
+            <img class="payment-logo" src="assets/payments/visa.jpg" alt="Visa">
+            <img class="payment-logo" src="assets/payments/mastercard.webp" alt="Mastercard">
+            <img class="payment-logo" src="assets/payments/apple-pay.png" alt="Apple Pay">
+            <img class="payment-logo" src="assets/payments/stc-pay.png" alt="STC Pay">
           </div>
           <a href="#" class="detail-link" data-i18n="protection_payments_link">تعرف على طرق الدفع الآمنة</a>
         </div>

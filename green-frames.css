@@ -1,0 +1,88 @@
+@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap');
+
+/* خط عربي موحّد وواضح في صفحات الفرد والمصنع. */
+html[lang="ar"] body,
+html[lang="ar"] button,
+html[lang="ar"] input,
+html[lang="ar"] textarea,
+html[lang="ar"] select {
+  font-family: "Tajawal", "Segoe UI", Tahoma, Arial, sans-serif !important;
+}
+
+/* يبقى اسم العلامة بالخط اللاتيني المميّز. */
+.wm-title {
+  font-family: "Segoe UI", Tahoma, Arial, sans-serif !important;
+}
+
+/* إطار أخضر هادئ مخصّص لبطاقات المنتجات فقط. */
+:root {
+  --sf-product-frame: #c7dfce;
+  --sf-product-frame-hover: #8fbe9e;
+}
+
+/* بطاقات المحتوى في جميع الصفحات، دون تأطير أقسام الصفحة الواسعة. */
+.card,
+.factory-card,
+.product-card,
+.account-card,
+.profile-card,
+.settings-card,
+.stat-card,
+.dashboard-card,
+.dash-stat,
+.dash-side,
+.cart-item,
+.cart-summary,
+.cart-row,
+.checkout-bar,
+.account-section,
+.auth-panel,
+.form-wrap,
+.confirm-box,
+.type-card,
+.fc-info,
+.protection-section,
+.protection-detail-section,
+.protection-how-box,
+.contact-list,
+.posts-list,
+.pick-list,
+.country-list,
+.lang-list,
+.thread,
+.chat-page .thread-list-view,
+.chat-page .chat-view,
+.map-section,
+.map-frame-wrap {
+  border: 1px solid var(--sf-product-frame) !important;
+}
+
+/* تصميم سطح المكتب للسلة يملك قاعدة أكثر تحديداً، لذلك نطابقها
+   حتى لا تعود لإطار رمادي فوق الإطار الأخضر. */
+.cart-page .checkout-bar,
+.cart-page .cart-row {
+  border-color: var(--sf-product-frame) !important;
+}
+
+.card:hover,
+.factory-card:hover,
+.product-card:hover,
+.account-card:hover,
+.profile-card:hover,
+.settings-card:hover,
+.stat-card:hover,
+.dashboard-card:hover,
+.dash-stat:hover,
+.cart-item:hover,
+.cart-row:hover,
+.account-section:hover,
+.auth-panel:hover,
+.form-wrap:hover,
+.confirm-box:hover,
+.type-card:hover,
+.fc-info:hover,
+.protection-section:hover,
+.protection-detail-section:hover,
+.protection-how-box:hover {
+  border-color: var(--sf-product-frame-hover) !important;
+}
