@@ -1188,13 +1188,13 @@
   .doc-page .page-logo {
     position: absolute;
     top: 24px;
-    left: 64px;
+    left: calc(50% - 50vw + 64px);
     margin: 0 !important;
     z-index: 1;
   }
 
   html[dir="rtl"] .doc-page .page-logo {
-    left: 64px;
+    left: calc(50% - 50vw + 64px);
     right: auto;
   }
 
