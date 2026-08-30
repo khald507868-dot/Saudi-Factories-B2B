@@ -1183,6 +1183,41 @@
   .doc-page .content-wrap { padding: 0 !important; margin: 0 !important; }
   .doc-page .contact-title { font-size: 16px !important; }
 
+  /* صفحة المساعدة: الشعار يثبت يسار الترويسة، بينما يبقى عنوان
+     المساعدة وبطاقة التواصل في وسط الصفحة. */
+  .doc-page .page-logo {
+    position: absolute;
+    top: 24px;
+    left: 64px;
+    margin: 0 !important;
+    z-index: 1;
+  }
+
+  html[dir="rtl"] .doc-page .page-logo {
+    left: 64px;
+    right: auto;
+  }
+
+  body.doc-page:has(.page-logo)::before {
+    top: 82px;
+  }
+
+  .doc-page .page-header {
+    padding: 98px 0 14px !important;
+    text-align: center;
+  }
+
+  .doc-page .content-wrap {
+    max-width: 480px !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+  }
+
+  .doc-page .contact-title {
+    margin: 4px 0 10px;
+    text-align: center;
+  }
+
   /* ============================================================
      صفحة الرسائل (messages.html)
      على الجوال تتبادل قائمةُ المحادثات والمحادثةُ الظهور عبر
