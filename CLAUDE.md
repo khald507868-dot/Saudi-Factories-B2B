@@ -128,6 +128,12 @@ Several bugs passed review and were caught only by the owner looking: the `.auth
 
 There **is** a git repository (branch `master`). The manual `.bak` convention is **retired**: the folder had grown to 68 backups against 15 live pages, and the owner twice opened a stale `.bak` believing it was the live page. All were deleted after archiving their pre-split states in commit `e0767a3`; `.gitignore` excludes `*bak`.
 
+**The repo has a GitHub remote, and the owner pushes work from other sessions.** On 2026-08-30 a push was rejected with **30 commits** waiting on `origin/master` — an entire feature set (`green-frames.css`, `messages-badge.js`, three messaging migrations, a rebuilt `messages-service.js`) built elsewhere and unknown locally.
+
+**So: `git fetch` and compare before starting work, not after finishing it.** `git log --oneline HEAD..origin/master` costs one command and tells you whether the file you are about to rewrite was rewritten already. A merge conflict in the middle of a Python patch script is far more expensive than a pull at the start.
+
+When the conflict does happen, read **both** sides before resolving. In that merge the remote side of each hunk was the *older* code and the local side held the newer fix, which is the opposite of the usual assumption — resolving "theirs wins" by reflex would have silently deleted the work.
+
 **Do not create `.bak` files — `git commit` before a bulk rewrite instead.** Unlike a `.bak`, a commit cannot be mistaken for a live page.
 
 **The established habit is a checkpoint commit named for what is about to happen** — `نقطة حفظ قبل حذف زر الرجوع من صفحات web`, `نقطة حفظ قبل ربط صفحة المصانع بقاعدة البيانات`. Written in Arabic, before the risky edit, describing the *next* step rather than the last one — which is what makes "ارجع قبل اخر تعديل" ("revert to before the last edit") a one-command answer. **Expect that request; it is a normal part of how the owner works**, and it means the previous *visual* state, not necessarily the previous commit.
@@ -142,7 +148,9 @@ There is no `psql` and no Supabase CLI here. Edit `schema.sql` (or a focused one
 
 ## Architecture
 
-Each page is a **fully self-contained** `<style>`/markup/`<script>` block in one `.html` file — page-specific styling is never extracted into a shared file. The shared assets are `i18n.js` and `mobile.css` (every page), `desktop.css` (the 14 `web-` pages), `regions-geo.js` (home pages only), and `supabase-config.js` / `auth-guard.js` (the subsets under *Backend*).
+Each page is a **fully self-contained** `<style>`/markup/`<script>` block in one `.html` file — page-specific styling is never extracted into a shared file. The shared assets are `i18n.js`, `mobile.css`, and **`green-frames.css`** (every page), `desktop.css` (the 14 `web-` pages), `regions-geo.js` (home pages only), **`messages-badge.js`** (19 pages that link to messages), and `supabase-config.js` / `auth-guard.js` (the subsets under *Backend*).
+
+**`green-frames.css` carries two unrelated things, and the name hides one of them.** Besides the green card frames it imports **Tajawal from Google Fonts** and forces it on every Arabic element via `html[lang="ar"] body, button, input, textarea, select { font-family: ... !important }`, while exempting `.wm-title` so the wordmark keeps its Latin face. It is loaded by **all 29 pages** — so a font change here is site-wide, and it is the one shared stylesheet that reaches the app path as well as the web path. It also breaks the "not a single image file" rule's spirit by pulling a remote font; that is deliberate.
 
 **There is not a single image file in this project** — every icon, flag, and logo is inline SVG, CSS, or generated glyphs. When the owner supplies a logo as a picture, the expected move is to rebuild it in markup, not save the file.
 
@@ -198,6 +206,16 @@ The page renders from `localStorage` first and swaps in database rows when they 
 `web-messages.html` and `app-messages.html` no longer read or write `sf_messages`: both wait for `SFMessages.load()` and paint only server rows. Text and attachment sends also fail visibly when the service is unavailable instead of falling back to browser-only messages.
 
 **Thread keys are the conversation's database id** (`String(row.id)`), not the old `factory-<n>` form. The msg-dock in `web-factory.html` now reads `SFMessages` and links with the database id. `openFromQuery()` still accepts a legacy `factory-<n>` link and converts it to a server conversation for old saved URLs.
+
+**Reading a thread list does not mean reading `messages`.** Three RPCs added 2026-08-29 do that work server-side, and `messages-service.js` calls them instead of joining in the client:
+
+- `get_conversation_summaries` — the thread list with last-message and unread count
+- `get_conversation_peers` — the other party's name/avatar (a plain join would be refused: a factory owner cannot select arbitrary `profiles` rows, and RLS is right to stop it)
+- `mark_conversation_read` — takes `p_conversation_id`; refuses with `42501 Conversation access denied` for a non-party
+
+A fourth, `get_unread_message_total`, is called by **`messages-badge.js`**, which injects an unread count onto every `a[href*="messages.html"]` on 19 pages and refreshes it over the same realtime channel. It positions with `inset-inline-start`, so it mirrors under `dir` without an `ltr` counterpart — don't add one.
+
+**Sending is optimistic, and the realtime echo must be suppressed.** The page paints the message immediately under a `tmp-<ts>` id, then swaps in the server row; on failure it removes the bubble and puts the text back in the composer. Every id it sent is recorded in `sentIds`, and `scheduleRealtimeRefresh` drops one matching notification. **Without that suppression the subscription fires on your own insert and reloads every thread ~90ms after each send** — which reads to the owner as the page "refreshing" and as the send being slow. Both symptoms were reported together; they are one bug.
 
 ### Mobile layer (`mobile.css`)
 
@@ -357,8 +375,14 @@ the authorization, and an anonymous upload or delete is refused with `403`.
 
 ### Migrations live in `supabase/migrations/`
 
-Three ordered files, all applied to the live database (verified 2026-08-28). **They are not
-`schema.sql`-style re-runnable-in-any-order** — apply in filename order.
+**Six** ordered files, all applied to the live database (the 08-27 three verified 2026-08-28, the
+08-29 three verified 2026-08-30 by calling each RPC over REST). **They are not `schema.sql`-style
+re-runnable-in-any-order** — apply in filename order.
+
+Probing an RPC to see whether its migration ran: call it and read the code. `PGRST202` means the
+function does not exist; `42501` means it exists and refused you, which is a **pass**. Pass the real
+arguments — calling a one-argument function with `{}` also returns `PGRST202` and looks identical to
+"not applied".
 
 The ~20 loose `.sql` files still in the repo root are the older one-offs and check scripts described
 further down; they are not part of the migration sequence.
