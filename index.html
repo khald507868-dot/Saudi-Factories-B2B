@@ -1517,35 +1517,28 @@
         hold(rtlNow ? L : R, true);
         hold(rtlNow ? R : L, false);
 
-        /* حركة تلقائية هادئة: 12 بكسل تقريباً في الثانية،
-           وتعكس اتجاهها عند النهاية بدلاً من القفز إلى البداية. */
+        /* حركة تلقائية هادئة: بكسل واحد كل 50ms، أي نحو 20 بكسل
+           في الثانية. نستخدم بكسلاً كاملاً لأن بعض المتصفحات تتجاهل
+           كسور البكسل عند فتح الصفحة مباشرة من الملفات. */
         var autoPaused = false;
         var autoDirection = 1;
-        var lastFrame = 0;
-        function autoMove(now) {
-          if (!lastFrame) lastFrame = now;
-          var elapsed = Math.min(now - lastFrame, 60);
-          lastFrame = now;
+        function autoMove() {
           var max = maxScroll();
 
-          if (!autoPaused && max > 1) {
+          if (!autoPaused && !document.hidden && max > 1) {
             var pos = Math.abs(box.scrollLeft);
             if (pos >= max - 1) autoDirection = -1;
             else if (pos <= 1) autoDirection = 1;
-            step(null, autoDirection > 0, elapsed * 0.012);
+            step(null, autoDirection > 0, 1);
           }
-          requestAnimationFrame(autoMove);
         }
 
         /* يشمل المساحة كاملةً والأسهم، ولا يتوقف الشريط عند المرور
            على عنصر داخلي فقط ثم يعود للتحرك أثناء اختيار الفئة. */
         var pauseArea = box.closest(".dt-catbar-inner") || box;
         pauseArea.addEventListener("mouseenter", function () { autoPaused = true; });
-        pauseArea.addEventListener("mouseleave", function () {
-          autoPaused = false;
-          lastFrame = 0;
-        });
-        requestAnimationFrame(autoMove);
+        pauseArea.addEventListener("mouseleave", function () { autoPaused = false; });
+        setInterval(autoMove, 50);
 
         /* عجلة الفأرة الرأسية تُحوّل إلى تمرير أفقي */
         box.addEventListener("wheel", function (e) {
