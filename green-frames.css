@@ -32,6 +32,7 @@
 .thread,
 .chat-page .thread-list-view,
 .chat-page .chat-view,
+.map-section,
 .map-frame-wrap {
   border: 1px solid var(--sf-product-frame) !important;
 }
