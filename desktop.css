@@ -66,10 +66,12 @@
   body:has(.page-logo)::before {
     content: "";
     position: absolute;
-    top: 98px;
-    inset-inline: 0;
+    top: 64px;
+    left: 50%;
+    width: 100vw;
     height: 1px;
     background: #c7dfce;
+    transform: translateX(-50%);
     pointer-events: none;
   }
 
