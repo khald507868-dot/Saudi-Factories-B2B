@@ -56,6 +56,23 @@
     border-color: #1c6b34;
   }
 
+  /* فاصل هادئ أسفل ترويسة الصفحات الداخلية، مثل الفاصل أسفل
+     شريط البحث في الرئيسية. لا يظهر في صفحات التطبيق التي لا
+     تحمل شعار الصفحة المستقل. */
+  body:has(.page-logo) {
+    position: relative;
+  }
+
+  body:has(.page-logo)::before {
+    content: "";
+    position: absolute;
+    top: 98px;
+    inset-inline: 0;
+    height: 1px;
+    background: #c7dfce;
+    pointer-events: none;
+  }
+
   /* الشريط السفلي يختفي: التنقّل ينتقل للأعلى */
   .bottom-nav { display: none !important; }
 
@@ -1086,14 +1103,13 @@
   }
 
   .page-logo .wm-rule {
-    width: 310px;
-    height: 1px;
-    border-radius: 1px;
-    background: #b9d9c1;
+    height: 2px;
+    border-radius: 2px;
+    background: linear-gradient(to left, #1f6b42, #45a06a, #c9a227);
   }
 
   html[dir="ltr"] .page-logo .wm-rule {
-    background: #b9d9c1;
+    background: linear-gradient(to right, #1f6b42, #45a06a, #c9a227);
   }
 
   /* ============================================================
