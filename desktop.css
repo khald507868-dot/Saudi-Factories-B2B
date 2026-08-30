@@ -27,6 +27,10 @@
      شريط أبيض أسفل الصفحات ذات الارتفاع المحدد (الرسائل). */
   html { background: #f6f7f6; }
 
+  html:has(.page-logo) {
+    background: linear-gradient(to bottom, #ffffff 0 62px, #f6f7f6 62px);
+  }
+
   body {
     max-width: none !important;
     margin: 0 !important;
