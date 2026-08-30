@@ -276,6 +276,7 @@
   /* ===== شريط الفئات تحت الرأس ===== */
   .dt-catbar {
     background: #ffffff;
+    border-top: 1px solid #c7dfce;
     border-bottom: 1px solid #e6ebe8;
   }
 
