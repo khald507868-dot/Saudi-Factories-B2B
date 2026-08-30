@@ -39,6 +39,13 @@
   border: 1px solid var(--sf-product-frame) !important;
 }
 
+/* تصميم سطح المكتب للسلة يملك قاعدة أكثر تحديداً، لذلك نطابقها
+   حتى لا تعود لإطار رمادي فوق الإطار الأخضر. */
+.cart-page .checkout-bar,
+.cart-page .cart-row {
+  border-color: var(--sf-product-frame) !important;
+}
+
 .card:hover,
 .factory-card:hover,
 .product-card:hover,
