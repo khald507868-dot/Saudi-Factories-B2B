@@ -190,8 +190,8 @@
   .dt-icon {
     width: 40px;
     height: 40px;
-    border: none;
-    background: none;
+    border: 1px solid #c7dfce;
+    background: #ffffff;
     border-radius: 10px;
     display: flex;
     align-items: center;
@@ -199,9 +199,15 @@
     cursor: pointer;
     position: relative;
     text-decoration: none;
+    transition: background 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+    box-shadow: 0 2px 6px rgba(4,54,27,0.04);
   }
 
-  .dt-icon:hover { background: #f0f4f1; }
+  .dt-icon:hover {
+    background: #f0f7f2;
+    border-color: #8fbe9e;
+    box-shadow: 0 4px 10px rgba(4,54,27,0.10);
+  }
   .dt-icon svg { width: 22px; height: 22px; stroke: #04361b; fill: none; stroke-width: 1.9; }
 
   .dt-btn {

@@ -12,7 +12,7 @@
     style.id = "sf-message-badge-style";
     style.textContent =
       ".sf-message-badge-host{position:relative!important}" +
-      ".sf-message-total{position:absolute;z-index:30;top:-7px;inset-inline-start:-7px;min-width:20px;height:20px;padding:0 5px;display:inline-flex;align-items:center;justify-content:center;border:2px solid #fff;border-radius:999px;background:#c73b32;color:#fff;font:800 10px/1 Segoe UI,Tahoma,Arial,sans-serif;box-shadow:0 3px 9px rgba(124,30,25,.25)}" +
+      ".sf-message-total{position:absolute;z-index:30;top:-7px;inset-inline-start:-7px;min-width:20px;height:20px;padding:0 5px;display:inline-flex;align-items:center;justify-content:center;border:2px solid #fff;border-radius:999px;background:#1f6b42;color:#fff;font:800 10px/1 Segoe UI,Tahoma,Arial,sans-serif;box-shadow:0 3px 9px rgba(4,54,27,.25)}" +
       ".bottom-nav .sf-message-total{top:-4px;inset-inline-start:calc(50% - 15px)}";
     document.head.appendChild(style);
   }
