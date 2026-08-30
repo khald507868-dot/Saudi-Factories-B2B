@@ -217,20 +217,21 @@
   }
 
   .payment-logo {
-    width: 54px;
-    height: 27px;
-    object-fit: cover;
+    width: 46px;
+    height: 24px;
+    object-fit: contain;
     display: block;
     background: #ffffff;
-    border: 1px solid #dce8df;
-    border-radius: 5px;
-    padding: 3px;
+    border: 1px solid #e1ebe3;
+    border-radius: 6px;
+    padding: 3px 4px;
+    box-sizing: border-box;
   }
 
   .payment-icons .payment-logo {
-    width: 34px;
-    height: 19px;
-    padding: 2px;
+    width: 31px;
+    height: 18px;
+    padding: 2px 3px;
     border-radius: 4px;
   }
 
@@ -438,8 +439,13 @@
   .payment-icons-row {
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
-    margin: 10px 0;
+    justify-content: center;
+    gap: 8px;
+    margin: 12px 0 10px;
+    padding: 8px 10px;
+    background: #f7faf7;
+    border: 1px solid #e4eee6;
+    border-radius: 10px;
   }
 
   .detail-link {
