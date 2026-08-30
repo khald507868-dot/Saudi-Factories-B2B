@@ -1611,18 +1611,23 @@
           if (threads[openId]) {
             openChat(openId);
             applyDraft();
-            return;
+            return true;
           }
 
           var m = String(openId).match(/^factory-(\d+)$/);
           if (m) {
             openFactory(Number(m[1]));
-            return;
+            return true;
           }
         }
 
         var fid = params.get("factory");
-        if (fid !== null) openFactory(fid);
+        if (fid !== null) {
+          openFactory(fid);
+          return true;
+        }
+
+        return false;
       }
 
       function mergeRemoteThreads(fresh) {
@@ -1675,7 +1680,16 @@
           mergeRemoteThreads(remoteThreads);
           renderThreadList();
           hideNote();
-          openFromQuery();
+          var openedFromLink = openFromQuery();
+
+          /* في التخطيط العريض تظهر القائمة والمحادثة معًا؛ فتح أحدث
+             محادثة تلقائيًا يجعل خانة الكتابة جاهزة فور دخول الصفحة. */
+          if (!openedFromLink && window.innerWidth >= 700) {
+            var latestIds = Object.keys(threads).sort(function (a, b) {
+              return (threads[b].updated || 0) - (threads[a].updated || 0);
+            });
+            if (latestIds.length) openChat(latestIds[0]);
+          }
 
           messageChannel = SFMessages.subscribe(scheduleRealtimeRefresh);
         }).catch(function (err) {
