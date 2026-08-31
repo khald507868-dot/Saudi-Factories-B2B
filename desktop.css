@@ -62,7 +62,7 @@
     max-width: none !important;
     height: auto !important;
     background: #ffffff !important;
-    border-bottom: 1px solid #e6ebe8;
+    border-bottom: none !important;
     padding: 0 !important;
     display: block !important;
   }
