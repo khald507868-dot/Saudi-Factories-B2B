@@ -63,17 +63,8 @@
     position: relative;
   }
 
-  body:has(.page-logo)::before {
-    content: "";
-    position: absolute;
-    top: 76px;
-    left: 50%;
-    width: 100vw;
-    height: 1px;
-    background: #c7dfce;
-    transform: translateX(-50%);
-    pointer-events: none;
-  }
+  /* أزيل الفاصل الأفقي الممتد أسفل شعار الصفحات؛ يبقى خط الشعار القصير (.wm-rule). */
+  body:has(.page-logo)::before { display: none !important; }
 
   /* الشريط السفلي يختفي: التنقّل ينتقل للأعلى */
   .bottom-nav { display: none !important; }
