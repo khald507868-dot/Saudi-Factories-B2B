@@ -688,3 +688,87 @@ Learned over many sessions; it will save you rework.
 - **Image uploads must downscale.** A hidden `<input type="file">` triggered by a styled placeholder, then `FileReader.readAsDataURL`, then a `<canvas>` resize before storage. `factory.html` uses `resizeImage(dataUrl, maxSize, done)` with per-use caps (640 cover, 180 logo, 400 product); the register tabs and profile carry local copies. **This was a live bug**: the register form once stored the raw result, so a phone photo blew the ~5MB quota and — because its `setItem` catch is empty — silently lost the **whole** `sf_account` record. The empty catch is still there; downscaling is what keeps it from being hit.
 - **localStorage keys**: `sf_lang`, `sf_account_type`, `sf_account`, `sf_factories`, `sf_messages`, and legacy `sf_factory_images`. **The ~5MB quota is the real ceiling** — a few dozen photos, not 1000 factories' worth, and chat attachments compete for the same budget. Any "make this hold real data" request needs a backend or IndexedDB, not more localStorage.
 - **`profile.html` mirrors the register tab's `isFactory` branch** and both write the identical `sf_account` shape — anything added to one form must be added to the other, including the save payload. But **their save triggers deliberately differ** (see archive).
+
+## The Flutter app (`app_flutter/`) — added 2026-08-31
+
+**The `app-` path now has a second, parallel implementation: a real Flutter
+app.** The 15 `app-*.html` files are still in the tree and still work; the
+Flutter project is the owner's chosen direction for the phone app. **The 14
+`web-` pages were explicitly left untouched** ("اقصد صفحات app فقط").
+
+Flutter 3.47 / Dart 3.13 is installed at `C:\src\flutter`. There is no
+Android SDK on this machine, so **`flutter build apk` cannot run here** — use
+`flutter build web --release --no-tree-shake-icons` to prove the code
+compiles.
+
+### Two Flutter tools break on this folder's Arabic name
+
+Both cost a full debugging round; neither is a bug in the project's code.
+
+- **`flutter analyze` crashes** with `FormatException: Unterminated string`.
+  The LSP channel counts bytes wrong once the percent-encoded Arabic path
+  (`%D8%AA%D8%B7...`) is in the message. **Use `dart analyze` instead** — it
+  uses a different channel and works perfectly.
+- **`flutter build web` fails in font subsetting**, reporting a path with the
+  Arabic name mangled to `?????`. The Dart code compiled fine ("Wasm dry run
+  succeeded") — only the icon tree-shaker died. **Pass
+  `--no-tree-shake-icons`.**
+
+This is the same class of trap as the `Start-Process` rule above: when a tool
+fails oddly here, suspect the Arabic path before suspecting the code.
+
+### `i18n.js` is the single source of translations for both stacks
+
+`app_flutter/lib/core/i18n_data.dart` is **generated, never hand-edited** —
+7,900 lines carrying all 30 languages. After any change to `i18n.js`:
+
+```bash
+python scripts/gen_i18n.py      # prints the language/key counts it parsed
+```
+
+The generator asserts nothing, so **read its output**: 30 languages and equal
+`ar`/`en` key counts is the pass condition. Seven keys were added to `i18n.js`
+in this session (`factory_posts_title`, `field_industry`, `field_website`,
+`field_company_size`, `cart_order_sent`, `saved_msg`, `admin_page_title`) —
+all 30 blocks each, so the existing `grep -c` check still reports 30.
+
+### What carries over, and what deliberately does not
+
+Every hard-won rule from the web path is reproduced in Dart, with the reason
+in an Arabic comment at the site:
+
+| rule | where it lives now |
+|---|---|
+| `approved` not `approve` | `FactoryService.setStatus` — one guard, all callers |
+| ownership from `owner_id`, never local storage | `SFFactory.isMine` |
+| no `eq('status','approved')` on the list | `FactoryService.list` |
+| storage URLs only, never base64 | `FactoryEditPage._save`, `SFUpload` |
+| realtime echo suppression on send | `ChatPage._sentIds` |
+| optimistic cart + 400ms debounce, delete immediate | `CartPage` |
+| server computes order totals | `SFCommerce.createOrder` (no amount param) |
+| category join key is the **English** name | `I18n.categoryKey` |
+| no session after signup ⇒ write nothing | `AuthService.signUp` |
+| flag emoji from regional-indicator math | `settings_page.dart:flagEmoji` |
+
+**Structural differences from the HTML path, all deliberate:**
+
+- **The bottom nav exists once**, not in 10 files, and its 52px height once,
+  not 13 times. `SFBottomNav` + `AppShell`.
+- **Changing language rebuilds the widget tree** instead of reloading the
+  page. `I18nScope` is an `InheritedNotifier`; `Directionality` follows it.
+- **`sf_account_type` is gone.** Nothing reads it — account type comes from
+  `profiles.account_type` via `AuthService`, which is what the web path had
+  already moved toward.
+- **The unread badge is one subscription in the shell**, replacing
+  `messages-badge.js` injecting into 19 pages.
+
+### Testing
+
+`flutter test` runs 10 unit tests over the translation layer — the part most
+likely to break silently. They assert 30 languages, equal key counts per
+language, the fallback chain, RTL direction, and **that every language in the
+settings picker exists in `kDict`** (a picker entry without a translation
+renders English and looks broken — the old 90-entry bug).
+
+Widget tests are absent on purpose: building any screen needs a live Supabase
+client.
