@@ -13,7 +13,6 @@ import '../services/factory_service.dart';
 import '../widgets/common.dart';
 import '../widgets/wordmark.dart';
 import 'factories_page.dart';
-import 'factory_page.dart';
 import 'product_page.dart';
 
 class HomePage extends StatefulWidget {
@@ -137,7 +136,7 @@ class _CategoriesStrip extends StatelessWidget {
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         itemCount: cats.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 10),
+        separatorBuilder: (_, _) => const SizedBox(width: 10),
         itemBuilder: (context, i) {
           final cat = cats[i];
           return InkWell(

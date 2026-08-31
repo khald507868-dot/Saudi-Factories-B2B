@@ -54,7 +54,7 @@ class SaudiFactoriesApp extends StatelessWidget {
               Locale('ar'),
               Locale('en'),
             ],
-            localeResolutionCallback: (_, __) => i18n.locale,
+            localeResolutionCallback: (_, _) => i18n.locale,
             builder: (context, child) {
               // اتجاه الكتابة يتبع اللغة المختارة، لا لغة الجهاز.
               return Directionality(

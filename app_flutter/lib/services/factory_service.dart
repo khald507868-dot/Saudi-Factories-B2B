@@ -203,10 +203,9 @@ class FactoryService {
     return sb.rpc('save_factory_content', params: {
       'p_factory_id': factoryId,
       'p_factory': factory,
-      if (products != null) 'p_products': products,
-      if (posts != null) 'p_posts': posts,
-      if (expectedUpdatedAt != null)
-        'p_expected_updated_at': expectedUpdatedAt,
+      'p_products': ?products,
+      'p_posts': ?posts,
+      'p_expected_updated_at': ?expectedUpdatedAt,
     });
   }
 

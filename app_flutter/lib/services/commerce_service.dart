@@ -7,8 +7,6 @@
 //  لا تُضِف أبداً معامل سعر أو إجمالي إلى تلك الدالة.
 // ============================================================
 
-import 'package:supabase_flutter/supabase_flutter.dart';
-
 import '../core/supabase_config.dart';
 import 'auth_service.dart';
 

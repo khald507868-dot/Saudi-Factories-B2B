@@ -205,7 +205,7 @@ class SFImage extends StatelessWidget {
               width: width,
               height: height,
               fit: fit,
-              errorBuilder: (_, __, ___) => fallback,
+              errorBuilder: (_, _, _) => fallback,
               loadingBuilder: (context, child, progress) {
                 if (progress == null) return child;
                 return Container(

@@ -204,7 +204,7 @@ class _LoginFormState extends State<_LoginForm> {
               child: TextButton(
                 onPressed: _forgotPassword,
                 child: Text(
-                  i18n.t('forgot_password'),
+                  i18n.t('forgot_password_link'),
                   style: const TextStyle(color: SFColors.midGreen),
                 ),
               ),
