@@ -39,7 +39,7 @@
     justify-content: center;
     padding: 18px 16px;
     background: #ffffff;
-    border-bottom: 1px solid #e2e6e3;
+    border-bottom: none;
   }
 
   .page-header h1 {
@@ -295,10 +295,10 @@
         html +=
           '<a class="factory-card" href="app-factory.html?id=' + i + '">' +
             '<div class="card-image-placeholder">' +
-              (cover ? '<img alt="" src="' + cover + '">' : imageIcon) +
+              (sfSafeHttpUrl(cover) ? '<img alt="" src="' + escapeHTML(sfSafeHttpUrl(cover)) + '">' : imageIcon) +
             '</div>' +
             '<div class="logo-placeholder' + (logo ? ' has-image' : '') + '">' +
-              (logo ? '<img alt="" src="' + logo + '">' : logoIcon) +
+              (sfSafeHttpUrl(logo) ? '<img alt="" src="' + escapeHTML(sfSafeHttpUrl(logo)) + '">' : logoIcon) +
             '</div>' +
             '<div class="card-footer">' +
               (name ? '<span class="card-name">' + escapeHTML(name) + '</span>' : '') +

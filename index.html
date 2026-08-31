@@ -1363,7 +1363,7 @@
           html +=
             '<a class="product-card" href="web-product.html?factory=' + encodeURIComponent(fid) + '&p=0&product=' + encodeURIComponent(row.id) + '">' +
               '<div class="product-image">' +
-                (image ? '<img alt="" src="' + escapeHTML(image) + '">' : imageIcon) +
+                (sfSafeHttpUrl(image) ? '<img alt="" src="' + escapeHTML(sfSafeHttpUrl(image)) + '">' : imageIcon) +
               '</div>' +
               '<div class="product-body">' +
                 (name ? '<div class="product-name">' + escapeHTML(name) + '</div>' : '') +

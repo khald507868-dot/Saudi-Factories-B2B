@@ -37,7 +37,7 @@
     align-items: center;
     gap: 12px;
     padding: 16px 14px;
-    border-bottom: 1px solid #e8ece9;
+    border-bottom: none;
     position: sticky;
     top: 0;
     z-index: 5;
@@ -532,7 +532,13 @@
         typeEl.textContent = SF_PROFILE.account_type === "factory" ? "حساب مصنع" : "حساب فرد";
       }
       if (avaEl && SF_PROFILE.company_image) {
-        avaEl.innerHTML = '<img src="' + SF_PROFILE.company_image + '" alt="">';
+        var safeAvatar = sfSafeHttpUrl(SF_PROFILE.company_image);
+        if (safeAvatar) {
+          var avatarImg = document.createElement("img");
+          avatarImg.alt = "";
+          avatarImg.src = safeAvatar;
+          avaEl.replaceChildren(avatarImg);
+        }
       }
     }
 

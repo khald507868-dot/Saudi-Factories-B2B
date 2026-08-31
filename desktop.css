@@ -40,24 +40,14 @@
     padding-bottom: 0 !important;
   }
 
-  /* إطار أخضر حول الصفحة كلها — بطلب المالك.
-
-     كان مخفياً هنا بوصفه "زينة جوال"، وطلب المالك إظهاره
-     على الموقع أيضاً. ولونه هنا أخضر واضح (#1c6b34) لا
-     أخضر الجوال الداكن (#04361b) الذي يقارب الأسود على
-     شاشة عريضة.
-
-     position: fixed يجعله يلازم حواف النافذة أثناء التمرير،
-     وpointer-events: none يمنعه من اعتراض النقر — وكلاهما
-     موروث من mobile.css، فلا نعيد تعريفهما. */
-  body::after {
-    display: block !important;
-    max-width: none !important;
-    border-color: #1c6b34;
-  }
+  /* أزيل الإطار الأخضر الممتد حول نافذة الصفحة في العرض المكتبي أيضًا. */
+  body::after { display: none !important; }
 
   /* الشريط السفلي يختفي: التنقّل ينتقل للأعلى */
   .bottom-nav { display: none !important; }
+
+  /* لا نعرض فاصلًا ممتدًا أسفل رأس أي صفحة. */
+  .page-header { border-bottom: none !important; }
 
   /* ===== الشريط العلوي ===== */
   .top-bar {
@@ -65,7 +55,7 @@
     max-width: none !important;
     height: auto !important;
     background: #ffffff !important;
-    border-bottom: 1px solid #e6ebe8;
+    border-bottom: none !important;
     padding: 0 !important;
     display: block !important;
   }
