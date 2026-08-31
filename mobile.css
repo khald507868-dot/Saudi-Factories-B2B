@@ -92,20 +92,8 @@ body:has(.bottom-nav) {
    إطار أخضر على الصفحات البيضاء، وإطار أبيض على الصفحات الخضراء.
    يُرسم كطبقة ثابتة فوق المحتوى مع pointer-events: none حتى لا يعترض اللمس،
    ويحترم المساحات الآمنة حتى لا يختفي تحت نتوء الشاشة أو شريط الإيماءات. */
-body::after {
-  content: "";
-  position: fixed;
-  top: env(safe-area-inset-top);
-  bottom: env(safe-area-inset-bottom);
-  right: 0;
-  left: 0;
-  border: 3px solid #04361b;
-  /* زوايا مربّعة: الأشرطة الثابتة (الرأس والقائمة السفلية) مربّعة الزوايا،
-     فأي استدارة في الإطار تظهر كتقوّس لا ينطبق عليها. */
-  border-radius: 0;
-  pointer-events: none;
-  z-index: 100;
-}
+/* أزيل الإطار الأخضر الممتد حول نافذة الصفحة؛ تبقى حدود المكونات الداخلية. */
+body::after { display: none !important; }
 
 /* الصفحات ذات الخلفية الخضراء تأخذ إطاراً أبيض */
 body.dark-page::after {
