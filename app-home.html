@@ -1210,7 +1210,7 @@
         html +=
           '<a class="product-card" href="app-factory.html?id=' + i + '">' +
             '<div class="product-image">' +
-              (image ? '<img alt="" src="' + image + '">' : imageIcon) +
+              (sfSafeHttpUrl(image) ? '<img alt="" src="' + escapeHTML(sfSafeHttpUrl(image)) + '">' : imageIcon) +
             '</div>' +
             '<div class="product-body">' +
               // الاسم والسعر يُحذفان تماماً عند غيابهما حتى لا يحجزا فراغاً أبيض

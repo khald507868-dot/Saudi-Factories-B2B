@@ -432,7 +432,7 @@
 
       wrap.innerHTML =
         '<div class="product-hero">' +
-          (image ? '<img alt="" src="' + escapeHTML(image) + '">' : imageIcon) +
+          (sfSafeHttpUrl(image) ? '<img alt="" src="' + escapeHTML(sfSafeHttpUrl(image)) + '">' : imageIcon) +
         '</div>' +
 
         '<div class="card">' +

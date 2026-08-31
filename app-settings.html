@@ -635,7 +635,13 @@
       }
 
       if (avaEl && p.company_image) {
-        avaEl.innerHTML = '<img src="' + p.company_image + '" alt="">';
+        var safeAvatar = sfSafeHttpUrl(p.company_image);
+        if (safeAvatar) {
+          var avatarImg = document.createElement("img");
+          avatarImg.alt = "";
+          avatarImg.src = safeAvatar;
+          avaEl.replaceChildren(avatarImg);
+        }
       }
     });
   })();

@@ -244,18 +244,6 @@ alter table public.payment_attempts enable row level security;
 
 -- Profiles used in a conversation: counterpart metadata only.
 drop policy if exists profiles_select_conversation_party on public.profiles;
-create policy profiles_select_conversation_party on public.profiles
-  for select using (
-    id = auth.uid()
-    or exists (
-      select 1
-        from public.conversations c
-        join public.factories f on f.id = c.factory_id
-       where c.individual_id = profiles.id
-         and (c.individual_id = auth.uid() or f.owner_id = auth.uid())
-    )
-    or public.is_admin()
-  );
 
 -- Posts
 drop policy if exists posts_select_public on public.posts;

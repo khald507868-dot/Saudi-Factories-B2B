@@ -7,8 +7,8 @@
 Thumbs.db
 desktop.ini
 ~$*
-
-# Flutter build artifacts
-app_flutter/build/
-app_flutter/.dart_tool/
-app_flutter/.flutter-plugins-dependencies
+.env
+.env.*
+!.env.example
+*.pem
+*.key
