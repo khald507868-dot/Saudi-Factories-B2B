@@ -59,12 +59,59 @@ class SaudiFactoriesApp extends StatelessWidget {
               // اتجاه الكتابة يتبع اللغة المختارة، لا لغة الجهاز.
               return Directionality(
                 textDirection: i18n.direction,
-                child: child ?? const SizedBox.shrink(),
+                child: _PhoneColumn(child: child ?? const SizedBox.shrink()),
               );
             },
             home: const SplashPage(),
           );
         },
+      ),
+    );
+  }
+}
+
+/// يحصر التطبيق في عمود بعرض الجوال ويتوسّطه على الشاشة العريضة.
+///
+/// هذا مقابل قاعدة "عمود الجوال" في mobile.css: التطبيق عمودي
+/// التصميم، فتمديده على شاشة لابتوب يجعل الأزرار شريطاً ممتداً
+/// من حافة إلى حافة ولا يشبه الجوال إطلاقاً.
+///
+/// على الجوال الحقيقي لا يفعل هذا شيئاً — العرض أصلاً أضيق من
+/// الحدّ، فيمرّ الطفل كما هو.
+class _PhoneColumn extends StatelessWidget {
+  const _PhoneColumn({required this.child});
+
+  final Widget child;
+
+  /// نفس عرض عمود الجوال في mobile.css.
+  static const double maxWidth = 430;
+
+  @override
+  Widget build(BuildContext context) {
+    final width = MediaQuery.sizeOf(context).width;
+    if (width <= maxWidth) return child;
+
+    return ColoredBox(
+      // خلفية داكنة حول العمود تُبرز حدود "الجهاز".
+      color: const Color(0xFF11241A),
+      child: Center(
+        child: ClipRect(
+          child: SizedBox(
+            width: maxWidth,
+            child: MediaQuery(
+              // مهم: يجب تصحيح عرض MediaQuery أيضاً، وإلا ظلّت
+              // الشاشات تحسب تخطيطها على عرض النافذة الكامل
+              // (مثل شبكة المنتجات) وهي داخل عمود ضيّق.
+              data: MediaQuery.of(context).copyWith(
+                size: Size(
+                  maxWidth,
+                  MediaQuery.sizeOf(context).height,
+                ),
+              ),
+              child: child,
+            ),
+          ),
+        ),
       ),
     );
   }
