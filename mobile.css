@@ -62,6 +62,7 @@ textarea,
 /* رأس الصفحة الثابت في أعلى معظم الصفحات */
 .page-header {
   padding-top: calc(18px + env(safe-area-inset-top)) !important;
+  border-bottom: none !important;
 }
 
 /* القائمة السفلية ترتفع فوق شريط الإيماءات في الأيفون */

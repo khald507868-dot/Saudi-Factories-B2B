@@ -56,6 +56,9 @@
   /* الشريط السفلي يختفي: التنقّل ينتقل للأعلى */
   .bottom-nav { display: none !important; }
 
+  /* لا نعرض فاصلًا ممتدًا أسفل رأس أي صفحة. */
+  .page-header { border-bottom: none !important; }
+
   /* ===== الشريط العلوي ===== */
   .top-bar {
     position: static !important;
