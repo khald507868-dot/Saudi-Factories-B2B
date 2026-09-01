@@ -14,8 +14,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
-      - uses: actions/setup-node@1e60f620b9541dca9c7f5f4e3f6b4e5a7c7f4b9
+      - uses: actions/setup-node@v4
         with:
           node-version: 22
       - name: Validate HTML scripts and SQL migrations
         run: python3 scripts/validate-static.py
+      - name: Validate web links after Flutter cutover
+        run: python3 scripts/check_web_integrity.py

@@ -14,6 +14,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 > items on it are deliberately deferred, not forgotten. It is the owner's file;
 > tick a box when something genuinely ships, don't rewrite it.
 
+## Current architecture — Flutter cutover
+
+**The legacy `app-*.html` pages were intentionally removed. Do not recreate them.** The browser site consists of `index.html` and the 13 `web-*.html` pages. The Android/iOS app lives exclusively in `app_flutter/`. Both clients share the same Supabase project, but they do not share page files or navigation.
+
+`auth-guard.js` is now web-only and always routes unauthenticated browser users to `web-login.html` or `web-login.html#register`. Flutter owns its session and navigation through `AuthService`. Any later references in this document to an `app-*.html` path describe the retired implementation and must not be treated as current architecture. Keep `الصفحات.md` as the canonical page map.
+
 ## What this is
 
 A no-build multi-page web app: an **Alibaba-style B2B marketplace** for Saudi Arabian factories. There is no `package.json`, no bundler, no framework, and no Node.js — everything is hand-authored HTML/CSS/JS. It is no longer purely static: the gate pages (login/supplier/reset) and the admin pages talk to a hosted Supabase backend, but the dependency is still just a `<script>` tag from a CDN, not a toolchain.
@@ -80,9 +86,9 @@ sed 's/--.*$//' schema.sql | awk '{o+=gsub(/\(/,"("); c+=gsub(/\)/,")")} END{pri
 grep -oh 'href="[a-z][a-z0-9._-]*\.html' *.html | sed 's/href="//' | sort -u \
   | while read f; do [ -f "$f" ] || echo "BROKEN: $f"; done
 
-# path isolation — both must print nothing
-grep -o 'href="app-[a-z-]*\.html' web-*.html | sort -u
-grep -o 'href="web-[a-z-]*\.html' app-*.html | sort -u
+# retired app-HTML links — must print nothing
+grep -RIn --exclude-dir=app_flutter -E '(href|location)[^\n]*app-[a-z0-9-]+\.html' \
+  --include='*.html' --include='*.js' .
 
 # which pages actually query the database -- count the services too, and note
 # index.html quotes it sb.from('products') with SINGLE quotes
@@ -92,7 +98,7 @@ done
 
 # which pages really load a shared asset (tag, not name — see the grep trap)
 grep -c '<link[^>]*desktop\.css' index.html
-grep -c '<script[^>]*auth-guard\.js' app-home.html
+grep -c '<script[^>]*auth-guard\.js' web-account.html
 
 # an i18n key must exist in all 30 language blocks (anchor the pattern!)
 grep -c '^      btn_update: ' i18n.js     # -> 30
