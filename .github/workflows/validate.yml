@@ -19,3 +19,5 @@ jobs:
           node-version: 22
       - name: Validate HTML scripts and SQL migrations
         run: python3 scripts/validate-static.py
+      - name: Validate web links after Flutter cutover
+        run: python3 scripts/check_web_integrity.py
