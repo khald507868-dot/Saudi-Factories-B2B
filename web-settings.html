@@ -256,6 +256,7 @@
           <a href="web-cart.html" data-i18n="dash_cart">سلة التسوق</a>
           <a href="web-cart.html" data-i18n="dash_my_orders">طلباتي</a>
           <a href="web-cart.html" data-i18n="dash_favorites">المفضّلة</a>
+          <a href="#" data-i18n="row_invoices">الفواتير</a>
         </div>
       </div>
 
@@ -276,10 +277,6 @@
       <a href="web-settings.html" class="active">
         <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87 2 2 0 1 1-2.83 2.83 1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.55 2 2 0 0 1-4 0 1.7 1.7 0 0 0-1.11-1.55 1.7 1.7 0 0 0-1.87.34 2 2 0 1 1-2.83-2.83 1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.55-1 2 2 0 0 1 0-4 1.7 1.7 0 0 0 1.55-1.11 1.7 1.7 0 0 0-.34-1.87 2 2 0 1 1 2.83-2.83 1.7 1.7 0 0 0 1.87.34 1.7 1.7 0 0 0 1-1.55 2 2 0 0 1 4 0 1.7 1.7 0 0 0 1 1.55 1.7 1.7 0 0 0 1.87-.34 2 2 0 1 1 2.83 2.83 1.7 1.7 0 0 0-.34 1.87 1.7 1.7 0 0 0 1.55 1 2 2 0 0 1 0 4 1.7 1.7 0 0 0-1.55 1z"></path></svg>
         <span data-i18n="row_settings">الإعدادات</span>
-      </a>
-      <a href="web-help.html">
-        <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 2-3 4"></path><path d="M12 17h.01"></path></svg>
-        <span data-i18n="row_help">المساعدة والدعم</span>
       </a>
       <!-- يظهر للمدير فقط -->
       <!-- مصنعي — لأصحاب المصانع فقط.
@@ -310,22 +307,8 @@
     <div class="account-list">
       <a href="#" class="account-row">
         <span class="row-label">
-          <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"></path></svg>
-          <span data-i18n="row_preferences">تفضيلاتي</span>
-        </span>
-        <span class="row-end"><svg class="chevron" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"></path></svg></span>
-      </a>
-      <a href="#" class="account-row">
-        <span class="row-label">
           <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"></path><path d="M22 2 15 22l-4-9-9-4z"></path></svg>
           <span data-i18n="row_invite">ادع أصدقاءك</span>
-        </span>
-        <span class="row-end"><svg class="chevron" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"></path></svg></span>
-      </a>
-      <a href="#" class="account-row">
-        <span class="row-label">
-          <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><path d="M14 3v6h6"></path></svg>
-          <span data-i18n="row_invoices">الفواتير</span>
         </span>
         <span class="row-end"><svg class="chevron" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"></path></svg></span>
       </a>
@@ -356,31 +339,10 @@
     </div>
   </section>
 
-  <!-- الإدارة — تظهر لحساب المدير فقط -->
-  <section class="account-section" id="admin-section" style="display:none;">
-    <p class="section-title">الإدارة</p>
-    <div class="account-list">
-      <a href="web-admin.html" class="account-row" style="border-bottom:none;">
-        <span class="row-label">
-          <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><path d="M9 12l2 2 4-4"></path></svg>
-          <span data-i18n="dash_admin_factories">إدارة المصانع</span>
-        </span>
-        <span class="row-end"><svg class="chevron" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"></path></svg></span>
-      </a>
-    </div>
-  </section>
-
   <!-- أخرى -->
   <section class="account-section">
     <p class="section-title" data-i18n="section_other">أخرى</p>
     <div class="account-list">
-      <a href="web-help.html" class="account-row">
-        <span class="row-label">
-          <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 2-3 4"></path><path d="M12 17h.01"></path></svg>
-          <span data-i18n="row_help">المساعدة والدعم</span>
-        </span>
-        <span class="row-end"><svg class="chevron" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"></path></svg></span>
-      </a>
       <a href="#" class="account-row">
         <span class="row-label">
           <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><path d="M14 3v6h6"></path><path d="M12 12v4"></path><path d="M12 9h.01"></path></svg>
@@ -421,10 +383,9 @@
       var p = window.SF_PROFILE;
       if (!p) return;
 
-      /* روابط الإدارة — للمدير وحده */
+      /* رابط الإدارة في القائمة الجانبية — للمدير وحده.
+         صفّ "إدارة المصانع" داخل الإعدادات حُذف لأنه مكرّر. */
       if (p.is_admin) {
-        var sec = document.getElementById("admin-section");
-        if (sec) sec.style.display = "";
         var adminLink = document.getElementById("dash-admin");
         if (adminLink) adminLink.style.display = "";
       }

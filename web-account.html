@@ -233,6 +233,7 @@
           <a href="web-cart.html" data-i18n="dash_cart">سلة التسوق</a>
           <a href="web-cart.html" data-i18n="dash_my_orders">طلباتي</a>
           <a href="web-cart.html" data-i18n="dash_favorites">المفضّلة</a>
+          <a href="#" data-i18n="row_invoices">الفواتير</a>
         </div>
       </div>
 
@@ -253,10 +254,6 @@
       <a href="web-settings.html">
         <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87 2 2 0 1 1-2.83 2.83 1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.55 2 2 0 0 1-4 0 1.7 1.7 0 0 0-1.11-1.55 1.7 1.7 0 0 0-1.87.34 2 2 0 1 1-2.83-2.83 1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.55-1 2 2 0 0 1 0-4 1.7 1.7 0 0 0 1.55-1.11 1.7 1.7 0 0 0-.34-1.87 2 2 0 1 1 2.83-2.83 1.7 1.7 0 0 0 1.87.34 1.7 1.7 0 0 0 1-1.55 2 2 0 0 1 4 0 1.7 1.7 0 0 0 1 1.55 1.7 1.7 0 0 0 1.87-.34 2 2 0 1 1 2.83 2.83 1.7 1.7 0 0 0-.34 1.87 1.7 1.7 0 0 0 1.55 1 2 2 0 0 1 0 4 1.7 1.7 0 0 0-1.55 1z"></path></svg>
         <span data-i18n="row_settings">الإعدادات</span>
-      </a>
-      <a href="web-help.html">
-        <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 2-3 4"></path><path d="M12 17h.01"></path></svg>
-        <span data-i18n="row_help">المساعدة والدعم</span>
       </a>
       <!-- مصنعي — لأصحاب المصانع فقط.
            يبدأ مخفياً وبلا رابط: رقم المصنع لا يُعرف إلا من
@@ -280,8 +277,8 @@
       <span class="dash-stat-label" data-i18n="dash_stat_unread">رسائل غير مقروءة</span>
     </div>
     <div class="dash-stat">
-      <span class="dash-stat-num" id="stat-offers">0</span>
-      <span class="dash-stat-label" data-i18n="dash_stat_offers">عروض أسعار</span>
+      <span class="dash-stat-num" id="stat-total">0</span>
+      <span class="dash-stat-label" data-i18n="dash_stat_total">إجمالي قيمة الطلبات</span>
     </div>
     <div class="dash-stat">
       <span class="dash-stat-num" id="stat-orders">0</span>
@@ -385,6 +382,37 @@
     SF_AUTH_READY.then(function () {
       var p = window.SF_PROFILE;
       if (!p) return;
+
+      /* ===== أرقام لوحة التحكم =====
+         كانت أصفاراً ثابتة في الوسم. الطلبات وإجماليها يُقرآن
+         من جدول orders، وRLS تحصر ما يراه كلّ مستخدم:
+         المشتري يرى طلباته، وصاحب المصنع يرى طلبات مصنعه. */
+      (function fillStats() {
+        if (!window.sb) return;
+
+        sb.from("orders").select("total").then(function (res) {
+          if (res.error || !res.data) return;
+
+          var countEl = document.getElementById("stat-orders");
+          if (countEl) countEl.textContent = res.data.length;
+
+          var sum = 0;
+          res.data.forEach(function (o) { sum += Number(o.total || 0); });
+
+          var totalEl = document.getElementById("stat-total");
+          if (totalEl) {
+            totalEl.textContent =
+              sum.toFixed(2) + " " + I18N.t("currency_sar");
+          }
+        }).catch(function () { /* البطاقات تبقى أصفاراً */ });
+
+        /* الرسائل غير المقروءة: نفس الدالة التي تغذّي شارة القائمة */
+        sb.rpc("get_unread_message_total").then(function (res) {
+          if (res.error) return;
+          var el = document.getElementById("stat-messages");
+          if (el) el.textContent = Number(res.data || 0);
+        }).catch(function () {});
+      })();
 
       var nameEl = document.getElementById("dash-name");
       var typeEl = document.getElementById("dash-type");
