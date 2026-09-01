@@ -149,7 +149,7 @@
     border: none;
     background: none;
     font-family: inherit;
-    text-align: right;
+    text-align: start;
     cursor: pointer;
   }
 
@@ -763,10 +763,10 @@
   </div>
 
   <div class="checkout-bar">
-    <span class="manual-payment-note">الدفع الإلكتروني غير مفعّل حاليًا — بعد إرسال الطلب سيتواصل معك المصنع لتنسيق الدفع.</span>
+    <span class="manual-payment-note" data-i18n="cart_manual_payment">الدفع الإلكتروني غير مفعّل حاليًا — بعد إرسال الطلب سيتواصل معك المصنع لتنسيق الدفع.</span>
     <span class="total">
       <span class="total-label" data-i18n="cart_total_label">الإجمالي</span>
-      <span class="total-value">0 ر.س</span>
+      <span class="total-value">0</span>
     </span>
     <button type="button" class="checkout-btn" disabled data-i18n="cart_checkout_btn">الانتقال للدفع</button>
   </div>
@@ -886,7 +886,7 @@
                 '<span class="ci-count"></span>' +
                 '<button type="button" class="ci-plus" aria-label="زيادة">+</button>' +
               '</div>' +
-              '<button type="button" class="ci-remove">حذف</button>' +
+              '<button type="button" class="ci-remove">' + I18N.t("cart_remove") + '</button>' +
             '</div>';
 
           if (img) {
@@ -898,8 +898,10 @@
           }
           row.querySelector(".ci-name").textContent = product.name || "منتج";
           row.querySelector(".ci-factory").textContent = (product.factories && product.factories.name) || "";
-          row.querySelector(".ci-unit").textContent = price.toFixed(2) + " ر.س للحبة";
-          row.querySelector(".ci-price").textContent = (price * quantity).toFixed(2) + " ر.س";
+          row.querySelector(".ci-unit").textContent =
+            price.toFixed(2) + " " + I18N.t("currency_sar") + " " + I18N.t("cart_per_unit");
+          row.querySelector(".ci-price").textContent =
+            (price * quantity).toFixed(2) + " " + I18N.t("currency_sar");
           row.querySelector(".ci-count").textContent = quantity;
 
           /* كلّ تغيير يمرّ بالخادم ثمّ يُعاد البناء من ردّه،
@@ -916,13 +918,14 @@
           function paint(q) {
             item.quantity = q;
             row.querySelector(".ci-count").textContent = q;
-            row.querySelector(".ci-price").textContent = (price * q).toFixed(2) + " ر.س";
+            row.querySelector(".ci-price").textContent =
+              (price * q).toFixed(2) + " " + I18N.t("currency_sar");
             var sum = 0;
             items.forEach(function (it) {
               var pp = it.products || {};
               sum += Number(pp.price || 0) * Number(it.quantity || 0);
             });
-            totalEl.textContent = sum.toFixed(2) + " ر.س";
+            totalEl.textContent = sum.toFixed(2) + " " + I18N.t("currency_sar");
             minus.disabled = q <= 1;
           }
 
@@ -969,7 +972,7 @@
         var hasItems = items.length > 0;
         cartItemsEl.style.display = hasItems ? "block" : "none";
         emptyCartEl.style.display = hasItems ? "none" : "flex";
-        totalEl.textContent = total.toFixed(2) + " ر.س";
+        totalEl.textContent = total.toFixed(2) + " " + I18N.t("currency_sar");
         checkoutBtn.disabled = !hasItems;
         /* يُربط هنا لا في loadCart: بعد حذف منتج أو تغيير كمية
            كان الزرّ يحتجز قائمة قديمة تشمل المحذوف. */
