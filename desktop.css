@@ -163,11 +163,11 @@
 
   .top-bar .search-box input {
     font-size: 15px !important;
-    color: #04361b !important;
+    color: #12331d !important;
   }
 
-  .top-bar .search-box input::placeholder { color: #93a398 !important; }
-  .top-bar .search-box svg { stroke: #1f6b42 !important; }
+  .top-bar .search-box input::placeholder { color: #12331d !important; }
+  .top-bar .search-box svg { stroke: #12331d !important; }
 
   /* أدوات الحساب على يسار الشريط */
   .dt-actions {
@@ -265,8 +265,8 @@
 
   /* ===== شريط الفئات تحت الرأس ===== */
   .dt-catbar {
-    background: #ffffff;
-    border-top: 1px solid #c7dfce;
+    background: #f6f7f6;
+    border-top: 2px solid #c5d8cb;
     border-bottom: 1px solid #e6ebe8;
   }
 
@@ -277,7 +277,7 @@
     display: flex;
     align-items: center;
     gap: 22px;
-    height: 46px;
+    height: 28px;
     flex-direction: row-reverse;
 
     /* لا overflow هنا: أي قصّ يبتلع اللوحة المنسدلة.
@@ -343,24 +343,24 @@
   .dt-catnav svg {
     width: 20px;
     height: 20px;
-    stroke: #04361b;
+    stroke: #12331d;
     stroke-width: 2.2;
     fill: none;
     stroke-linecap: round;
     stroke-linejoin: round;
   }
 
-  /* تدرّج أبيض يذوّب الروابط تحت السهم بدل قطعها فجأة */
+  /* تدرّج رمادي يذوّب الروابط تحت السهم بدل قطعها فجأة */
   .dt-catnav.left {
     left: 0;
-    background: linear-gradient(to right, #ffffff 58%, rgba(255,255,255,0));
+    background: linear-gradient(to right, #f6f7f6 58%, rgba(246,247,246,0));
     justify-content: flex-start;
     padding-inline-start: 8px;
   }
 
   .dt-catnav.right {
     right: 0;
-    background: linear-gradient(to left, #ffffff 58%, rgba(255,255,255,0));
+    background: linear-gradient(to left, #f6f7f6 58%, rgba(246,247,246,0));
     justify-content: flex-end;
     padding-inline-end: 8px;
   }
@@ -369,14 +369,14 @@
 
   .dt-catbar-inner a {
     font-size: 13.5px;
-    color: #46584c;
+    color: #12331d;
     text-decoration: none;
     white-space: nowrap;
     font-weight: 600;
   }
 
-  .dt-catbar-inner a:hover { color: #1f6b42; }
-  .dt-catbar-inner a.all { color: #04361b; font-weight: 700; }
+  .dt-catbar-inner a:hover { color: #12331d; }
+  .dt-catbar-inner a.all { color: #12331d; font-weight: 700; }
 
   /* ===== زر الفئات (☰) واللوحة المنسدلة ===== */
   /* زر "الفئات" يلاصق أول رابط ("الكيماويات") في بداية
@@ -407,8 +407,8 @@
     font-family: inherit;
     font-size: 14px;
     font-weight: 700;
-    color: #04361b;
-    padding: 12px 0;
+    color: #12331d;
+    padding: 6px 0;
     cursor: pointer;
     border-bottom: 3px solid transparent;
   }
@@ -416,7 +416,7 @@
   .dt-catmenu-btn svg {
     width: 19px;
     height: 19px;
-    stroke: #04361b;
+    stroke: #12331d;
     stroke-width: 2;
     fill: none;
   }
