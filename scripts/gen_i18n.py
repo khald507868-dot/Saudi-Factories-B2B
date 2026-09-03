@@ -7,7 +7,9 @@ single- or double-quoted strings possibly containing escaped quotes.
 """
 import io, re, json, os
 
-ROOT = r"c:\Users\lenovo\OneDrive\Desktop\\" + "\u062a\u0637\u0628\u064a\u0642 \u062f\u0644\u064a\u0644 \u0627\u0644\u0645\u0635\u0627\u0646\u0639 \u0627\u0644\u0633\u0639\u0648\u062f\u064a\u0629"
+# الجذر يُشتقّ من موقع السكربت نفسه — وكان مساراً ثابتاً
+# يشير إلى نسخة قديمة من المشروع، فكان يقرأ ويكتب خارج المستودع.
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC = os.path.join(ROOT, "i18n.js")
 OUT = os.path.join(ROOT, "app_flutter", "lib", "core", "i18n_data.dart")
 

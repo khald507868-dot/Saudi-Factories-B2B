@@ -364,28 +364,28 @@
       <path d="M15 18l-6-6 6-6"/>
     </svg>
   </button>
-  <div class="page-title">إدارة المصانع</div>
+  <div class="page-title" data-i18n="admin_page_title">إدارة المصانع</div>
 </header>
 
 <div class="tabs">
-  <button class="tab active" data-status="pending">قيد المراجعة <span class="count" id="c-pending"></span></button>
-  <button class="tab" data-status="approved">معتمدة <span class="count" id="c-approved"></span></button>
-  <button class="tab" data-status="rejected">مرفوضة <span class="count" id="c-rejected"></span></button>
+  <button class="tab active" data-status="pending"><span data-i18n="fs_pending">قيد المراجعة</span> <span class="count" id="c-pending"></span></button>
+  <button class="tab" data-status="approved"><span data-i18n="fs_approved">معتمدة</span> <span class="count" id="c-approved"></span></button>
+  <button class="tab" data-status="rejected"><span data-i18n="fs_rejected">مرفوضة</span> <span class="count" id="c-rejected"></span></button>
 </div>
 
 <div class="list" id="list">
-  <div class="state"><div class="spinner"></div>جارٍ التحميل…</div>
+  <div class="state"><div class="spinner"></div><span data-i18n="fx_loading">جارٍ التحميل…</span></div>
 </div>
 
 <!-- نافذة سبب الرفض -->
 <div class="modal-overlay" id="reject-modal">
   <div class="sheet">
-    <h3>سبب الرفض</h3>
-    <p>سيظهر هذا السبب لصاحب المصنع.</p>
-    <textarea id="reject-reason" placeholder="مثال: رقم السجل التجاري غير مطابق"></textarea>
+    <h3 data-i18n="admin_reject_title">سبب الرفض</h3>
+    <p data-i18n="admin_reject_hint">سيظهر هذا السبب لصاحب المصنع.</p>
+    <textarea id="reject-reason" data-i18n-placeholder="admin_reject_ph" placeholder="مثال: رقم السجل التجاري غير مطابق"></textarea>
     <div class="sheet-actions">
-      <button class="act revert" id="reject-cancel">إلغاء</button>
-      <button class="act reject" id="reject-confirm">تأكيد الرفض</button>
+      <button class="act revert" id="reject-cancel" data-i18n="msg_cancel">إلغاء</button>
+      <button class="act reject" id="reject-confirm" data-i18n="admin_btn_reject">رفض</button>
     </div>
   </div>
 </div>
@@ -413,7 +413,9 @@
   }
 
   function statusLabel(s) {
-    return s === "approved" ? "معتمد" : s === "rejected" ? "مرفوض" : "قيد المراجعة";
+    return s === "approved" ? I18N.t("fc_status_approved")
+         : s === "rejected" ? I18N.t("fc_status_rejected")
+         : I18N.t("fc_status_pending");
   }
 
   function showState(msg, isError) {
@@ -422,14 +424,14 @@
 
   /* ===== جلب المصانع ===== */
   function loadFactories() {
-    listEl.innerHTML = '<div class="state"><div class="spinner"></div>جارٍ التحميل…</div>';
+    listEl.innerHTML = '<div class="state"><div class="spinner"></div>' + I18N.t("fx_loading") + '</div>';
 
     sb.from("factories")
       .select("*")
       .order("created_at", { ascending: false })
       .then(function (res) {
         if (res.error) {
-          showState("تعذّر تحميل المصانع.<br>" + esc(res.error.message), true);
+          showState(I18N.t("admin_no_factories") + "<br>" + esc(res.error.message), true);
           return;
         }
         factories = res.data || [];
@@ -451,11 +453,7 @@
     var rows = factories.filter(function (f) { return f.status === current; });
 
     if (!rows.length) {
-      showState(
-        current === "pending"  ? "لا توجد مصانع قيد المراجعة." :
-        current === "approved" ? "لا توجد مصانع معتمدة بعد." :
-                                 "لا توجد مصانع مرفوضة."
-      );
+      showState(I18N.t("admin_no_factories"));
       return;
     }
 
@@ -463,7 +461,7 @@
   }
 
   function cardHtml(f) {
-    var name  = f.name || "مصنع بلا اسم";
+    var name  = f.name || I18N.t("admin_no_name");
     var logo  = f.logo
       ? '<img class="fc-logo" src="' + esc(f.logo) + '" alt="">'
       : '<div class="fc-logo">' + esc(name.charAt(0)) + "</div>";
@@ -473,12 +471,12 @@
 
     var actions =
       f.status === "pending"
-        ? '<button class="act approve" data-act="approve" data-id="' + f.id + '">اعتماد</button>' +
-          '<button class="act reject"  data-act="reject"  data-id="' + f.id + '">رفض</button>'
-        : '<button class="act revert" data-act="pending" data-id="' + f.id + '">إعادة للمراجعة</button>' +
+        ? '<button class="act approve" data-act="approve" data-id="' + f.id + '">' + I18N.t("admin_btn_approve") + '</button>' +
+          '<button class="act reject"  data-act="reject"  data-id="' + f.id + '">' + I18N.t("admin_btn_reject") + '</button>'
+        : '<button class="act revert" data-act="pending" data-id="' + f.id + '">' + I18N.t("admin_revert") + '</button>' +
           (f.status === "rejected"
-            ? '<button class="act approve" data-act="approve" data-id="' + f.id + '">اعتماد</button>'
-            : '<button class="act reject" data-act="reject" data-id="' + f.id + '">رفض</button>');
+            ? '<button class="act approve" data-act="approve" data-id="' + f.id + '">' + I18N.t("admin_btn_approve") + '</button>'
+            : '<button class="act reject" data-act="reject" data-id="' + f.id + '">' + I18N.t("admin_btn_reject") + '</button>');
 
     return '' +
       '<div class="factory-card" id="fc-' + f.id + '">' +
@@ -486,20 +484,20 @@
           logo +
           '<div class="fc-info">' +
             '<div class="fc-name">' + esc(name) + "</div>" +
-            '<div class="fc-meta">سجل تجاري: <b>' + esc(f.commercial_register || "—") + "</b></div>" +
-            '<div class="fc-meta">التسجيل: ' + fmtDate(f.created_at) + "</div>" +
+            '<div class="fc-meta">' + I18N.t("field_cr") + ': <b>' + esc(f.commercial_register || "—") + "</b></div>" +
+            '<div class="fc-meta">' + I18N.t("admin_registered") + ': ' + fmtDate(f.created_at) + "</div>" +
             '<span class="badge ' + f.status + '">' + statusLabel(f.status) + "</span>" +
           "</div>" +
         "</div>" +
-        '<button class="toggle-details" data-toggle="' + f.id + '">عرض التفاصيل ▾</button>' +
+        '<button class="toggle-details" data-toggle="' + f.id + '">' + I18N.t("admin_details") + ' ▾</button>' +
         '<div class="fc-details" id="d-' + f.id + '">' +
-          '<div class="row"><span>الوصف</span><span>' + esc(f.about || "—") + "</span></div>" +
-          '<div class="row"><span>المنطقة</span><span>' + esc(f.region_id || "—") + "</span></div>" +
-          '<div class="row"><span>العنوان</span><span>' + esc(addr) + "</span></div>" +
-          '<div class="row"><span>العنوان المختصر</span><span class="cr">' + esc(f.address_short || "—") + "</span></div>" +
-          '<div class="row"><span>الرمز البريدي</span><span class="cr">' + esc(f.address_postal || "—") + "</span></div>" +
+          '<div class="row"><span>' + I18N.t("admin_f_about") + '</span><span>' + esc(f.about || "—") + "</span></div>" +
+          '<div class="row"><span>' + I18N.t("admin_f_region") + '</span><span>' + esc(f.region_id || "—") + "</span></div>" +
+          '<div class="row"><span>' + I18N.t("field_address") + '</span><span>' + esc(addr) + "</span></div>" +
+          '<div class="row"><span>' + I18N.t("admin_f_short_addr") + '</span><span class="cr">' + esc(f.address_short || "—") + "</span></div>" +
+          '<div class="row"><span>' + I18N.t("admin_f_postal") + '</span><span class="cr">' + esc(f.address_postal || "—") + "</span></div>" +
           (f.rejection_reason
-            ? '<div class="row"><span>سبب الرفض</span><span>' + esc(f.rejection_reason) + "</span></div>"
+            ? '<div class="row"><span>' + I18N.t("admin_reject_title") + '</span><span>' + esc(f.rejection_reason) + "</span></div>"
             : "") +
         "</div>" +
         '<div class="fc-actions">' + actions + "</div>" +
@@ -523,7 +521,7 @@
       .select()
       .then(function (res) {
         if (res.error || !res.data || !res.data.length) {
-          alert("تعذّر تنفيذ العملية.\n" + (res.error ? res.error.message : "لم يُحدَّث أي صف — تأكد أن حسابك مدير."));
+          alert(I18N.t("admin_action_failed") + "\n" + (res.error ? res.error.message : I18N.t("admin_only_msg")));
           if (card) card.querySelectorAll(".act").forEach(function (b) { b.disabled = false; });
           return;
         }
@@ -553,7 +551,7 @@
     if (toggle) {
       var d = document.getElementById("d-" + toggle.getAttribute("data-toggle"));
       var open = d.classList.toggle("open");
-      toggle.textContent = open ? "إخفاء التفاصيل ▴" : "عرض التفاصيل ▾";
+      toggle.textContent = I18N.t("admin_details") + (open ? " ▴" : " ▾");
       return;
     }
 
@@ -614,7 +612,7 @@
 
       if (nameEl && SF_PROFILE.full_name) nameEl.textContent = SF_PROFILE.full_name;
       if (typeEl) {
-        typeEl.textContent = SF_PROFILE.account_type === "factory" ? "حساب مصنع" : "حساب فرد";
+        typeEl.textContent = I18N.t(SF_PROFILE.account_type === "factory" ? "dash_account_factory" : "dash_account_individual");
       }
       if (avaEl && SF_PROFILE.company_image) {
         var safeAvatar = sfSafeHttpUrl(SF_PROFILE.company_image);
@@ -646,7 +644,7 @@
     }
 
     if (!SF_PROFILE || !SF_PROFILE.is_admin) {
-      showState("هذه الصفحة للمدير فقط.<br>حسابك لا يملك صلاحية الإدارة.", true);
+      showState(I18N.t("admin_only_msg"), true);
       document.querySelector(".tabs").style.display = "none";
       return;
     }
