@@ -862,6 +862,91 @@
   .fav-heart.on svg path { fill: #d13b3b; stroke: #d13b3b; }
   .fav-heart:disabled { opacity: 0.5; cursor: default; }
 
+  /* ===== وصف المنتج ومواصفاته =====
+     لوحة مطويّة كشريط الصور: البطاقة تبقى نظيفة كما طلب المالك،
+     ويفتحها زر صغير عند الحاجة. */
+  .product-specs-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    margin-top: 8px;
+    padding: 7px 10px;
+    border: 1px solid #dfe5e1;
+    border-radius: 9px;
+    background: #f7f9f8;
+    color: #46584c;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .product-specs-toggle svg { width: 14px; height: 14px; flex-shrink: 0; }
+  .product-specs-toggle:hover { background: #eef3f0; }
+
+  .product-specs-box { display: none; margin-top: 8px; }
+  .product-specs-box.open { display: block; }
+
+  .product-specs-box textarea {
+    width: 100%;
+    min-height: 70px;
+    resize: vertical;
+    padding: 9px 11px;
+    border: 1px solid #dfe5e1;
+    border-radius: 9px;
+    font-family: inherit;
+    font-size: 13px;
+    line-height: 1.7;
+    color: #04361b;
+    background: #ffffff;
+  }
+  .product-specs-box textarea:focus,
+  .product-specs-box input:focus { outline: none; border-color: #45a06a; }
+
+  .spec-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px;
+    margin-top: 7px;
+  }
+  .spec-grid input {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid #dfe5e1;
+    border-radius: 9px;
+    font-family: inherit;
+    font-size: 12.5px;
+    color: #04361b;
+    background: #ffffff;
+  }
+
+  /* ===== عرض الوصف والمواصفات للزائر ===== */
+  .product-read-desc {
+    font-size: 12.5px;
+    color: #46584c;
+    line-height: 1.7;
+    margin-top: 5px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .product-read-specs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 6px;
+  }
+  .product-read-specs span {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 20px;
+    background: #eef3f0;
+    color: #46584c;
+  }
+
   .product-card {
     position: relative;
     border: 1px solid #eef1ee;
@@ -1523,7 +1608,12 @@
                 return typeof u === "string" && u.indexOf("http") === 0;
               }).slice(0, 5),
               name: pr.name || "",
-              price: pr.price == null ? "" : String(pr.price)
+              price: pr.price == null ? "" : String(pr.price),
+              description: pr.description || "",
+              material: pr.material || "",
+              sizes: pr.sizes || "",
+              colors: pr.colors || "",
+              moq: pr.moq == null ? "" : String(pr.moq)
             };
           }),
           p_posts: (data.posts || []).map(function (po) {
@@ -2553,6 +2643,30 @@
             body.appendChild(readName);
             body.appendChild(readPrice);
 
+            /* الوصف مقصوص سطرين على البطاقة — تفصيله في صفحة المنتج */
+            if (product.description) {
+              var readDesc = document.createElement("div");
+              readDesc.className = "product-read-desc";
+              readDesc.textContent = product.description;
+              body.appendChild(readDesc);
+            }
+
+            var specBits = [product.material, product.sizes, product.colors]
+              .filter(Boolean);
+            if (product.moq) {
+              specBits.push(I18N.t("product_moq") + ": " + product.moq);
+            }
+            if (specBits.length) {
+              var readSpecs = document.createElement("div");
+              readSpecs.className = "product-read-specs";
+              specBits.forEach(function (bit) {
+                var chip = document.createElement("span");
+                chip.textContent = bit;
+                readSpecs.appendChild(chip);
+              });
+              body.appendChild(readSpecs);
+            }
+
             /* الزائر: البطاقة كلّها رابط إلى صفحة المنتج */
             var link = document.createElement("a");
             link.href = "web-product.html?factory=" +
@@ -2598,6 +2712,61 @@
 
           body.appendChild(nameField);
           body.appendChild(priceRow);
+
+          /* لوحة الوصف والمواصفات: مطويّة افتراضياً.
+             كل حقل يحفظ عند الكتابة على مسار save() نفسه —
+             وهو مؤجَّل 700ms ثم يُرسل إلى save_factory_content. */
+          var specsBtn = document.createElement("button");
+          specsBtn.type = "button";
+          specsBtn.className = "product-specs-toggle";
+          specsBtn.innerHTML =
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+            '<line x1="4" y1="7" x2="20" y2="7"></line>' +
+            '<line x1="4" y1="12" x2="20" y2="12"></line>' +
+            '<line x1="4" y1="17" x2="14" y2="17"></line></svg>' +
+            '<span>' + I18N.t("product_specs_toggle") + '</span>';
+
+          var specsBox = document.createElement("div");
+          specsBox.className = "product-specs-box";
+
+          specsBtn.addEventListener("click", function () {
+            specsBox.classList.toggle("open");
+          });
+
+          var descField = document.createElement("textarea");
+          descField.value = product.description || "";
+          descField.placeholder = I18N.t("product_desc_placeholder");
+          descField.maxLength = 2000;
+          descField.addEventListener("input", function () {
+            product.description = descField.value;
+            save();
+          });
+          specsBox.appendChild(descField);
+
+          var specGrid = document.createElement("div");
+          specGrid.className = "spec-grid";
+
+          [["material", "product_material"],
+           ["sizes",    "product_sizes"],
+           ["colors",   "product_colors"],
+           ["moq",      "product_moq"]].forEach(function (pair) {
+            var key = pair[0];
+            var f = document.createElement("input");
+            f.type = "text";
+            if (key === "moq") f.inputMode = "numeric";
+            f.value = product[key] || "";
+            f.placeholder = I18N.t(pair[1]);
+            f.maxLength = key === "moq" ? 9 : 120;
+            f.addEventListener("input", function () {
+              product[key] = f.value;
+              save();
+            });
+            specGrid.appendChild(f);
+          });
+
+          specsBox.appendChild(specGrid);
+          body.appendChild(specsBtn);
+          body.appendChild(specsBox);
 
           var deleteBtn = document.createElement("button");
           deleteBtn.type = "button";
@@ -2657,7 +2826,12 @@
             images: pr.images && pr.images.length ? pr.images
                     : (pr.image ? [pr.image] : []),
             name: pr.name || "",
-            price: pr.price == null ? "" : String(pr.price)
+            price: pr.price == null ? "" : String(pr.price),
+            description: pr.description || "",
+            material: pr.material || "",
+            sizes: pr.sizes || "",
+            colors: pr.colors || "",
+            moq: pr.moq == null ? "" : String(pr.moq)
           };
         });
 

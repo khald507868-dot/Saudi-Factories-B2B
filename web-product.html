@@ -172,6 +172,33 @@
   }
 
   /* شارات التحقّق */
+  /* ===== وصف المنتج ومواصفاته للمشتري ===== */
+  .prod-desc {
+    font-size: 14px;
+    line-height: 1.9;
+    color: #46584c;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .spec-table { width: 100%; border-collapse: collapse; }
+  .spec-table tr { border-bottom: 1px solid #f0f3f1; }
+  .spec-table tr:last-child { border-bottom: none; }
+  .spec-table th,
+  .spec-table td {
+    text-align: start;
+    padding: 9px 2px;
+    font-size: 13.5px;
+    vertical-align: top;
+  }
+  .spec-table th {
+    color: #6b7d70;
+    font-weight: 600;
+    width: 40%;
+    white-space: nowrap;
+  }
+  .spec-table td { color: #04361b; font-weight: 600; word-break: break-word; }
+
   .prod-badges {
     display: flex;
     flex-wrap: wrap;
@@ -478,6 +505,42 @@
         : '<div class="prod-price on-request">' +
           escapeHTML(I18N.t("product_price_on_request")) + '</div>';
 
+      /* بطاقة الوصف: تُحذف كلياً إن كان فارغاً بدل أن تظهر
+         بعنوان بلا محتوى. */
+      function descCardHTML(pr) {
+        var txt = (pr && pr.description) || "";
+        if (!String(txt).trim()) return "";
+        return '<div class="card" id="card-desc">' +
+                 '<h2>' + escapeHTML(I18N.t("product_description")) + '</h2>' +
+                 '<div class="prod-desc">' + escapeHTML(txt) + '</div>' +
+               '</div>';
+      }
+
+      /* جدول المواصفات: كل صفّ يظهر إن كانت قيمته موجودة وحدها،
+         فمصنع عبّأ الخامة وحدها يرى صفّاً واحداً لا جدولاً بفراغات. */
+      function specsCardHTML(pr) {
+        if (!pr) return "";
+        var rows = [
+          ["product_material", pr.material],
+          ["product_sizes",    pr.sizes],
+          ["product_colors",   pr.colors],
+          ["product_moq",      pr.moq
+            ? pr.moq + " " + I18N.t("product_unit") : ""]
+        ].filter(function (r) { return String(r[1] || "").trim(); });
+
+        if (!rows.length) return "";
+
+        return '<div class="card" id="card-specs">' +
+                 '<h2>' + escapeHTML(I18N.t("product_specs")) + '</h2>' +
+                 '<table class="spec-table"><tbody>' +
+                   rows.map(function (r) {
+                     return '<tr><th>' + escapeHTML(I18N.t(r[0])) + '</th>' +
+                            '<td>' + escapeHTML(r[1]) + '</td></tr>';
+                   }).join("") +
+                 '</tbody></table>' +
+               '</div>';
+      }
+
       /* اسم المعروض: اسم المنتج، وإلا اسم المصنع، وإلا
          تسمية المصنع برقمه — فلا يبقى العنوان فارغاً. */
       var displayName = name || factoryName;
@@ -498,6 +561,9 @@
             '<span>' + years + ' ' + escapeHTML(I18N.t("product_years")) + '</span>' +
           '</div>' +
         '</div>' +
+
+        descCardHTML(product) +
+        specsCardHTML(product) +
 
         '<div class="card supplier-card">' +
           '<h2>' + escapeHTML(I18N.t("product_supplier_label")) + '</h2>' +
@@ -663,6 +729,25 @@
            للمنتج معرّف، فلا يُبنى زر السلة ولا القلب. وحين تصل
            بيانات الخادم يُبنيان معاً داخل .act-row — وبناء زر
            السلة وحده هنا كان يُسقط القلب من الصفحة. */
+        /* بطاقتا الوصف والمواصفات تُبنيان من صفّ الخادم وحده:
+           الرسمة الأولى من localStorage لا تحمل هذه الحقول، فلولا
+           تحديثهما هنا لما ظهرتا أبداً. وتُحذفان إن فرغتا. */
+        ["card-desc", "card-specs"].forEach(function (id) {
+          var el = wrap.querySelector("#" + id);
+          if (el) el.parentNode.removeChild(el);
+        });
+        var extraHTML = descCardHTML(row) + specsCardHTML(row);
+        if (extraHTML) {
+          var anchor = wrap.querySelector(".supplier-card");
+          if (anchor) {
+            var holder = document.createElement("div");
+            holder.innerHTML = extraHTML;
+            while (holder.firstChild) {
+              anchor.parentNode.insertBefore(holder.firstChild, anchor);
+            }
+          }
+        }
+
         if (!wrap.querySelector(".add-cart-btn")) {
           var actionBox = wrap.querySelector(".actions");
           if (actionBox) {
