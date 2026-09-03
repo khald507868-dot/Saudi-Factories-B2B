@@ -24,6 +24,7 @@
 <script src="auth-guard.js"></script>
 <script src="messages-badge.js"></script>
 <script src="regions-geo.js"></script>
+<script src="geo-location.js"></script>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -132,6 +133,147 @@
   html[dir="ltr"] .top-bar-logo .wm-rule {
     background: linear-gradient(to right, #1f6b42, #45a06a, #c9a227);
   }
+
+
+  /* ===== لوحة الموقع الجغرافي ===== */
+  .geo-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(4, 54, 27, 0.45);
+  }
+
+  .geo-overlay[hidden] { display: none; }
+
+  .geo-panel {
+    position: relative;
+    width: 100%;
+    max-width: 420px;
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 22px 20px 20px;
+    box-shadow: 0 18px 50px rgba(4, 54, 27, 0.28);
+  }
+
+  .geo-panel h2 {
+    margin: 0 0 6px;
+    font-size: 17px;
+    color: #04361b;
+  }
+
+  .geo-hint {
+    margin: 0 0 14px;
+    font-size: 13px;
+    line-height: 1.7;
+    color: #6b7d70;
+  }
+
+  .geo-panel input {
+    width: 100%;
+    padding: 11px 13px;
+    border: 1px solid #dfe5e1;
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 13px;
+    color: #04361b;
+    background: #ffffff;
+    /* الروابط لاتينية دائماً، فتُعرض من اليسار حتى في RTL */
+    direction: ltr;
+    text-align: left;
+  }
+
+  .geo-panel input:focus { outline: none; border-color: #45a06a; }
+
+  .geo-msg {
+    margin: 10px 0 0;
+    font-size: 12.5px;
+    line-height: 1.7;
+    color: #b03030;
+  }
+
+  .geo-msg.ok { color: #1f6b42; }
+  .geo-msg[hidden] { display: none; }
+
+  .geo-gps {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 11px;
+    border: 1px solid #1f6b42;
+    border-radius: 10px;
+    background: #f2f8f4;
+    color: #1f6b42;
+    font-family: inherit;
+    font-size: 13.5px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .geo-gps:hover { background: #e6f2ea; }
+  .geo-gps:disabled { opacity: 0.6; cursor: default; }
+
+  /* فاصل «أو» بخطّين على الجانبين */
+  .geo-sep {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 14px 0;
+    color: #9aa8a0;
+    font-size: 12px;
+  }
+
+  .geo-sep::before,
+  .geo-sep::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: #e4eae6;
+  }
+
+  .geo-save {
+    width: 100%;
+    margin-top: 14px;
+    padding: 11px;
+    border: none;
+    border-radius: 10px;
+    background: #1f6b42;
+    color: #ffffff;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .geo-save:hover { background: #185634; }
+  .geo-save:disabled { opacity: 0.6; cursor: default; }
+
+  .geo-close {
+    position: absolute;
+    top: 10px;
+    inset-inline-end: 12px;
+    border: none;
+    background: none;
+    font-size: 24px;
+    line-height: 1;
+    color: #6b7d70;
+    cursor: pointer;
+  }
+
+  /* نقاط المصانع على الخريطة */
+  .factory-pin {
+    fill: #1f6b42;
+    stroke: #ffffff;
+    stroke-width: 2;
+    cursor: pointer;
+  }
+
+  .factory-pin:hover { fill: #45a06a; }
 
   /* ===== محتوى الصفحة ===== */
   .content {
@@ -329,6 +471,10 @@
     stroke-width: 2.5;
     stroke-linejoin: round;
   }
+
+  /* الطبقة كلّها pointer-events: none حتى لا تحجب سحب الخريطة،
+     فتُستثنى النقاط وحدها ليعمل الضغط عليها. */
+  .region-outline #zoom-pins { pointer-events: auto; }
 
   /* أزرار التكبير والتصغير */
   .map-zoom {
@@ -816,6 +962,13 @@
           <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14v-2a8 8 0 0 1 16 0v2"></path><path d="M4 14h2a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z"></path><path d="M20 14h-2a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1h1a1 1 0 0 0 1-1z"></path></svg>
         </a>
 
+        <!-- الموقع الجغرافي: دبّوس خريطة. تُفتح لوحة يلصق فيها
+             المستخدم رابط موقعه من قوقل ماب. المصنع تظهر نقطته
+             على الخريطة، والفرد يُحفظ موقعه للتوصيل وحده. -->
+        <button type="button" class="dt-icon" id="geo-btn" aria-label="موقعي" aria-haspopup="dialog" aria-expanded="false">
+          <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+        </button>
+
         <!-- كن مورّدًا: يملأ الفراغ في طرف الشريط، ويقود إلى
              تبويب إنشاء الحساب في صفحة الدخول الموحّدة.
              أيقونة مصنع مرسومة وسماً كبقية أيقونات الشريط. -->
@@ -863,6 +1016,27 @@
       </div>
     </div>
   </header>
+
+
+  <!-- ===== لوحة الموقع الجغرافي ===== -->
+  <div class="geo-overlay" id="geo-overlay" role="dialog" aria-modal="true" aria-labelledby="geo-title" hidden>
+    <div class="geo-panel">
+      <button type="button" class="geo-close" id="geo-close" aria-label="إغلاق">&times;</button>
+      <h2 id="geo-title" data-i18n="geo_title">موقعي على الخريطة</h2>
+      <p class="geo-hint" data-i18n="geo_hint">الصق رابط موقعك من خرائط قوقل</p>
+
+      <!-- الطريق الأسهل أولاً: زرّ واحد بلا نسخ ولا لصق.
+           يحلّ مشكلة الروابط المختصرة (maps.app.goo.gl) التي
+           لا تحمل الإحداثيات في نصّها ولا يمكن قراءتها. -->
+      <button type="button" class="geo-gps" id="geo-gps" data-i18n="geo_use_current">استخدم موقعي الحالي</button>
+
+      <div class="geo-sep"><span data-i18n="geo_or">أو</span></div>
+
+      <input type="url" id="geo-input" data-i18n-placeholder="geo_placeholder" placeholder="الصق الرابط هنا...">
+      <p class="geo-msg" id="geo-msg" hidden></p>
+      <button type="button" class="geo-save" id="geo-save" data-i18n="geo_save">حفظ الموقع</button>
+    </div>
+  </div>
 
   <!-- محتوى الصفحة -->
   <main class="content">
@@ -1123,6 +1297,48 @@
         }).join(' ');
       }
 
+      /* مصانع لها إحداثيات — تُحمّل مرّة وتُعاد رسمها مع كل حركة */
+      let factoryPins = [];
+
+      function renderPins(originX, originY) {
+        const old = outlineSvg.querySelector('#zoom-pins');
+        if (old) old.parentNode.removeChild(old);
+        if (!factoryPins.length) return;
+
+        const ns = 'http://www.w3.org/2000/svg';
+        const g = document.createElementNS(ns, 'g');
+        g.setAttribute('id', 'zoom-pins');
+
+        factoryPins.forEach(row => {
+          const lat = Number(row.lat), lng = Number(row.lng);
+          if (!isFinite(lat) || !isFinite(lng)) return;
+
+          const x = lonToX(lng, mapState.z) - originX;
+          const y = latToY(lat, mapState.z) - originY;
+          /* خارج الإطار المرئي: لا داعي لرسمه */
+          if (x < -20 || y < -20 || x > mapState.w + 20 || y > mapState.h + 20) return;
+
+          const c = document.createElementNS(ns, 'circle');
+          c.setAttribute('class', 'factory-pin');
+          c.setAttribute('cx', x.toFixed(1));
+          c.setAttribute('cy', y.toFixed(1));
+          c.setAttribute('r', '8');
+
+          const title = document.createElementNS(ns, 'title');
+          title.textContent = row.name || '';
+          c.appendChild(title);
+
+          c.addEventListener('click', ev => {
+            ev.stopPropagation();
+            window.location.href = 'web-factory.html?id=' + encodeURIComponent(row.id);
+          });
+
+          g.appendChild(c);
+        });
+
+        outlineSvg.appendChild(g);
+      }
+
       /* رسم البلاطات المرئية فقط، والقناع، والحدود */
       function renderMap() {
         const w = mapState.w, h = mapState.h;
@@ -1140,6 +1356,12 @@
         /* الحدود فوق البلاطات */
         outlineSvg.setAttribute('viewBox', '0 0 ' + w + ' ' + h);
         outlineSvg.innerHTML = '<path d="' + d + '"/>';
+
+        /* نقاط المصانع: تُرسم هنا لا مرّة واحدة، فتتبع التكبير
+           والسحب تلقائياً — renderMap تُستدعى بعد كل حركة.
+           الإحداثيات تمرّ بنفس lonToX/latToY المستعملة للحدود،
+           فتقع النقطة في موقعها الحقيقي بلا تقريب. */
+        renderPins(originX, originY);
 
         /* البلاطات المرئية */
         const scale = Math.pow(2, mapState.z);
@@ -1166,6 +1388,14 @@
       function openRegionMap(regionId) {
         const rings = (typeof SA_REGION_BOUNDS !== 'undefined') ? SA_REGION_BOUNDS[regionId] : null;
         if (!rings) return;
+
+        /* تُجلب مرّة عند الفتح ثم تُرسم من الذاكرة مع كل حركة */
+        if (window.SFGeo) {
+          SFGeo.loadFactoryPins().then(rows => {
+            factoryPins = rows || [];
+            if (mapState.rings) renderMap();
+          }).catch(() => {});
+        }
 
         const rect = mapCanvas.getBoundingClientRect();
         mapState.rings = rings;
@@ -1259,6 +1489,7 @@
         mapModalOverlay.classList.remove('open');
         tileLayer.innerHTML = '';
         outlineSvg.innerHTML = '';
+        factoryPins = [];
         mapState.rings = null;
         document.body.style.overflow = '';
 
@@ -1713,6 +1944,187 @@
       }
     }
   })();
+
+  /* ============================================================
+     الموقع الجغرافي: اللوحة + نقاط المصانع على الخريطة
+     ============================================================ */
+  (function () {
+    var btn = document.getElementById("geo-btn");
+    var overlay = document.getElementById("geo-overlay");
+    if (!btn || !overlay) return;
+
+    var input = document.getElementById("geo-input");
+    var msg = document.getElementById("geo-msg");
+    var saveBtn = document.getElementById("geo-save");
+    var closeBtn = document.getElementById("geo-close");
+
+    function say(text, ok) {
+      msg.textContent = text;
+      msg.classList.toggle("ok", !!ok);
+      msg.hidden = !text;
+    }
+
+    function open() {
+      overlay.hidden = false;
+      btn.setAttribute("aria-expanded", "true");
+      document.body.style.overflow = "hidden";
+      say("", false);
+
+      /* الموقع المحفوظ يظهر في الحقل ليعدّله لا ليعيد كتابته. */
+      if (window.SFGeo && window.SF_USER) {
+        SFGeo.loadMine().then(function (row) {
+          if (row && row.map_url) input.value = row.map_url;
+        }).catch(function () {});
+      }
+      input.focus();
+    }
+
+    function close() {
+      overlay.hidden = true;
+      btn.setAttribute("aria-expanded", "false");
+      document.body.style.overflow = "";
+    }
+
+    btn.addEventListener("click", open);
+    closeBtn.addEventListener("click", close);
+    overlay.addEventListener("click", function (e) {
+      if (e.target === overlay) close();
+    });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && !overlay.hidden) close();
+    });
+
+    /* ===== الموقع الحالي من الجهاز =====
+       يعطي إحداثيات مباشرة، فلا حاجة إلى رابط أصلاً. يمرّ على
+       SFGeo.save نفسها ليبقى مسار الحفظ واحداً. */
+    var gpsBtn = document.getElementById("geo-gps");
+    if (gpsBtn) {
+      gpsBtn.addEventListener("click", function () {
+        if (!window.SF_USER) {
+          say(I18N.t("login_required_action"), false);
+          return;
+        }
+        if (!navigator.geolocation) {
+          say(I18N.t("geo_unavailable"), false);
+          return;
+        }
+
+        gpsBtn.disabled = true;
+        say(I18N.t("geo_locating"), true);
+
+        navigator.geolocation.getCurrentPosition(function (pos) {
+          /* يُبنى رابط قوقل قياسي من الإحداثيات، فيُحفظ
+             map_url صالحاً للفتح كما لو لصقه المستخدم. */
+          var lat = pos.coords.latitude, lng = pos.coords.longitude;
+          var url = "https://www.google.com/maps/@" + lat + "," + lng + ",17z";
+          input.value = url;
+
+          SFGeo.save(url).then(function () {
+            say(I18N.t("geo_saved"), true);
+            if (SFGeo.isFactoryAccount()) drawPins();
+            window.setTimeout(close, 1200);
+          }).catch(function (err) {
+            say((err && err.message) || I18N.t("geo_bad_link"), false);
+          }).then(function () {
+            gpsBtn.disabled = false;
+          });
+        }, function (err) {
+          gpsBtn.disabled = false;
+          say(err && err.code === 1 ? I18N.t("geo_denied")
+                                    : I18N.t("geo_unavailable"), false);
+        }, { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 });
+      });
+    }
+
+    saveBtn.addEventListener("click", function () {
+      if (!window.SF_USER) {
+        say(I18N.t("login_required_action") || "\u064a\u062c\u0628 \u062a\u0633\u062c\u064a\u0644 \u0627\u0644\u062f\u062e\u0648\u0644", false);
+        return;
+      }
+      if (!window.SFGeo) return;
+
+      saveBtn.disabled = true;
+      say("", false);
+
+      SFGeo.save(input.value).then(function (point) {
+        say(I18N.t("geo_saved"), true);
+        /* نقطة المصنع تظهر فوراً بلا إعادة تحميل. */
+        if (SFGeo.isFactoryAccount()) drawPins();
+        window.setTimeout(close, 1200);
+      }).catch(function (err) {
+        say((err && err.message) || I18N.t("geo_bad_link"), false);
+      }).then(function () {
+        saveBtn.disabled = false;
+      });
+    });
+
+    /* ===== رسم نقاط المصانع =====
+       المعايرة: حدود المملكة من regions-geo.js مقابل حدود
+       رسم الخريطة (viewBox بلا الهامش). الإسقاط Mercator في
+       المحور الرأسي كالخرائط الحقيقية، وخطّي في الأفقي. */
+    var LAT_MIN = 16.3795, LAT_MAX = 32.1541;
+    var LON_MIN = 34.4944, LON_MAX = 55.6667;
+    var MAP_W = 730, MAP_H = 600;
+
+    function mercY(lat) {
+      var s = Math.sin(lat * Math.PI / 180);
+      return Math.log((1 + s) / (1 - s)) / 2;
+    }
+
+    var Y_TOP = mercY(LAT_MAX), Y_BOTTOM = mercY(LAT_MIN);
+
+    function projectPoint(lat, lon) {
+      return {
+        x: (lon - LON_MIN) / (LON_MAX - LON_MIN) * MAP_W,
+        y: (Y_TOP - mercY(lat)) / (Y_TOP - Y_BOTTOM) * MAP_H
+      };
+    }
+
+    function drawPins() {
+      var svg = document.querySelector("svg.ksa-map");
+      if (!svg || !window.SFGeo) return;
+
+      SFGeo.loadFactoryPins().then(function (rows) {
+        var old = svg.querySelector("#factory-pins");
+        if (old) old.parentNode.removeChild(old);
+        if (!rows.length) return;
+
+        var g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        g.setAttribute("id", "factory-pins");
+
+        rows.forEach(function (row) {
+          var p = projectPoint(Number(row.lat), Number(row.lng));
+          if (!isFinite(p.x) || !isFinite(p.y)) return;
+
+          var c = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+          c.setAttribute("class", "factory-pin");
+          c.setAttribute("cx", p.x.toFixed(1));
+          c.setAttribute("cy", p.y.toFixed(1));
+          c.setAttribute("r", "7");
+
+          var title = document.createElementNS("http://www.w3.org/2000/svg", "title");
+          title.textContent = row.name || "";
+          c.appendChild(title);
+
+          c.addEventListener("click", function () {
+            window.location.href = "web-factory.html?id=" + encodeURIComponent(row.id);
+          });
+
+          g.appendChild(c);
+        });
+
+        svg.appendChild(g);
+      }).catch(function () {});
+    }
+
+    /* النقاط عامة: تُرسم للزائر كما للمسجّل. */
+    if (window.SF_AUTH_READY) {
+      SF_AUTH_READY.then(drawPins).catch(drawPins);
+    } else {
+      drawPins();
+    }
+  })();
+
   </script>
 
 </body>
