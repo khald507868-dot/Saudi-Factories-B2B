@@ -49,6 +49,7 @@ html[lang="ar"] select {
 .chat-page .thread-list-view,
 .chat-page .chat-view,
 .map-section,
+.product-hero,
 .map-frame-wrap {
   border: 1px solid var(--sf-product-frame) !important;
 }

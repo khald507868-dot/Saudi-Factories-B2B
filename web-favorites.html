@@ -149,8 +149,9 @@
   .fav-thumb {
     width: 100%;
     aspect-ratio: 1 / 1;
-    object-fit: cover;
-    background: #f3f5f3;
+    /* contain ليظهر المنتج كاملاً كما في صفحة المنتج */
+    object-fit: contain;
+    background: #ffffff;
     display: block;
   }
   .fav-thumb.ph {
@@ -160,6 +161,8 @@
 
   .fav-body { padding: 10px 11px 12px; }
   .fav-name {
+    text-decoration: none;
+    color: inherit;
     font-size: 13.5px; font-weight: 700; line-height: 1.4;
     display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2;
     -webkit-box-orient: vertical; overflow: hidden;
@@ -484,13 +487,21 @@
         '<button class="heart-btn" data-fav="' + esc(p.id) + '" aria-label="' + esc(I18N.t("fav_remove")) + '">' +
           '<svg viewBox="0 0 24 24"><path d="M12 21s-7.5-4.7-9.5-9A5.2 5.2 0 0 1 12 6.6 5.2 5.2 0 0 1 21.5 12c-2 4.3-9.5 9-9.5 9z"/></svg>' +
         '</button>' +
-        '<a href="web-product.html?factory=' + esc(p.factory_id) + '&p=0">' + thumb + '</a>' +
+        '<a href="' + esc(productURL(p)) + '">' + thumb + '</a>' +
         '<div class="fav-body">' +
-          '<div class="fav-name">' + esc(p.name || "—") + '</div>' +
+          '<a class="fav-name" href="' + esc(productURL(p)) + '">' + esc(p.name || "—") + '</a>' +
           (factory ? '<div class="fav-factory">' + esc(factory) + '</div>' : '') +
           '<div class="fav-price">' + money(p.price) + '</div>' +
         '</div>' +
       '</div>';
+  }
+
+  /* رابط المنتج يجب أن يحمل &product=<id> — فبدونه تقرأ
+     web-product.html الفهرس p=0 وتعرض أوّل منتج في المصنع
+     لا المنتج الذي نُقر عليه. هذا ما تفعله بطاقات الرئيسية. */
+  function productURL(p) {
+    return "web-product.html?factory=" + encodeURIComponent(p.factory_id) +
+           "&p=0&product=" + encodeURIComponent(p.id);
   }
 
   function pickImage(p) {

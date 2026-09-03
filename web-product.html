@@ -93,17 +93,35 @@
   .product-hero {
     width: 100%;
     aspect-ratio: 1 / 1;
-    background: #e6e9e7;
+    background: #ffffff;
     display: flex;
     align-items: center;
     justify-content: center;
     overflow: hidden;
+    /* زوايا وظلّ مطابقان لـ.card تحتها وبجانبها.
+       ولا هامش أفقيّ هنا: حاوية الصفحة توفّره أصلاً،
+       فإضافته جعلت الصورة أوسع من البطاقة تحتها فلم
+       تتحاذيا حوافّهما. */
+    border-radius: 14px 14px 0 0;
+    box-shadow: 0 2px 10px rgba(4, 54, 27, 0.06);
+  }
+
+  /* الصورة وبطاقة المورّد قطعة واحدة: تُربّع الحوافّ
+     المتلاقية وتُلغى الفجوة بينهما، فيبقى التدوير على
+     الأطراف الخارجية وحدها. */
+  .supplier-card {
+    margin-top: 0 !important;
+    border-radius: 0 0 14px 14px;
+    border-top: 1px solid #eef2ef;
   }
 
   .product-hero img {
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    /* contain لا cover: صور الملابس أطول من عرضها،
+       وcover كان يقصّ الرأس والقدمين في إطار مربّع. */
+    object-fit: contain;
+    background: #ffffff;
   }
 
   .product-hero svg {
@@ -243,25 +261,34 @@
 
   /* صفّ يجمع زر السلة وزر المفضّلة جنباً إلى جنب — القلب مربّع
      ثابت العرض والزر الأساسي يملأ ما بقي. */
-  .act-row { display: flex; gap: 10px; align-items: stretch; }
-  .act-row .act-btn { flex: 1; margin-bottom: 0; }
+  /* الأزرار تبقى عموداً واحداً بعرض كامل كما كانت — جُرّب
+     صفّها أفقياً مع القلب فرفضه المالك: "قبل كانت مرتبة".
+     فالقلب زر كامل العرض مثلها لا مربّع بجانبها. */
+  .act-row { display: block; }
 
   .fav-btn {
-    flex: 0 0 auto;
-    width: 52px;
+    display: flex;
+    width: 100%;
+    padding: 14px;
     border-radius: 999px;
     border: 2px solid #c7dfce;
     background: #ffffff;
     cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    padding: 0;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-family: inherit;
+    font-size: 14.5px;
+    font-weight: 700;
+    color: #1f6b42;
+    margin-bottom: 10px;
   }
-  .fav-btn svg { width: 22px; height: 22px; }
+  .fav-btn svg { width: 19px; height: 19px; flex-shrink: 0; }
   .fav-btn svg path {
     fill: none; stroke: #8a9a8e; stroke-width: 1.8;
     transition: fill 0.15s, stroke 0.15s;
   }
-  .fav-btn.on { border-color: #f0c4c4; background: #fdf4f4; }
+  .fav-btn.on { border-color: #f0c4c4; background: #fdf4f4; color: #d13b3b; }
   .fav-btn.on svg path { fill: #d13b3b; stroke: #d13b3b; }
   .fav-btn:disabled { opacity: 0.5; cursor: default; }
 
@@ -472,7 +499,7 @@
           '</div>' +
         '</div>' +
 
-        '<div class="card">' +
+        '<div class="card supplier-card">' +
           '<h2>' + escapeHTML(I18N.t("product_supplier_label")) + '</h2>' +
           '<div class="supplier-row">' +
             '<div class="supplier-logo">' +
@@ -495,6 +522,7 @@
                 '<button type="button" class="fav-btn" id="fav-btn" data-product-id="' +
                   escapeHTML(product.id) + '" aria-label="' + escapeHTML(I18N.t("fav_add")) + '">' +
                   '<svg viewBox="0 0 24 24"><path d="M12 21s-7.5-4.7-9.5-9A5.2 5.2 0 0 1 12 6.6 5.2 5.2 0 0 1 21.5 12c-2 4.3-9.5 9-9.5 9z"/></svg>' +
+                  '<span class="fav-label">' + escapeHTML(I18N.t("fav_add")) + '</span>' +
                 '</button>' +
               '</div>'
             : '') +
@@ -509,14 +537,34 @@
       /* ===== المفضّلة =====
          الحالة تُقرأ من الخادم بعد الرسم، والنقر يبدّلها تفاؤلياً.
          الصفحة عامة، فالزائر بلا حساب يُرسَل إلى التسجيل. */
-      (function wireFavorite() {
-        var favBtn = document.getElementById("fav-btn");
-        if (!favBtn || !window.SFFavorites) return;
+      function buildFavButton(productId) {
+        var b = document.createElement("button");
+        b.type = "button";
+        b.className = "fav-btn";
+        b.id = "fav-btn";
+        b.setAttribute("data-product-id", productId);
+        b.setAttribute("aria-label", I18N.t("fav_add"));
+        b.innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 21s-7.5-4.7-9.5-9A5.2 5.2 0 0 1 12 6.6 5.2 5.2 0 0 1 21.5 12c-2 4.3-9.5 9-9.5 9z"/></svg>' +
+                      '<span class="fav-label">' + I18N.t("fav_add") + '</span>';
+        wireFavorite(b);
+        return b;
+      }
+
+      function setFavLabel(btn, isOn) {
+        var lbl = btn.querySelector(".fav-label");
+        if (lbl) lbl.textContent = I18N.t(isOn ? "fav_remove" : "fav_add");
+      }
+
+      function wireFavorite(favBtn) {
+        if (!favBtn || !window.SFFavorites || favBtn.dataset.wired) return;
+        favBtn.dataset.wired = "1";
         var pid = favBtn.getAttribute("data-product-id");
 
         if (window.SF_USER) {
           SFFavorites.loadIds().then(function (ids) {
-            if (ids.indexOf(Number(pid)) !== -1) favBtn.classList.add("on");
+            var isOn = ids.indexOf(Number(pid)) !== -1;
+            favBtn.classList.toggle("on", isOn);
+            setFavLabel(favBtn, isOn);
           }).catch(function () { /* تبقى فارغة */ });
         }
 
@@ -527,6 +575,7 @@
           favBtn.disabled = true;
           SFFavorites.toggle(pid, on).then(function (nowFav) {
             favBtn.classList.toggle("on", nowFav);
+            setFavLabel(favBtn, nowFav);
           }).catch(function (err) {
             favBtn.classList.toggle("on", on);
             alert(err && err.message ? err.message : String(err));
@@ -534,7 +583,9 @@
             favBtn.disabled = false;
           });
         });
-      })();
+      }
+
+      wireFavorite(document.getElementById("fav-btn"));
 
       /* شريط سفليّ يظهر بعد الإضافة: يعدّ ما في السلة ويفتحها.
          مركّز أفقيًا لا ملصقًا بحافة، فيستقيم في اتجاهي القراءة معًا. */
@@ -608,15 +659,26 @@
             ? escapeHTML(row.price) + ' <span class="currency">' + escapeHTML(I18N.t("currency_sar")) + '</span>'
             : escapeHTML(I18N.t("product_price_on_request"));
         }
+        /* الصفحة تُرسم أولاً من localStorage حيث قد لا يكون
+           للمنتج معرّف، فلا يُبنى زر السلة ولا القلب. وحين تصل
+           بيانات الخادم يُبنيان معاً داخل .act-row — وبناء زر
+           السلة وحده هنا كان يُسقط القلب من الصفحة. */
         if (!wrap.querySelector(".add-cart-btn")) {
           var actionBox = wrap.querySelector(".actions");
           if (actionBox) {
+            var rowBox = document.createElement("div");
+            rowBox.className = "act-row";
+
             var btn = document.createElement("button");
             btn.type = "button";
             btn.className = "act-btn primary add-cart-btn";
             btn.setAttribute("data-product-id", row.id);
             btn.textContent = I18N.t("product_add_to_cart");
-            actionBox.insertBefore(btn, actionBox.firstChild);
+            rowBox.appendChild(btn);
+
+            rowBox.appendChild(buildFavButton(row.id));
+
+            actionBox.insertBefore(rowBox, actionBox.firstChild);
             bindCartButton();
           }
         }

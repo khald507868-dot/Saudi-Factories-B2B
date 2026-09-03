@@ -1437,6 +1437,20 @@
 
   .store-page #card-products { padding: 20px !important; }
 
+  /* صفحة المنتج: الصورة وبطاقة المورّد قطعة واحدة.
+     القاعدة فوق تفرض 12px وهامشاً سفليّاً بـ!important على كل
+     .card، وهي تغلب قاعدة الصفحة لأن desktop.css يُحمّل بعدها —
+     فالوصل يجب أن يقع هنا لا هناك. */
+  .store-page .product-hero {
+    border-radius: 12px 12px 0 0 !important;
+    margin-bottom: 0 !important;
+  }
+
+  .store-page .supplier-card {
+    border-radius: 0 0 12px 12px !important;
+    margin-top: 0 !important;
+  }
+
   /* وضع العرض (الزائر القادم من "الأكثر مبيعاً"):
      لا حقول ولا أزرار حذف، فالعمود الجانبي يضيق وتتوسّع
      المنتجات، وزر المراسلة هو الإجراء الرئيس فيبرز. */
