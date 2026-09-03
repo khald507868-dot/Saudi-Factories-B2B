@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<!-- نوع الصفحة: متصفّح | المفضّلة
+     البادئة web- تعني نسخة الموقع؛ والتطبيق في app_flutter/.
+     desktop.css محمّل — التصميم العريض يعمل على كل العروض.
+     الدليل الكامل: الصفحات.md -->
+
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title data-i18n="dash_favorites">المفضّلة - المصانع السعودية</title>
+<script src="i18n.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
+<script src="favorites-service.js"></script>
+<script src="auth-guard.js"></script>
+<script src="messages-badge.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: "Segoe UI", Tahoma, "Arial", sans-serif;
+    background: #f3f5f3;
+    color: #04361b;
+    min-height: 100vh;
+    padding-bottom: 70px;
+  }
+
+  .page-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 16px;
+    background: #ffffff;
+    border-bottom: 1px solid #e8ece9;
+  }
+
+  .back-btn {
+    width: 34px; height: 34px;
+    border: none; background: transparent;
+    color: #04361b; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .back-btn svg { width: 21px; height: 21px; }
+  html[dir="ltr"] .back-btn svg { transform: scaleX(-1); }
+
+  .page-title { font-size: 17px; font-weight: 700; }
+
+  .wrap { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+
+  /* ===== بطاقة ===== */
+  .card {
+    background: #ffffff;
+    border: 1px solid #e8ece9;
+    border-radius: 14px;
+    overflow: hidden;
+  }
+
+  .card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 13px 14px;
+    border-bottom: 1px solid #f0f3f1;
+    flex-wrap: wrap;
+  }
+
+  .card-ref { font-size: 12.5px; color: #6b7d70; }
+  .card-ref b { color: #04361b; font-weight: 700; }
+  .card-factory { font-size: 15px; font-weight: 700; margin-bottom: 2px; }
+  .card-date { font-size: 12px; color: #6b7d70; }
+
+  .badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 9px;
+    border-radius: 20px;
+    white-space: nowrap;
+  }
+  .badge.completed, .badge.paid   { background: #e2f4e8; color: #1f6b42; }
+  .badge.shipped, .badge.processing { background: #e4eefb; color: #1c4e86; }
+  .badge.pending, .badge.awaiting_payment { background: #fff4d6; color: #8a6a00; }
+  .badge.cancelled, .badge.payment_failed { background: #fde8e8; color: #9b2c2c; }
+
+  .items { padding: 6px 14px 12px; }
+  .item-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 7px 0;
+    font-size: 13.5px;
+    border-bottom: 1px dashed #eef2ef;
+  }
+  .item-row:last-child { border-bottom: none; }
+  .item-name { flex: 1; min-width: 0; }
+  .item-qty { color: #6b7d70; font-size: 12.5px; white-space: nowrap; }
+  .item-total { font-weight: 700; white-space: nowrap; }
+
+  .card-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 11px 14px;
+    background: #fafbfa;
+    border-top: 1px solid #f0f3f1;
+    flex-wrap: wrap;
+  }
+  .total-label { font-size: 13px; color: #46584c; }
+  .total-value { font-size: 17px; font-weight: 800; color: #1f6b42; }
+
+  .btn-print {
+    border: 1px solid #c7dfce;
+    background: #ffffff;
+    color: #1f6b42;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 8px 16px;
+    border-radius: 10px;
+    cursor: pointer;
+  }
+  .btn-print:hover { background: #f2f8f4; }
+
+  /* ===== شبكة المفضّلة ===== */
+  .fav-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .fav-card {
+    background: #ffffff;
+    border: 1px solid #e8ece9;
+    border-radius: 14px;
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .fav-thumb {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+    background: #f3f5f3;
+    display: block;
+  }
+  .fav-thumb.ph {
+    display: flex; align-items: center; justify-content: center;
+    font-size: 30px; color: #b9c8bd;
+  }
+
+  .fav-body { padding: 10px 11px 12px; }
+  .fav-name {
+    font-size: 13.5px; font-weight: 700; line-height: 1.4;
+    display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2;
+    -webkit-box-orient: vertical; overflow: hidden;
+    margin-bottom: 4px;
+  }
+  .fav-factory { font-size: 11.5px; color: #6b7d70; margin-bottom: 6px; }
+  .fav-price { font-size: 15px; font-weight: 800; color: #1f6b42; }
+
+  /* زر القلب — يعلو الصورة في الطرف الابتدائي حسب اتجاه القراءة */
+  .heart-btn {
+    position: absolute;
+    top: 8px;
+    inset-inline-start: 8px;
+    width: 32px; height: 32px;
+    border: none;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.92);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.14);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    padding: 0;
+  }
+  .heart-btn svg { width: 17px; height: 17px; }
+  .heart-btn svg path { fill: #d13b3b; stroke: #d13b3b; stroke-width: 1.6; }
+  .heart-btn.off svg path { fill: none; stroke: #8a9a8e; }
+
+  /* ===== الحالات ===== */
+  .state {
+    text-align: center;
+    padding: 48px 20px;
+    color: #6b7d70;
+    font-size: 14px;
+    line-height: 1.9;
+  }
+  .state .big { font-size: 40px; display: block; margin-bottom: 10px; }
+  .state strong { display: block; color: #04361b; font-size: 15.5px; margin-bottom: 4px; }
+  .state.error { color: #9b2c2c; }
+
+  .spinner {
+    width: 26px; height: 26px;
+    border: 3px solid #e8ece9;
+    border-top-color: #45a06a;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 12px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  @media (max-width: 380px) {
+    .fav-grid { grid-template-columns: minmax(0, 1fr); }
+  }
+
+  /* لا تُطبع الأشرطة ولا القائمة الجانبية — الورقة للفاتورة وحدها */
+  @media print {
+    .page-header, .bottom-nav, .dash-side, .page-logo,
+    .btn-print, .back-btn { display: none !important; }
+    body { background: #ffffff; padding: 0; }
+    .card { break-inside: avoid; border-color: #cccccc; }
+  }
+</style>
+<link rel="stylesheet" href="mobile.css">
+<link rel="stylesheet" href="desktop.css">
+<link rel="stylesheet" href="green-frames.css">
+</head>
+
+<body class="account-page">
+
+<!-- الشعار المتحرّك — طرف الشريط العلوي على الشاشة العريضة -->
+<div class="page-logo">
+  <div class="wm-title"><span class="w-green">Saudi</span> <span class="w-dark">Factories</span> <span class="w-b2b">B2B</span></div>
+  <div class="wm-rule"></div>
+</div>
+
+<aside class="dash-side">
+    <div class="dash-side-head">
+      <span class="dash-avatar" id="dash-avatar">👤</span>
+      <div>
+        <div class="dash-name" id="dash-name" data-i18n="section_account">حسابي</div>
+        <div class="dash-type" id="dash-type">—</div>
+      </div>
+    </div>
+
+    <p class="dash-group" data-i18n="section_account">حسابي</p>
+    <nav class="dash-nav">
+      <a href="web-account.html">
+        <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect></svg>
+        <span data-i18n="dash_control_panel">لوحة التحكم</span>
+      </a>
+
+      <!-- عنصر بقائمة فرعية: تُفتح بمرور المؤشر -->
+      <div class="dash-item has-sub">
+        <a href="web-messages.html">
+          <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.2a8.4 8.4 0 0 1-.9-3.8 8.4 8.4 0 0 1 8.4-9 8.4 8.4 0 0 1 8.6 8.5z"></path></svg>
+          <span data-i18n="dash_inbox">صندوق الوارد</span>
+          <span class="dash-caret">‹</span>
+        </a>
+        <div class="dash-sub">
+          <p class="dash-sub-title" data-i18n="dash_inbox">صندوق الوارد</p>
+          <a href="web-messages.html" data-i18n="nav_messages">الرسائل</a>
+          <a href="web-messages.html" data-i18n="dash_inquiries">الاستفسارات</a>
+          <a href="web-messages.html" data-i18n="dash_quotes">طلبات الأسعار</a>
+        </div>
+      </div>
+
+      <div class="dash-item has-sub">
+        <a href="web-cart.html">
+          <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"></path></svg>
+          <span data-i18n="dash_orders">الطلبات</span>
+          <span class="dash-caret">‹</span>
+        </a>
+        <div class="dash-sub">
+          <p class="dash-sub-title" data-i18n="dash_orders">الطلبات</p>
+          <a href="web-cart.html" data-i18n="dash_cart">سلة التسوق</a>
+          <a href="web-orders.html" data-i18n="dash_my_orders">طلباتي</a>
+          <a href="web-favorites.html" data-i18n="dash_favorites">المفضّلة</a>
+          <a href="web-invoices.html" data-i18n="row_invoices">الفواتير</a>
+        </div>
+      </div>
+
+      <div class="dash-item">
+        <a href="web-profile.html">
+          <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+          <span data-i18n="row_profile">ملفي الشخصي</span>
+        </a>
+      </div>
+    </nav>
+
+    <p class="dash-group" data-i18n="section_other">أخرى</p>
+    <nav class="dash-nav">
+      <a href="web-factories.html">
+        <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21V8l9-5 9 5v13"></path><path d="M9 21v-6h6v6"></path></svg>
+        <span data-i18n="nav_factories">المصانع</span>
+      </a>
+      <a href="web-settings.html">
+        <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87 2 2 0 1 1-2.83 2.83 1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.55 2 2 0 0 1-4 0 1.7 1.7 0 0 0-1.11-1.55 1.7 1.7 0 0 0-1.87.34 2 2 0 1 1-2.83-2.83 1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.55-1 2 2 0 0 1 0-4 1.7 1.7 0 0 0 1.55-1.11 1.7 1.7 0 0 0-.34-1.87 2 2 0 1 1 2.83-2.83 1.7 1.7 0 0 0 1.87.34 1.7 1.7 0 0 0 1-1.55 2 2 0 0 1 4 0 1.7 1.7 0 0 0 1 1.55 1.7 1.7 0 0 0 1.87-.34 2 2 0 1 1 2.83 2.83 1.7 1.7 0 0 0-.34 1.87 1.7 1.7 0 0 0 1.55 1 2 2 0 0 1 0 4 1.7 1.7 0 0 0-1.55 1z"></path></svg>
+        <span data-i18n="row_settings">الإعدادات</span>
+      </a>
+      <!-- مصنعي — لأصحاب المصانع فقط.
+           يبدأ مخفياً وبلا رابط: رقم المصنع لا يُعرف إلا من
+           الخادم، فيملأه السكربت ويُظهره — كما يفعل رابط الإدارة. -->
+      <a href="#" id="dash-myfactory" style="display:none;">
+        <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"></path><path d="M4 21V10l5 3V10l5 3V10l5 3v8"></path><path d="M4 10 5 4h3l1 6"></path></svg>
+        <span data-i18n="my_factory">مصنعي</span>
+      </a>
+      <!-- يظهر للمدير فقط -->
+      <a href="web-admin.html" id="dash-admin" style="display:none;">
+        <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><path d="M9 12l2 2 4-4"></path></svg>
+        <span data-i18n="dash_admin_factories">إدارة المصانع</span>
+      </a>
+    </nav>
+  </aside>
+
+<main class="dash-main">
+
+<header class="page-header">
+  <button class="back-btn" onclick="history.back()" aria-label="رجوع">
+    <svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M15 18l-6-6 6-6"/>
+    </svg>
+  </button>
+  <div class="page-title" data-i18n="dash_favorites">المفضّلة</div>
+</header>
+
+<div class="wrap">
+  <div class="fav-grid" id="grid"></div>
+  <div id="state">
+    <div class="state"><div class="spinner"></div><span data-i18n="fx_loading">جارٍ التحميل…</span></div>
+  </div>
+</div>
+
+</main>
+<nav class="bottom-nav">
+    <a href="index.html" class="nav-item">
+      <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 11l9-8 9 8"></path>
+        <path d="M5 10v10h14V10"></path>
+      </svg>
+      <span data-i18n="nav_home">الرئيسية</span>
+    </a>
+    <a href="index.html#categories" class="nav-item">
+      <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="3" width="7" height="7"></rect>
+        <rect x="14" y="3" width="7" height="7"></rect>
+        <rect x="3" y="14" width="7" height="7"></rect>
+        <rect x="14" y="14" width="7" height="7"></rect>
+      </svg>
+      <span data-i18n="nav_categories">الفئات</span>
+    </a>
+    <a href="web-factories.html" class="nav-item">
+      <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 21V10l6 4v-4l6 4V4l6 6v11H3z"></path>
+      </svg>
+      <span data-i18n="nav_factories">المصانع</span>
+    </a>
+    <a href="web-messages.html" class="nav-item">
+      <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+      </svg>
+      <span data-i18n="nav_messages">الرسائل</span>
+    </a>
+    <a href="web-account.html" class="active" class="nav-item">
+      <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="8" r="4"></circle>
+        <path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"></path>
+      </svg>
+      <span data-i18n="nav_account">الحساب</span>
+    </a>
+    <a href="web-cart.html" class="nav-item active">
+      <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="9" cy="21" r="1"></circle>
+        <circle cx="20" cy="21" r="1"></circle>
+        <path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"></path>
+      </svg>
+      <span data-i18n="nav_cart">عربة التسوق</span>
+    </a>
+  </nav>
+
+<script>
+(function () {
+  "use strict";
+
+  function esc(v) {
+    return String(v == null ? "" : v)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+
+  /* التاريخ يُفكَّك إلى أجزاء لا يُمرَّر كاملاً إلى Date:
+     قيمة ISO تُفسَّر UTC فتُظهر اليوم السابق شرق غرينتش. */
+  function fmtDate(iso) {
+    if (!iso) return "—";
+    var d = new Date(iso);
+    if (isNaN(d.getTime())) return "—";
+    return d.getFullYear() + "/" + (d.getMonth() + 1) + "/" + d.getDate();
+  }
+
+  function money(v) {
+    var n = Number(v || 0);
+    return n.toFixed(2) + " " + I18N.t("currency_sar");
+  }
+
+  function showState(el, html, isError) {
+    el.innerHTML = '<div class="state' + (isError ? " error" : "") + '">' + html + "</div>";
+  }
+
+
+  /* ===== القائمة الجانبية =====
+     نسخة مطابقة لما في web-account: اسم المستخدم ونوع الحساب،
+     ورابط "مصنعي" الذي يحتاج رقم مصنع لا يعرفه العميل، ورابط
+     الإدارة المرهون بـ is_admin. */
+  SF_AUTH_READY.then(function () {
+    if (!SF_PROFILE) return;
+
+    var nameEl = document.getElementById("dash-name");
+    var typeEl = document.getElementById("dash-type");
+    var avaEl  = document.getElementById("dash-avatar");
+
+    if (nameEl && SF_PROFILE.full_name) nameEl.textContent = SF_PROFILE.full_name;
+    if (typeEl) {
+      typeEl.textContent = I18N.t(SF_PROFILE.account_type === "factory"
+        ? "dash_account_factory" : "dash_account_individual");
+    }
+    if (avaEl && SF_PROFILE.company_image) {
+      avaEl.innerHTML = '<img src="' + SF_PROFILE.company_image +
+        '" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">';
+    }
+
+    var adminLink = document.getElementById("dash-admin");
+    if (adminLink && SF_PROFILE.is_admin) adminLink.style.display = "";
+
+    /* رقم المصنع لرابط "مصنعي" — الاستعلام نفسه المكرّر في
+       صفحات اللوحة الأربع الأخرى. */
+    sb.from("factories").select("id").eq("owner_id", SF_USER.id).limit(1)
+      .then(function (res) {
+        if (res.error || !res.data || !res.data.length) return;
+        var link = document.getElementById("dash-myfactory");
+        if (link) {
+          link.href = "web-factory.html?id=" + encodeURIComponent(res.data[0].id);
+          link.style.display = "";
+        }
+      });
+  });
+
+
+  var gridEl  = document.getElementById("grid");
+  var stateEl = document.getElementById("state");
+
+  SF_AUTH_READY.then(function () {
+    return SFFavorites.load();
+  }).then(function (rows) {
+    render(rows);
+  }).catch(function (err) {
+    gridEl.innerHTML = "";
+    showState(stateEl, esc(err && err.message ? err.message : String(err)), true);
+  });
+
+  function render(rows) {
+    if (!rows.length) {
+      gridEl.innerHTML = "";
+      showState(stateEl,
+        '<span class="big">🤍</span>' +
+        '<strong>' + esc(I18N.t("fav_empty")) + '</strong>' +
+        esc(I18N.t("fav_empty_hint")));
+      return;
+    }
+    stateEl.innerHTML = "";
+    gridEl.innerHTML = rows.map(favCard).join("");
+  }
+
+  function favCard(r) {
+    var p = r.products || {};
+    var factory = (p.factories && p.factories.name) || "";
+    /* الصور: images[] مفضّلة على image — فالعمود القديم قد يحمل
+       base64 مقتطعاً عند 2048 محرفاً من أيام save_factory_content. */
+    var img = pickImage(p);
+    var thumb = img
+      ? '<img class="fav-thumb" src="' + esc(img) + '" alt="" loading="lazy">'
+      : '<div class="fav-thumb ph">🏭</div>';
+
+    return '' +
+      '<div class="fav-card" data-id="' + esc(p.id) + '">' +
+        '<button class="heart-btn" data-fav="' + esc(p.id) + '" aria-label="' + esc(I18N.t("fav_remove")) + '">' +
+          '<svg viewBox="0 0 24 24"><path d="M12 21s-7.5-4.7-9.5-9A5.2 5.2 0 0 1 12 6.6 5.2 5.2 0 0 1 21.5 12c-2 4.3-9.5 9-9.5 9z"/></svg>' +
+        '</button>' +
+        '<a href="web-product.html?factory=' + esc(p.factory_id) + '&p=0">' + thumb + '</a>' +
+        '<div class="fav-body">' +
+          '<div class="fav-name">' + esc(p.name || "—") + '</div>' +
+          (factory ? '<div class="fav-factory">' + esc(factory) + '</div>' : '') +
+          '<div class="fav-price">' + money(p.price) + '</div>' +
+        '</div>' +
+      '</div>';
+  }
+
+  function pickImage(p) {
+    var arr = p.images;
+    if (arr && arr.length) {
+      for (var i = 0; i < arr.length; i++) {
+        if (String(arr[i]).indexOf("http") === 0) return arr[i];
+      }
+    }
+    return String(p.image || "").indexOf("http") === 0 ? p.image : "";
+  }
+
+  /* الإزالة متفائلة: البطاقة تختفي فوراً وتعود إن رفض الخادم. */
+  gridEl.addEventListener("click", function (e) {
+    var btn = e.target.closest("[data-fav]");
+    if (!btn) return;
+    e.preventDefault();
+    var card = btn.closest(".fav-card");
+    var id = btn.getAttribute("data-fav");
+    card.style.opacity = "0.4";
+    btn.disabled = true;
+
+    SFFavorites.remove(id).then(function () {
+      card.remove();
+      if (!gridEl.children.length) render([]);
+    }).catch(function (err) {
+      card.style.opacity = "";
+      btn.disabled = false;
+      alert(err && err.message ? err.message : String(err));
+    });
+  });
+
+})();
+</script>
+
+</body>
+</html>

@@ -29,6 +29,7 @@
 <script src="auth-guard.js"></script>
 <script src="messages-badge.js"></script>
 <script src="commerce-service.js"></script>
+<script src="favorites-service.js"></script>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -239,6 +240,30 @@
 
   /* ===== أزرار التواصل ===== */
   .actions { margin: 14px 14px 0; }
+
+  /* صفّ يجمع زر السلة وزر المفضّلة جنباً إلى جنب — القلب مربّع
+     ثابت العرض والزر الأساسي يملأ ما بقي. */
+  .act-row { display: flex; gap: 10px; align-items: stretch; }
+  .act-row .act-btn { flex: 1; margin-bottom: 0; }
+
+  .fav-btn {
+    flex: 0 0 auto;
+    width: 52px;
+    border-radius: 999px;
+    border: 2px solid #c7dfce;
+    background: #ffffff;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    padding: 0;
+  }
+  .fav-btn svg { width: 22px; height: 22px; }
+  .fav-btn svg path {
+    fill: none; stroke: #8a9a8e; stroke-width: 1.8;
+    transition: fill 0.15s, stroke 0.15s;
+  }
+  .fav-btn.on { border-color: #f0c4c4; background: #fdf4f4; }
+  .fav-btn.on svg path { fill: #d13b3b; stroke: #d13b3b; }
+  .fav-btn:disabled { opacity: 0.5; cursor: default; }
 
   .act-btn {
     display: block;
@@ -463,8 +488,16 @@
         '</div>' +
 
         '<div class="actions">' +
-          (product.id ? '<button type="button" class="act-btn primary add-cart-btn" data-product-id="' +
-            escapeHTML(product.id) + '">' + escapeHTML(I18N.t("product_add_to_cart")) + '</button>' : '') +
+          (product.id
+            ? '<div class="act-row">' +
+                '<button type="button" class="act-btn primary add-cart-btn" data-product-id="' +
+                  escapeHTML(product.id) + '">' + escapeHTML(I18N.t("product_add_to_cart")) + '</button>' +
+                '<button type="button" class="fav-btn" id="fav-btn" data-product-id="' +
+                  escapeHTML(product.id) + '" aria-label="' + escapeHTML(I18N.t("fav_add")) + '">' +
+                  '<svg viewBox="0 0 24 24"><path d="M12 21s-7.5-4.7-9.5-9A5.2 5.2 0 0 1 12 6.6 5.2 5.2 0 0 1 21.5 12c-2 4.3-9.5 9-9.5 9z"/></svg>' +
+                '</button>' +
+              '</div>'
+            : '') +
           '<a class="act-btn primary" href="' + escapeHTML(chatURL(inquiryDraft)) + '">' +
             escapeHTML(I18N.t("product_send_inquiry")) + '</a>' +
           '<a class="act-btn outline" href="' + escapeHTML(chatURL(quoteDraft, true)) + '">' +
@@ -472,6 +505,36 @@
           '<a class="act-btn outline" href="' + escapeHTML(chatURL("")) + '">' +
             escapeHTML(I18N.t("product_start_chat")) + '</a>' +
         '</div>';
+
+      /* ===== المفضّلة =====
+         الحالة تُقرأ من الخادم بعد الرسم، والنقر يبدّلها تفاؤلياً.
+         الصفحة عامة، فالزائر بلا حساب يُرسَل إلى التسجيل. */
+      (function wireFavorite() {
+        var favBtn = document.getElementById("fav-btn");
+        if (!favBtn || !window.SFFavorites) return;
+        var pid = favBtn.getAttribute("data-product-id");
+
+        if (window.SF_USER) {
+          SFFavorites.loadIds().then(function (ids) {
+            if (ids.indexOf(Number(pid)) !== -1) favBtn.classList.add("on");
+          }).catch(function () { /* تبقى فارغة */ });
+        }
+
+        favBtn.addEventListener("click", function () {
+          if (typeof sfRequireLogin === "function" && !sfRequireLogin("web-favorites.html")) return;
+          var on = favBtn.classList.contains("on");
+          favBtn.classList.toggle("on", !on);
+          favBtn.disabled = true;
+          SFFavorites.toggle(pid, on).then(function (nowFav) {
+            favBtn.classList.toggle("on", nowFav);
+          }).catch(function (err) {
+            favBtn.classList.toggle("on", on);
+            alert(err && err.message ? err.message : String(err));
+          }).then(function () {
+            favBtn.disabled = false;
+          });
+        });
+      })();
 
       /* شريط سفليّ يظهر بعد الإضافة: يعدّ ما في السلة ويفتحها.
          مركّز أفقيًا لا ملصقًا بحافة، فيستقيم في اتجاهي القراءة معًا. */

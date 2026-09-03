@@ -19,6 +19,7 @@
 <script src="lang-switch.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase-config.js"></script>
+<script src="favorites-service.js"></script>
 <script>var SF_PUBLIC_PAGE = true;</script>
 <script src="auth-guard.js"></script>
 <script src="messages-badge.js"></script>
@@ -486,6 +487,36 @@
   .product-card:active {
     opacity: 0.85;
   }
+
+  /* غلاف البطاقة — البطاقة نفسها <a> فلا يصحّ وضع زر داخلها،
+     فالزر شقيق لها داخل غلاف نسبي يعلوها. */
+  .product-cell { position: relative; }
+
+  /* زر القلب: يجلس في الطرف الابتدائي حسب اتجاه القراءة، فيتبع
+     dir وحده بلا نظير html[dir="ltr"]. */
+  .fav-heart {
+    position: absolute;
+    top: 7px;
+    inset-inline-start: 7px;
+    z-index: 2;
+    width: 30px; height: 30px;
+    border: none;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.93);
+    box-shadow: 0 1px 4px rgba(4, 54, 27, 0.16);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    padding: 0;
+  }
+  .fav-heart svg { width: 16px; height: 16px; }
+  .fav-heart svg path {
+    fill: none;
+    stroke: #8a9a8e;
+    stroke-width: 1.7;
+    transition: fill 0.15s, stroke 0.15s;
+  }
+  .fav-heart.on svg path { fill: #d13b3b; stroke: #d13b3b; }
+  .fav-heart:disabled { opacity: 0.5; cursor: default; }
 
   /* الصورة: أعرض من طولها لتقليل ارتفاع القالب */
   .product-image {
@@ -1373,6 +1404,10 @@
           var reorder = (fid % 61) + 12;
 
           html +=
+            '<div class="product-cell">' +
+            '<button class="fav-heart" type="button" data-fav="' + escapeHTML(row.id) + '" aria-label="' + escapeHTML(I18N.t('fav_add')) + '">' +
+              '<svg viewBox="0 0 24 24"><path d="M12 21s-7.5-4.7-9.5-9A5.2 5.2 0 0 1 12 6.6 5.2 5.2 0 0 1 21.5 12c-2 4.3-9.5 9-9.5 9z"/></svg>' +
+            '</button>' +
             '<a class="product-card" href="web-product.html?factory=' + encodeURIComponent(fid) + '&p=0&product=' + encodeURIComponent(row.id) + '">' +
               '<div class="product-image">' +
                 (sfSafeHttpUrl(image) ? '<img alt="" src="' + escapeHTML(sfSafeHttpUrl(image)) + '">' : imageIcon) +
@@ -1391,10 +1426,55 @@
                   escapeHTML(reorderLabel) + ' ' + reorder + '%' +
                 '</div>' +
               '</div>' +
-            '</a>';
+            '</a>' +
+            '</div>';
         });
         grid.innerHTML = html;
+        wireFavorites(grid);
       }
+
+      /* ===== المفضّلة =====
+         تُلوَّن القلوب بعد رسم الشبكة، ثم يبدّلها النقر.
+         الزائر بلا حساب يُرسَل إلى التسجيل — الصفحة عامة
+         (SF_PUBLIC_PAGE) فقد يصلها من محرّك بحث. */
+      function wireFavorites(grid) {
+        if (!window.SFFavorites || !window.SF_USER) return;
+
+        SFFavorites.loadIds().then(function (ids) {
+          var set = {};
+          ids.forEach(function (id) { set[String(id)] = true; });
+          grid.querySelectorAll('[data-fav]').forEach(function (btn) {
+            if (set[btn.getAttribute('data-fav')]) btn.classList.add('on');
+          });
+        }).catch(function () { /* تعذّر الجلب: تبقى القلوب فارغة */ });
+      }
+
+      document.addEventListener('click', function (e) {
+        var btn = e.target.closest('.fav-heart');
+        if (!btn) return;
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (!window.SF_USER) {
+          if (typeof sfRequireLogin === 'function') sfRequireLogin();
+          return;
+        }
+
+        var id = btn.getAttribute('data-fav');
+        var on = btn.classList.contains('on');
+        /* تفاؤلي: القلب يتبدّل فوراً ويرتدّ إن رفض الخادم. */
+        btn.classList.toggle('on', !on);
+        btn.disabled = true;
+
+        SFFavorites.toggle(id, on).then(function (nowFav) {
+          btn.classList.toggle('on', nowFav);
+        }).catch(function (err) {
+          btn.classList.toggle('on', on);
+          alert(err && err.message ? err.message : String(err));
+        }).then(function () {
+          btn.disabled = false;
+        });
+      });
 
       if (!window.sb) { showState(I18N.t('fx_failed')); return; }
 

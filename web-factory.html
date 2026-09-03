@@ -18,6 +18,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase-config.js"></script>
 <script src="media-upload.js"></script>
+<script src="favorites-service.js"></script>
 <script src="messages-service.js"></script>
 <script>var SF_PUBLIC_PAGE = true;</script>
 <script src="auth-guard.js"></script>
@@ -836,6 +837,30 @@
     grid-template-columns: repeat(2, 1fr);
     gap: 12px;
   }
+
+  /* زر القلب على بطاقة المنتج — لا يظهر لصاحب المصنع، فهو لا
+     يفضّل منتجات نفسه، والبطاقة عنده تحمل أدوات التحرير. */
+  .fav-heart {
+    position: absolute;
+    top: 7px;
+    inset-inline-start: 7px;
+    z-index: 3;
+    width: 30px; height: 30px;
+    border: none;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.93);
+    box-shadow: 0 1px 4px rgba(4, 54, 27, 0.16);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    padding: 0;
+  }
+  .fav-heart svg { width: 16px; height: 16px; }
+  .fav-heart svg path {
+    fill: none; stroke: #8a9a8e; stroke-width: 1.7;
+    transition: fill 0.15s, stroke 0.15s;
+  }
+  .fav-heart.on svg path { fill: #d13b3b; stroke: #d13b3b; }
+  .fav-heart:disabled { opacity: 0.5; cursor: default; }
 
   .product-card {
     position: relative;
@@ -2350,14 +2375,67 @@
         return wrap;
       }
 
+      /* ===== المفضّلة =====
+         تُجلب المعرّفات مرّة واحدة لكل الصفحة لا لكل بطاقة،
+         فرسم عشرين منتجاً لا يعني عشرين طلباً. */
+      var favIds = null;
+      function loadFavIds() {
+        if (favIds || !window.SFFavorites || !window.SF_USER) return;
+        favIds = {};
+        SFFavorites.loadIds().then(function (ids) {
+          ids.forEach(function (id) { favIds[String(id)] = true; });
+          document.querySelectorAll(".fav-heart[data-fav]").forEach(function (b) {
+            if (favIds[b.getAttribute("data-fav")]) b.classList.add("on");
+          });
+        }).catch(function () { /* تبقى القلوب فارغة */ });
+      }
+
+      function buildFavHeart(productId) {
+        var btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "fav-heart";
+        btn.setAttribute("data-fav", productId);
+        btn.setAttribute("aria-label", I18N.t("fav_add"));
+        btn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 21s-7.5-4.7-9.5-9A5.2 5.2 0 0 1 12 6.6 5.2 5.2 0 0 1 21.5 12c-2 4.3-9.5 9-9.5 9z"/></svg>';
+        if (favIds && favIds[String(productId)]) btn.classList.add("on");
+
+        btn.addEventListener("click", function (ev) {
+          ev.preventDefault();
+          ev.stopPropagation();
+          if (typeof sfRequireLogin === "function" && !sfRequireLogin("web-favorites.html")) return;
+
+          var on = btn.classList.contains("on");
+          btn.classList.toggle("on", !on);
+          btn.disabled = true;
+          SFFavorites.toggle(productId, on).then(function (nowFav) {
+            btn.classList.toggle("on", nowFav);
+            if (favIds) favIds[String(productId)] = nowFav;
+          }).catch(function (err) {
+            btn.classList.toggle("on", on);
+            alert(err && err.message ? err.message : String(err));
+          }).then(function () {
+            btn.disabled = false;
+          });
+        });
+        return btn;
+      }
+
       function renderProducts() {
         stopAllSliders();
         productsGrid.innerHTML = "";
         productsEmpty.style.display = data.products.length ? "none" : "block";
+        loadFavIds();
 
         data.products.forEach(function (product, index) {
           var card = document.createElement("div");
           card.className = "product-card";
+          card.style.position = "relative";
+
+          /* القلب: للزائر لا لصاحب المصنع، ولمنتج له معرّف على
+             الخادم — منتج لم يُحفظ بعد لا يمكن ربط مفضّلة به. */
+          if (!canEdit && product.id && window.SFFavorites) {
+            card.appendChild(buildFavHeart(product.id));
+          }
 
           /* صور المنتج: مصفوفة حتى PRODUCT_MAX_IMAGES.
              المنتجات القديمة تحمل product.image مفردة — تُرقّى هنا
