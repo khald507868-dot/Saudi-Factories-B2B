@@ -62,11 +62,20 @@
     var session = res && res.data ? res.data.session : null;
 
     if (!session) {
+      /* لا جلسة: تُسجَّل "زائر" صراحةً — لا تُمحى، وإلا عاد
+         الزائر إلى حالة "لا علامة" فانتظر الشبكة بلا داعٍ */
+      try { localStorage.setItem("sf_signed_in", "0"); } catch (e) {}
       if (!isPublic) redirect();
       return null;
     }
 
     global.SF_USER = session.user;
+
+    /* علامة عرض فقط، لا صلاحية: تتيح للصفحة أن ترسم الحالة
+       الصحيحة فوراً بدل انتظار الشبكة. الخادم يبقى الحكم،
+       ولو زُوّرت فأقصى أثرها إخفاء زرّ دخول عن زائر — ثم
+       يصحّحها الجواب بعد أجزاء من الثانية. */
+    try { localStorage.setItem("sf_signed_in", "1"); } catch (e) {}
 
     /* نوع الحساب من الخادم — لا من localStorage القابل للتزوير */
     return sb.from("profiles")
@@ -92,6 +101,7 @@
       try {
         localStorage.removeItem("sf_account_type");
         localStorage.removeItem("sf_account");
+        localStorage.removeItem("sf_signed_in");
       } catch (e) {}
       location.replace(loginPage());
     });

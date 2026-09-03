@@ -1907,14 +1907,44 @@
       slot.innerHTML = signedIn ? "" :
         '<a class="dt-btn primary" href="web-login.html" data-i18n="splash_login_btn">' +
         I18N.t("splash_login_btn") + "</a>";
+      slot.style.visibility = "";
     }
 
-    paintAuth(false);
+    /* ===== لا وميض عند التحديث =====
+       الجلسة تصل من الشبكة بعد رسم الصفحة، فرسم زر "تسجيل دخول"
+       افتراضياً كان يُظهره للمسجّل جزءاً من الثانية ثم يختفي.
+
+       الحل ثلاث حالات لا حالتان:
+         • العلامة تقول "مسجّل"  ← لا نرسم زراً إطلاقاً.
+         • العلامة تقول "زائر"   ← نرسم الزر فوراً بلا انتظار.
+         • لا علامة (أول زيارة) ← نخفي المكان حتى يصل الجواب،
+           فلا يرى أحد زراً يظهر ثم يختفي.
+
+       العلامة للعرض فقط؛ SF_AUTH_READY تصحّحها دائماً بعدها. */
+    var guess = null;
+    try { guess = localStorage.getItem("sf_signed_in"); } catch (e) {}
+
+    if (guess === "1") {
+      paintAuth(true);
+    } else if (guess === null) {
+      slot.innerHTML = "";
+      slot.style.visibility = "hidden";
+    } else {
+      paintAuth(false);
+    }
 
     if (window.SF_AUTH_READY) {
+      /* catch أيضاً: لو انقطعت الشبكة في أوّل زيارة بقي المكان
+         مخفياً بلا زر إطلاقاً. الفشل يعني "لا جلسة"، فيُرسم
+         زر الدخول — وهو التصرّف الآمن. */
       SF_AUTH_READY.then(function () {
         paintAuth(!!window.SF_USER);
+      }).catch(function () {
+        paintAuth(false);
       });
+    } else {
+      /* الحارس غائب: لا ننتظر جواباً لن يأتي */
+      paintAuth(false);
     }
 
     /* زر "كن مورّداً": دعوة للمصانع كي تسجّل — فلا معنى
