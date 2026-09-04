@@ -2119,9 +2119,16 @@
         hold(rtlNow ? L : R, true);
         hold(rtlNow ? R : L, false);
 
-        /* حركة تلقائية هادئة: بكسل واحد كل 50ms، أي نحو 20 بكسل
-           في الثانية. نستخدم بكسلاً كاملاً لأن بعض المتصفحات تتجاهل
-           كسور البكسل عند فتح الصفحة مباشرة من الملفات. */
+        /* بكسل واحد كل 16ms، أي نحو 60 بكسل في الثانية
+           (كانت 50ms ثم 30ms، فأُسرعت مرّتين بطلب المالك).
+
+           16ms هو حدّ السرعة المفيد: يوافق معدّل تحديث الشاشة
+           (60 إطاراً/ث)، وما دونه لا يزيد النعومة بل يهدر
+           المعالج في خطوات لا تُرسم.
+
+           تُسرَّع بتقليل الفاصل لا بزيادة الخطوة: البكسل الكامل
+           مقصود لأن بعض المتصفحات تتجاهل كسور البكسل عند فتح
+           الصفحة من الملفات، وخطوة أكبر تجعل الحركة متقطّعة. */
         var autoPaused = false;
         var autoDirection = 1;
         function autoMove() {
@@ -2140,7 +2147,7 @@
         var pauseArea = box.closest(".dt-catbar-inner") || box;
         pauseArea.addEventListener("mouseenter", function () { autoPaused = true; });
         pauseArea.addEventListener("mouseleave", function () { autoPaused = false; });
-        setInterval(autoMove, 50);
+        setInterval(autoMove, 16);
 
         /* عجلة الفأرة الرأسية تُحوّل إلى تمرير أفقي */
         box.addEventListener("wheel", function (e) {
