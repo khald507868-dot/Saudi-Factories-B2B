@@ -60,12 +60,12 @@
     var css = [
       /* مطابق لـ .dt-icon في desktop.css: مربّع 40×40 بنفس الإطار والظل */
       ".sf-lang-wrap{position:relative;display:inline-flex}",
-      ".sf-lang-btn{width:40px;height:40px;border:1px solid #c7dfce;background:#ffffff;",
+      ".sf-lang-btn{width:40px;height:40px;border:1px solid #c7dfce;background:#f4f8f5;",
       "border-radius:10px;display:flex;align-items:center;justify-content:center;",
       "cursor:pointer;position:relative;padding:0;font:inherit;",
       "box-shadow:0 2px 6px rgba(4,54,27,0.04);",
       "transition:background .18s ease,border-color .18s ease,box-shadow .18s ease}",
-      ".sf-lang-btn:hover,.sf-lang-btn.open{background:#f0f7f2;border-color:#8fbe9e;",
+      ".sf-lang-btn:hover,.sf-lang-btn.open{background:#e6f2ea;border-color:#8fbe9e;",
       "box-shadow:0 4px 10px rgba(4,54,27,0.10)}",
       ".sf-lang-btn svg{width:22px;height:22px;stroke:#04361b;fill:none;stroke-width:1.9}",
 

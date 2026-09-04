@@ -592,6 +592,65 @@
   }
 
   /* ===== أكثر المنتجات مبيعاً ===== */
+  /* ===== بطاقة الإحصائية ===== */
+  .stats-section {
+    background: #ffffff;
+    /* إطار خارجي أخضر خفيف بطلب المالك — نفس أخضر المربّعات
+       بالداخل، فتبدو البطاقة وحدة واحدة متناسقة. */
+    border: 1px solid #c7dfce;
+    border-radius: 14px;
+    padding: 16px;
+    margin-top: 14px;
+  }
+
+  .stats-section[hidden] { display: none; }
+
+  .stats-title {
+    margin: 0 0 12px;
+    padding: 9px 12px;
+    font-size: 15px;
+    color: #04361b;
+    text-align: center;
+    /* إطار أخضر خفيف كبقية مربّعات الإحصائية (بطلب المالك) */
+    background: #f4f8f5;
+    border: 1px solid #c7dfce;
+    border-radius: 12px;
+  }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .stat-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 14px 8px;
+    background: #f4f8f5;
+    /* إطار أخضر خفيف بطلب المالك — نفس أخضر إطارات المشروع */
+    border: 1px solid #c7dfce;
+    border-radius: 12px;
+    text-align: center;
+  }
+
+  .stat-num {
+    font-size: 19px;
+    font-weight: 800;
+    color: #1f6b42;
+    /* الأرقام لاتينية دائماً فلا ينعكس ترتيبها في RTL */
+    direction: ltr;
+  }
+
+  .stat-label {
+    font-size: 11.5px;
+    line-height: 1.5;
+    color: #6b7d70;
+  }
+
   .bestsellers-section {
     padding: 0 12px 8px;
   }
@@ -674,6 +733,64 @@
     align-items: center;
     justify-content: center;
     overflow: hidden;
+  }
+
+  /* ===== تبديل صور المنتج في البطاقة =====
+     المنتج ذو الصورتين فأكثر تنزلق صوره أفقياً كما في صفحة
+     المصنع (بطلب المالك: "تلف وليس تلاشي").
+
+     الشريط يضمّ الصور جنباً إلى جنب ويُزاح بـ translateX.
+     الإزاحة سالبة في الإنجليزية وموجبة في العربية، لأن
+     الشريحة التالية تقع يساراً هناك ويميناً هنا — وهذا ما
+     يجعل الحركة تتبع اتجاه القراءة في اللغتين. */
+  .product-image .ps-track {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    width: 100%;
+    height: 100%;
+    transition: transform 0.45s ease;
+    /* ترتيب الشرائح فيزيائي لا منطقي: بلا هذا يعكس flex
+       ترتيبها في RTL فتنزلق الصور في الاتجاه الخطأ. */
+    direction: ltr;
+  }
+
+  .product-image .ps-slide {
+    flex: 0 0 100%;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  /* النقاط دليل على وجود صور أخرى، وتظهر مع الحركة نفسها:
+     خافتة في الحالة العادية، وواضحة عند مرور المؤشّر. */
+  .ps-dots {
+    position: absolute;
+    inset-inline: 0;
+    bottom: 7px;
+    display: flex;
+    justify-content: center;
+    gap: 5px;
+    pointer-events: none;
+    opacity: 0.45;
+    transition: opacity 0.25s ease;
+  }
+
+  .product-cell:hover .ps-dots { opacity: 1; }
+
+  .ps-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.55);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+    transition: background 0.3s ease;
+  }
+
+  .ps-dot.is-on { background: #ffffff; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .product-image .ps-track { transition: none; }
   }
 
   .product-image img {
@@ -1099,6 +1216,32 @@
     </section>
 
     <!-- أكثر المنتجات مبيعاً: 1000 قالب، قالبان في كل صف -->
+    <!-- ===== المنصّة بالأرقام =====
+         أرقام حقيقية من get_public_stats، لا قيم مكتوبة في
+         الصفحة. تُخفى البطاقة كاملةً إن تعذّر جلبها فلا يظهر
+         هيكل بأصفار. -->
+    <section class="stats-section" id="stats-section" hidden>
+      <h2 class="stats-title" data-i18n="stats_title">المنصّة بالأرقام</h2>
+      <div class="stats-grid">
+        <div class="stat-box">
+          <span class="stat-num" id="stat-factories">—</span>
+          <span class="stat-label" data-i18n="stats_factories">مصنع معتمد</span>
+        </div>
+        <div class="stat-box">
+          <span class="stat-num" id="stat-products">—</span>
+          <span class="stat-label" data-i18n="stats_products">منتج معروض</span>
+        </div>
+        <div class="stat-box">
+          <span class="stat-num" id="stat-units">—</span>
+          <span class="stat-label" data-i18n="stats_units_sold">قطعة مباعة</span>
+        </div>
+        <div class="stat-box">
+          <span class="stat-num" id="stat-revenue">—</span>
+          <span class="stat-label" data-i18n="stats_revenue">إجمالي المبيعات</span>
+        </div>
+      </div>
+    </section>
+
     <section class="bestsellers-section">
       <h2 class="bestsellers-title" data-i18n="home_bestsellers">أكثر المنتجات مبيعاً</h2>
       <div class="bestsellers-grid" id="bestsellers-grid"></div>
@@ -1619,11 +1762,15 @@
           /* رابط Storage أولاً: دالة الحفظ تقصّ كل قيمة عند 2048 حرفًا،
              وهو حدّ مصمّم لرابط (~170 حرفًا) لا لـ base64 (عشرات الآلاف)،
              فـ row.image يصل جذاذة تالفة لا يعرضها المتصفّح. */
-          var image = '';
+          var gallery = [];
           (row.images || []).forEach(function (u) {
-            if (!image && typeof u === 'string' && u.indexOf('http') === 0) image = u;
+            if (typeof u === 'string' && u.indexOf('http') === 0 &&
+                gallery.indexOf(u) === -1) gallery.push(u);
           });
-          if (!image && typeof row.image === 'string' && row.image.indexOf('http') === 0) image = row.image;
+          if (!gallery.length && typeof row.image === 'string' &&
+              row.image.indexOf('http') === 0) gallery.push(row.image);
+
+          var image = gallery[0] || '';
           if (!image) image = factory.cover || '';
           var name = row.name || factory.name || '';
           var price = row.price || '';
@@ -1640,8 +1787,25 @@
               '<svg viewBox="0 0 24 24"><path d="M12 21s-7.5-4.7-9.5-9A5.2 5.2 0 0 1 12 6.6 5.2 5.2 0 0 1 21.5 12c-2 4.3-9.5 9-9.5 9z"/></svg>' +
             '</button>' +
             '<a class="product-card" href="web-product.html?factory=' + encodeURIComponent(fid) + '&p=0&product=' + encodeURIComponent(row.id) + '">' +
-              '<div class="product-image">' +
-                (sfSafeHttpUrl(image) ? '<img alt="" src="' + escapeHTML(sfSafeHttpUrl(image)) + '">' : imageIcon) +
+              '<div class="product-image"' +
+                   (gallery.length > 1 ? ' data-slides="' + gallery.length + '"' : '') + '>' +
+                (gallery.length > 1
+                  ? '<span class="ps-track">' +
+                    gallery.map(function (u) {
+                      var safe = sfSafeHttpUrl(u);
+                      return safe
+                        ? '<img class="ps-slide" alt="" src="' + escapeHTML(safe) + '">'
+                        : '';
+                    }).join('') +
+                    '</span>' +
+                    '<span class="ps-dots">' +
+                      gallery.map(function (u, i) {
+                        return '<i class="ps-dot' + (i === 0 ? ' is-on' : '') + '"></i>';
+                      }).join('') +
+                    '</span>'
+                  : (sfSafeHttpUrl(image)
+                      ? '<img alt="" src="' + escapeHTML(sfSafeHttpUrl(image)) + '">'
+                      : imageIcon)) +
               '</div>' +
               '<div class="product-body">' +
                 (name ? '<div class="product-name">' + escapeHTML(name) + '</div>' : '') +
@@ -1662,7 +1826,122 @@
         });
         grid.innerHTML = html;
         wireFavorites(grid);
+        startCardSliders(grid);
       }
+
+      /* ===== تبديل صور البطاقات عند مرور المؤشّر =====
+         بطلب المالك: الصور تنزلق حين يقف المؤشّر على المنتج،
+         لا طوال الوقت. الصفحة أهدأ، والحركة تأتي حين يهتمّ
+         المستخدم بالبطاقة فعلاً.
+
+         مؤقّت لكل بطاقة لا مؤقّت عام: البطاقات لا تتحرّك معاً
+         الآن، وكل واحدة تبدأ من صورتها الأولى عند الدخول.
+
+         على اللمس لا يوجد مؤشّر، فيتكفّل pointerenter الذي
+         تُطلقه الشاشات اللمسية عند اللمس الأول. */
+      var cardSlideTimers = [];
+
+      function slideTo(box, index) {
+        var track = box.querySelector('.ps-track');
+        var dots = box.querySelectorAll('.ps-dot');
+        if (!track) return;
+
+        var count = track.children.length;
+        if (count < 2) return;
+
+        var current = Number(box.getAttribute('data-at') || 0);
+        var next = ((index % count) + count) % count;
+
+        /* الشريط مثبّت على direction: ltr، فترتيب الشرائح
+           فيزيائي واحد في اللغتين والإزاحة سالبة دائماً. */
+        track.style.transform = 'translateX(' + (-next * 100) + '%)';
+        box.setAttribute('data-at', next);
+
+        if (dots[current]) dots[current].classList.remove('is-on');
+        if (dots[next]) dots[next].classList.add('is-on');
+      }
+
+      function startCardSliders(grid) {
+        /* تُلغى مؤقّتات الرسم السابق حتى لا تتراكم عند تبديل
+           اللغة أو الفئة وتبقى تحرّك عناصر محذوفة. */
+        cardSlideTimers.forEach(clearInterval);
+        cardSlideTimers = [];
+
+        var boxes = grid.querySelectorAll('.product-image[data-slides]');
+        if (!boxes.length) return;
+
+        boxes.forEach(function (box) {
+          var card = box.closest('.product-cell') || box;
+          var timer = null;
+
+          function start() {
+            if (timer) return;
+            timer = setInterval(function () {
+              if (document.hidden) return;
+              slideTo(box, Number(box.getAttribute('data-at') || 0) + 1);
+            }, 1400);
+            cardSlideTimers.push(timer);
+          }
+
+          function stop() {
+            if (!timer) return;
+            clearInterval(timer);
+            var at = cardSlideTimers.indexOf(timer);
+            if (at !== -1) cardSlideTimers.splice(at, 1);
+            timer = null;
+            /* العودة إلى الصورة الأولى: البطاقة تُترك كما وجدها
+               المستخدم، فلا يبقى الصفّ بصور مختلطة. */
+            slideTo(box, 0);
+          }
+
+          card.addEventListener('pointerenter', start);
+          card.addEventListener('pointerleave', stop);
+          /* الخروج من الصفحة أو التمرير بعيداً باللمس */
+          card.addEventListener('pointercancel', stop);
+        });
+      }
+
+      /* ===== المنصّة بالأرقام =====
+         الأرقام من get_public_stats على الخادم لا من استعلام
+         مباشر: سياسة orders_select_party تحجب الطلبات عن
+         الزائر، فأي جمع من المتصفح يعطي صفراً. الدالة تُرجع
+         مجاميع فقط فلا تكشف بيانات أحد.
+
+         البطاقة تبقى مخفيّة إن فشل الجلب — هيكل بأصفار أسوأ
+         من لا شيء، وهو ما طلب المالك تجنّبه: "ماتكون شكل فقط". */
+      (function loadStats() {
+        var box = document.getElementById('stats-section');
+        if (!box || !window.sb) return;
+
+        function fmt(v) {
+          var num = Number(v || 0);
+          if (!isFinite(num)) return '0';
+          /* بلا كسور للأعداد الصحيحة، وخانتان للمبالغ */
+          return num % 1 === 0
+            ? num.toLocaleString('en-US')
+            : num.toLocaleString('en-US', { minimumFractionDigits: 2,
+                                            maximumFractionDigits: 2 });
+        }
+
+        sb.rpc('get_public_stats').then(function (res) {
+          if (res.error || !res.data) return;
+
+          var row = Array.isArray(res.data) ? res.data[0] : res.data;
+          if (!row) return;
+
+          var f = document.getElementById('stat-factories');
+          var p = document.getElementById('stat-products');
+          var u = document.getElementById('stat-units');
+          var r = document.getElementById('stat-revenue');
+
+          if (f) f.textContent = fmt(row.factories_count);
+          if (p) p.textContent = fmt(row.products_count);
+          if (u) u.textContent = fmt(row.units_sold);
+          if (r) r.textContent = fmt(row.revenue) + ' ' + I18N.t('currency_sar');
+
+          box.hidden = false;
+        }).catch(function () { /* تبقى مخفيّة */ });
+      })();
 
       /* ===== المفضّلة =====
          تُلوَّن القلوب بعد رسم الشبكة، ثم يبدّلها النقر.
