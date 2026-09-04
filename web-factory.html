@@ -1688,11 +1688,16 @@
         var reader = new FileReader();
         reader.onload = function (e) {
           resizeImage(e.target.result, target.maxSize, function (resized) {
-            target.onPicked(resized); // معاينة مؤقتة فقط
+            /* onPicked تُنادى مرّتين للصورة الواحدة: معاينة فورية
+               بـ base64، ثم رابط التخزين حين يصل. الوسيط الثاني
+               يميّزهما — فمن يضيف إلى مصفوفة (صور المنتج) يستبدل
+               بدل أن يضيف نسخة ثانية. الغلاف والشعار يسندان
+               إسناداً فلا يعنيهما هذا. */
+            target.onPicked(resized, false); // معاينة مؤقتة فقط
             if (window.SFUpload && window.SF_USER) {
               SFUpload.uploadDataUrl(resized, "factory-media", "factory-" + factoryId, "image")
                 .then(function (uploaded) {
-                  target.onPicked(uploaded.url);
+                  target.onPicked(uploaded.url, true);
                   save();
                 })
                 .catch(function (err) { showSaveProblem(err && err.message); });
@@ -2548,8 +2553,17 @@
             }
             if (canEdit) {
               imageSlot.addEventListener("click", function () {
-                pickImage(400, function (dataUrl) {
-                  imgs.push(dataUrl);
+                /* المعاينة تُضاف، والرابط النهائي يحلّ محلّها
+                   في الموضع نفسه — بلا نسخة ثانية. */
+                var slotIndex = -1;
+                pickImage(400, function (dataUrl, isFinal) {
+                  if (slotIndex === -1) {
+                    slotIndex = imgs.length;
+                    imgs.push(dataUrl);
+                  } else {
+                    imgs[slotIndex] = dataUrl;
+                  }
+                  if (isFinal) slotIndex = -1;
                   renderProducts();
                 });
               });
@@ -2598,8 +2612,15 @@
               addTh.innerHTML = "+";
               addTh.setAttribute("aria-label", I18N.t("product_add_image"));
               addTh.addEventListener("click", function () {
-                pickImage(400, function (dataUrl) {
-                  imgs.push(dataUrl);
+                var slotIndex = -1;
+                pickImage(400, function (dataUrl, isFinal) {
+                  if (slotIndex === -1) {
+                    slotIndex = imgs.length;
+                    imgs.push(dataUrl);
+                  } else {
+                    imgs[slotIndex] = dataUrl;
+                  }
+                  if (isFinal) slotIndex = -1;
                   renderProducts();
                 });
               });
