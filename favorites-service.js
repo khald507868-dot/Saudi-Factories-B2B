@@ -18,7 +18,11 @@
 
   /* الحالات التي تُعدّ الطلب منتهياً — وهي المصدر الوحيد لهذا
    * التعريف، فصفحتا الطلبات والفواتير تقرآن منه بدل تكراره. */
-  var DONE_STATUSES = ["completed", "paid", "shipped", "processing"];
+  /* تشمل المعلّقة: صفحة الطلبات كانت تخفي ما لم يُدفع،
+     فلا يرى صاحب المصنع طلباً وصله وينتظر الدفع، ولا
+     المشتري طلباً أرسله توّاً. */
+  var DONE_STATUSES = ["completed", "paid", "shipped", "processing",
+                       "pending", "awaiting_payment"];
   var PAID_STATUSES = ["completed", "paid"];
 
   root.SFFavorites = {
@@ -96,7 +100,8 @@
     load: function (statuses) {
       return ready().then(function () {
         var q = root.sb.from("orders")
-          .select("id, status, total, subtotal, currency, created_at, factory_id, " +
+          .select("id, status, total, subtotal, shipping, payment_fee, " +
+                  "vat_rate, vat_amount, currency, created_at, factory_id, " +
                   "factories(name), order_items(id, product_name, unit_price, quantity, line_total)")
           .order("created_at", { ascending: false });
         if (statuses && statuses.length) q = q.in("status", statuses);

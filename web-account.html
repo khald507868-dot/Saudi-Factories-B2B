@@ -287,6 +287,8 @@
           <p class="dash-sub-title" data-i18n="dash_orders">الطلبات</p>
           <a href="web-cart.html" data-i18n="dash_cart">سلة التسوق</a>
           <a href="web-orders.html" data-i18n="dash_my_orders">طلباتي</a>
+          <a href="web-orders.html?status=paid" data-i18n="dash_orders_paid">طلبات مكتملة</a>
+          <a href="web-orders.html?status=unpaid" data-i18n="dash_orders_unpaid">بانتظار الدفع</a>
           <a href="web-favorites.html" data-i18n="dash_favorites">المفضّلة</a>
           <a href="web-invoices.html" data-i18n="row_invoices">الفواتير</a>
         </div>
@@ -338,6 +340,10 @@
     <div class="dash-stat">
       <span class="dash-stat-num" id="stat-orders">0</span>
       <span class="dash-stat-label" data-i18n="dash_stat_paid_orders">طلبات مدفوعة</span>
+    </div>
+    <div class="dash-stat">
+      <span class="dash-stat-num" id="stat-pending">0</span>
+      <span class="dash-stat-label" data-i18n="dash_stat_pending">بانتظار الدفع</span>
     </div>
   </div>
 
@@ -469,6 +475,17 @@
          في المنصة يدوي، فقد يبقى الطلب معلّقاً أسابيع ثمّ يُلغى. */
       var PAID_STATUS = {
         paid: 1, processing: 1, shipped: 1, completed: 1
+      };
+
+      /* طلبات وصلت ولم يُدفع ثمنها بعد.
+         الملغاة والفاشلة خارج القائمتين معاً: لا هي إيراد
+         ولا هي منتظرة، فإدراجها هنا يعد بمال لن يأتي أبداً.
+
+         ملاحظة: هذا لا يشمل ما في سلال المشترين قبل إنشاء
+         الطلب — سياسة carts_own تحصر السلة في صاحبها، فلا يراها
+         صاحب المصنع، وهذا صحيح ولا يجوز كسره لأجل بطاقة. */
+      var PENDING_STATUS = {
+        pending: 1, awaiting_payment: 1
       };
 
       function drawRevenueChart(rows) {
@@ -613,6 +630,19 @@
 
           var sum = 0;
           paid.forEach(function (o) { sum += Number(o.total || 0); });
+
+          /* قيمة ما لم يُدفع بعد — لا تدخل الرسم ولا بطاقة
+             الإيراد، فهي وعد لا دخل. */
+          var waiting = 0;
+          res.data.forEach(function (o) {
+            if (PENDING_STATUS[o.status]) waiting += Number(o.total || 0);
+          });
+
+          var pendEl = document.getElementById("stat-pending");
+          if (pendEl) {
+            pendEl.textContent =
+              waiting.toFixed(2) + " " + I18N.t("currency_sar");
+          }
 
           var totalEl = document.getElementById("stat-total");
           if (totalEl) {

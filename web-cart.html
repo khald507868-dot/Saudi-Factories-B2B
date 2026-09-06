@@ -498,15 +498,47 @@
     color: #04361b;
   }
 
+  /* الحالة المفعّلة هي الأصل، والرمادية لـ :disabled وحدها.
+     كان الزرّ رمادياً دائماً بـ cursor: not-allowed بلا حالة
+     مفعّلة إطلاقاً، فيعمل ويبدو معطّلاً — فلا يُضغط.
+     وهذا يوقف إنشاء الطلبات من أصله. */
+  .cart-sums {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 10px;
+  }
+
+  .cart-sums[hidden] { display: none; }
+
+  .sum-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 12.5px;
+    color: #5c6b62;
+  }
+
+  /* المبالغ لاتينية دائماً فلا ينعكس ترتيبها */
+  .sum-row span:last-child { direction: ltr; }
+
   .checkout-btn {
     padding: 13px 30px;
     border-radius: 10px;
     border: none;
-    background: #d7ded9;
-    color: #8a968f;
+    background: #1f6b42;
+    color: #ffffff;
     font-size: 14.5px;
     font-weight: 700;
     font-family: inherit;
+    cursor: pointer;
+  }
+
+  .checkout-btn:hover:not(:disabled) { background: #175433; }
+
+  .checkout-btn:disabled {
+    background: #d7ded9;
+    color: #8a968f;
     cursor: not-allowed;
   }
 
@@ -764,6 +796,26 @@
 
   <div class="checkout-bar">
     <span class="manual-payment-note" data-i18n="cart_manual_payment">الدفع الإلكتروني غير مفعّل حاليًا — بعد إرسال الطلب سيتواصل معك المصنع لتنسيق الدفع.</span>
+    <!-- بيان المبالغ: المشتري يرى ما سيدفعه فعلاً قبل الطلب،
+         لا مجموع المنتجات وحده ثم يفاجئه رقم أكبر. -->
+    <div class="cart-sums" id="cart-sums" hidden>
+      <div class="sum-row">
+        <span data-i18n="order_subtotal">المجموع قبل الضريبة</span>
+        <span id="sum-subtotal">0</span>
+      </div>
+      <div class="sum-row">
+        <span data-i18n="order_shipping">التوصيل</span>
+        <span id="sum-shipping">0</span>
+      </div>
+      <div class="sum-row">
+        <span data-i18n="order_payment_fee">رسوم بوابة الدفع</span>
+        <span id="sum-fee">0</span>
+      </div>
+      <div class="sum-row">
+        <span data-i18n="order_vat">ضريبة القيمة المضافة 15%</span>
+        <span id="sum-vat">0</span>
+      </div>
+    </div>
     <span class="total">
       <span class="total-label" data-i18n="cart_total_label">الإجمالي</span>
       <span class="total-value">0</span>
@@ -925,7 +977,10 @@
               var pp = it.products || {};
               sum += Number(pp.price || 0) * Number(it.quantity || 0);
             });
-            totalEl.textContent = sum.toFixed(2) + " " + I18N.t("currency_sar");
+            /* عبر paintSums لا كتابةً مباشرةً، وإلا أظهرت الزيادة
+               والنقصان مجموعاً بلا ضريبة ثم عاد الرقم الكامل
+               عند أوّل إعادة تحميل — فيبدو المبلغ متقلّباً. */
+            paintSums(sum);
             minus.disabled = q <= 1;
           }
 
@@ -989,7 +1044,7 @@
         var hasItems = items.length > 0;
         cartItemsEl.style.display = hasItems ? "block" : "none";
         emptyCartEl.style.display = hasItems ? "none" : "flex";
-        totalEl.textContent = total.toFixed(2) + " " + I18N.t("currency_sar");
+        paintSums(total);
         checkoutBtn.disabled = !hasItems;
         /* يُربط هنا لا في loadCart: بعد حذف منتج أو تغيير كمية
            كان الزرّ يحتجز قائمة قديمة تشمل المحذوف. */
@@ -1027,6 +1082,42 @@
             alert((err && err.message) || "تعذّر إنشاء الطلب");
           });
         };
+      }
+
+      /* نفس معادلة create_order_from_cart حرفيّاً.
+         وهذا عرض لا حساب ملزِم: الخادم يعيد الحساب عند
+         إنشاء الطلب ولا يقبل من الصفحة مبلغاً — فالعبث بهذه
+         الأرقام في المتصفّح لا يغيّر ما يُدفع.
+
+         وتبقى القيم متطابقة مع الهجرة: 30 ريالاً توصيلاً،
+         واحد بالمئة بوابة، وخمسة عشر بالمئة ضريبة. */
+      var SHIPPING = 30, FEE_RATE = 0.01, VAT_RATE = 0.15;
+
+      function paintSums(subtotal) {
+        var cur = " " + I18N.t("currency_sar");
+        var box = document.getElementById("cart-sums");
+
+        if (!subtotal) {
+          if (box) box.hidden = true;
+          totalEl.textContent = (0).toFixed(2) + cur;
+          return;
+        }
+
+        var fee = Math.round((subtotal + SHIPPING) * FEE_RATE * 100) / 100;
+        var taxable = subtotal + SHIPPING + fee;
+        var vat = Math.round(taxable * VAT_RATE * 100) / 100;
+
+        function put(id, v) {
+          var el = document.getElementById(id);
+          if (el) el.textContent = v.toFixed(2) + cur;
+        }
+        put("sum-subtotal", subtotal);
+        put("sum-shipping", SHIPPING);
+        put("sum-fee", fee);
+        put("sum-vat", vat);
+
+        if (box) box.hidden = false;
+        totalEl.textContent = (taxable + vat).toFixed(2) + cur;
       }
 
       function loadCart() {

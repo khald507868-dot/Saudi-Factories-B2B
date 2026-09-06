@@ -103,6 +103,49 @@
   .item-qty { color: #6b7d70; font-size: 12.5px; white-space: nowrap; }
   .item-total { font-weight: 700; white-space: nowrap; }
 
+  /* بيان المبالغ قبل الإجمالي */
+  .card-sums {
+    padding: 10px 14px;
+    border-top: 1px dashed #eef2ef;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .sum-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    font-size: 12.5px;
+    color: #5c6b62;
+  }
+
+  /* المبالغ لاتينية دائماً فلا ينعكس ترتيبها */
+  .sum-row span:last-child { direction: ltr; }
+
+  /* شريط زرّ تأكيد الدفع — يظهر لصاحب المصنع وحده */
+  .card-actions {
+    padding: 0 14px 13px;
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  .pay-btn {
+    padding: 10px 18px;
+    border: none;
+    border-radius: 9px;
+    background: #1f6b42;
+    color: #ffffff;
+    font: inherit;
+    font-size: 13.5px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .pay-btn:hover:not(:disabled) { background: #175433; }
+
+  .pay-btn:disabled { opacity: .55; cursor: default; }
+
   .card-foot {
     display: flex;
     align-items: center;
@@ -274,6 +317,8 @@
           <p class="dash-sub-title" data-i18n="dash_orders">الطلبات</p>
           <a href="web-cart.html" data-i18n="dash_cart">سلة التسوق</a>
           <a href="web-orders.html" data-i18n="dash_my_orders">طلباتي</a>
+          <a href="web-orders.html?status=paid" data-i18n="dash_orders_paid">طلبات مكتملة</a>
+          <a href="web-orders.html?status=unpaid" data-i18n="dash_orders_unpaid">بانتظار الدفع</a>
           <a href="web-favorites.html" data-i18n="dash_favorites">المفضّلة</a>
           <a href="web-invoices.html" data-i18n="row_invoices">الفواتير</a>
         </div>
@@ -443,8 +488,42 @@
 
   var listEl = document.getElementById("list");
 
+  /* التقسيم بمعامل في الرابط لا بصفحتين جديدتين: القائمة
+     الجانبية مكرّرة في سبعة ملفات، فكلّ صفحة جديدة تعني
+     نسخة ثامنة من القائمة ومن منطق العرض كلّه. */
+  var PAID_VIEW = ["completed", "paid", "shipped", "processing"];
+  var UNPAID_VIEW = ["pending", "awaiting_payment"];
+
+  var view = "";
+  try {
+    view = new URLSearchParams(window.location.search).get("status") || "";
+  } catch (e) {}
+
+  /* العنوان يتبع العرض. ويجب حذف data-i18n أوّلاً، وإلا
+     أعادت applyTranslations كتابة العنوان القديم فوقه. */
+  (function setTitle() {
+    var key = view === "paid" ? "dash_orders_paid"
+            : view === "unpaid" ? "dash_orders_unpaid" : "";
+    if (!key) return;
+    var h = document.querySelector(".page-title, h1");
+    if (!h) return;
+    h.removeAttribute("data-i18n");
+    h.textContent = I18N.t(key);
+  })();
+
   SF_AUTH_READY.then(function () {
-    return SFOrders.loadCompleted();
+    /* مصانع المستخدم تُقرأ قبل الرسم، لأنّ ظهور الزرّ
+       يتوقّف عليها. وفشلها لا يمنع عرض الطلبات. */
+    return sb.from("factories").select("id").eq("owner_id", SF_USER.id)
+      .then(function (res) {
+        myFactoryIds = (res.data || []).map(function (f) { return Number(f.id); });
+      })
+      .catch(function () {})
+      .then(function () {
+        if (view === "paid") return SFOrders.load(PAID_VIEW);
+        if (view === "unpaid") return SFOrders.load(UNPAID_VIEW);
+        return SFOrders.loadCompleted();
+      });
   }).then(function (rows) {
     if (!rows.length) {
       showState(listEl,
@@ -456,6 +535,38 @@
     listEl.innerHTML = rows.map(orderCard).join("");
   }).catch(function (err) {
     showState(listEl, esc(err && err.message ? err.message : String(err)), true);
+  });
+
+  /* مصدر واحد للتحميل، يحترم العرض الحالي */
+  function reload() {
+    if (view === "paid") return SFOrders.load(PAID_VIEW);
+    if (view === "unpaid") return SFOrders.load(UNPAID_VIEW);
+    return SFOrders.loadCompleted();
+  }
+
+  /* الضغط يُربط على الحاوية لا على كلّ زرّ، فالبطاقات
+     تُعاد كتابتها بـ innerHTML فتضيع المستمعات المربوطة بها. */
+  listEl.addEventListener("click", function (e) {
+    var btn = e.target.closest(".pay-btn");
+    if (!btn) return;
+
+    if (!window.confirm(I18N.t("order_mark_paid_confirm"))) return;
+
+    btn.disabled = true;
+    sb.rpc("mark_order_paid", { p_order_id: btn.getAttribute("data-order") })
+      .then(function (res) {
+        if (res.error) throw res.error;
+        /* إعادة التحميل من الخادم لا تعديل البطاقة محليّاً:
+           الخادم هو المصدر، وقد تكون الحالة تغيّرت من جهة أخرى. */
+        return reload().then(function (rows) {
+          listEl.innerHTML = rows.map(orderCard).join("");
+          if (window.I18N && I18N.applyTranslations) I18N.applyTranslations();
+        });
+      })
+      .catch(function (err) {
+        btn.disabled = false;
+        window.alert((err && err.message) || String(err));
+      });
   });
 
   function orderCard(o) {
@@ -481,11 +592,60 @@
           esc(I18N.t("order_number")) + ': <b>' + esc(shortId(o.id)) + '</b>' +
         '</div>' +
         (items ? '<div class="items">' + items + '</div>' : '') +
+        breakdown(o) +
         '<div class="card-foot">' +
           '<span class="total-label">' + esc(I18N.t("cart_total_label")) + '</span>' +
           '<span class="total-value">' + money(o.total) + '</span>' +
         '</div>' +
+        payButton(o) +
       '</div>';
+  }
+
+  /* بيان المبالغ: إظهار الإجمالي وحده يجعل المشتري يرى
+     رقماً أكبر ممّا جمعه في السلة بلا تفسير — والفاتورة
+     الضريبية توجب بيان الضريبة منفصلة أصلاً.
+
+     الأسطر الصفرية تُخفى: سطر "التوصيل 0.00" لا يفيد. */
+  function breakdown(o) {
+    var rows = "";
+
+    function line(label, value) {
+      return '<div class="sum-row">' +
+               '<span>' + esc(label) + "</span>" +
+               "<span>" + money(value) + "</span>" +
+             "</div>";
+    }
+
+    rows += line(I18N.t("order_subtotal"), o.subtotal);
+    if (Number(o.shipping) > 0) rows += line(I18N.t("order_shipping"), o.shipping);
+    if (Number(o.payment_fee) > 0) {
+      rows += line(I18N.t("order_payment_fee"), o.payment_fee);
+    }
+    if (Number(o.vat_amount) > 0) rows += line(I18N.t("order_vat"), o.vat_amount);
+
+    if (!rows) return "";
+    return '<div class="card-sums">' + rows + "</div>";
+  }
+
+  /* زرّ تأكيد استلام الدفع.
+     يظهر لصاحب المصنع وحده، وعلى الطلب المنتظر للدفع فقط.
+
+     وإخفاؤه ليس هو الحماية: دالة mark_order_paid على الخادم
+     تتحقّق من ملكية المصنع ومن الحالة السابقة، فترفض الطلب
+     المباشر من غير صاحبه حتّى لو تجاوز الواجهة. */
+  function payButton(o) {
+    if (!isMyFactory(o.factory_id)) return "";
+    if (o.status !== "pending" && o.status !== "awaiting_payment") return "";
+    return '<div class="card-actions">' +
+             '<button type="button" class="pay-btn" data-order="' +
+               esc(o.id) + '">' + esc(I18N.t("order_mark_paid")) + "</button>" +
+           "</div>";
+  }
+
+  /* أرقام المصانع التي يملكها هذا المستخدم، تُقرأ مرّة واحدة */
+  var myFactoryIds = [];
+  function isMyFactory(id) {
+    return myFactoryIds.indexOf(Number(id)) !== -1;
   }
 
   /* حالات الطلب تشترك في مفاتيح fs_* المستخدمة لحالة المصنع

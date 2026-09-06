@@ -1074,7 +1074,10 @@
   .dash-stats {
     grid-column: 2;
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    /* أربع بطاقات، وminmax(0,1fr) تمنع العمود من رفض
+       الانكماش دون محتواه — ومبلغ بالريال أطول من عدد
+       مجرّد، فلولاها فاضت الشبكة عند الأرقام الكبيرة. */
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 14px;
     margin-top: 18px;
   }
@@ -1102,10 +1105,14 @@
 
   .dash-stat-num {
     display: block;
-    font-size: 26px;
+    /* 22px لا 26: صارت البطاقات أربعاً فضاق العمود،
+       ومبلغ مثل "12,500.00 SAR" يفيض بالحجم الأكبر. */
+    font-size: 22px;
     font-weight: 700;
     color: #04361b;
     line-height: 1.2;
+    /* المبلغ الطويل ينكسر داخل البطاقة ولا يخرج منها */
+    overflow-wrap: anywhere;
   }
 
   .dash-stat-label { font-size: 12.5px; color: #7d8c83; }
