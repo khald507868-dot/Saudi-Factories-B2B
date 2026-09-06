@@ -177,6 +177,61 @@
     color: #04361b;
     font-weight: 700;
   }
+
+  /* ===== رسم الإيرادات =====
+     مخفي على الجوّال مثل شريط الإحصاءات، ويُظهِره
+     desktop.css في مسار الويب. */
+  .dash-chart { display: none; }
+  .dash-chart[hidden] { display: none !important; }
+
+  .dash-chart-title {
+    margin: 0 0 14px;
+    font-size: 15px;
+    color: #04361b;
+  }
+
+  .dash-chart-body { position: relative; }
+
+  .dash-chart svg { display: block; width: 100%; height: auto; }
+
+  /* خطوط الشبكة أفتح من المنحنى حتّى لا تزاحمه */
+  .dash-chart .grid-line { stroke: #e6ebe8; stroke-width: 1; }
+  .dash-chart .axis-line { stroke: #c7dfce; stroke-width: 1; }
+
+  .dash-chart .area { fill: #1f6b42; fill-opacity: .10; }
+  .dash-chart .line {
+    fill: none;
+    stroke: #1f6b42;
+    stroke-width: 2;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+  }
+
+  .dash-chart .dot { fill: #ffffff; stroke: #1f6b42; stroke-width: 2; }
+
+  /* الأرقام والتواريخ لاتينية دائماً، فلا ينعكس ترتيبها */
+  .dash-chart text {
+    font-size: 10px;
+    fill: #6b7d70;
+    direction: ltr;
+  }
+
+  .dash-chart .y-label { text-anchor: end; }
+  .dash-chart .x-label { text-anchor: middle; }
+
+  /* فوق الرسم لا تحته: المحوران يبقيان ظاهرين خلفها. */
+  .dash-chart-empty {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+    font-size: 13px;
+    color: #6b7d70;
+    /* لا تحجب ما تحتها من أرقام المحور */
+    pointer-events: none;
+  }
 </style>
 <link rel="stylesheet" href="mobile.css">
 <link rel="stylesheet" href="desktop.css">
@@ -278,13 +333,22 @@
     </div>
     <div class="dash-stat">
       <span class="dash-stat-num" id="stat-total">0</span>
-      <span class="dash-stat-label" data-i18n="dash_stat_total">إجمالي قيمة الطلبات</span>
+      <span class="dash-stat-label" data-i18n="dash_stat_paid_total">إيرادات مدفوعة</span>
     </div>
     <div class="dash-stat">
       <span class="dash-stat-num" id="stat-orders">0</span>
-      <span class="dash-stat-label" data-i18n="dash_orders">الطلبات</span>
+      <span class="dash-stat-label" data-i18n="dash_stat_paid_orders">طلبات مدفوعة</span>
     </div>
   </div>
+
+  <!-- ===== رسم الإيرادات — سطح المكتب فقط =====
+       يُبنى بـ SVG في الكود لا بمكتبة خارجية، مثل بقية
+       رسوم المشروع. والأرقام من جدول orders مباشرة،
+       وRLS تحصر ما يراه كلّ مستخدم. -->
+  <section class="dash-chart" id="dash-chart" hidden>
+    <h2 class="dash-chart-title" data-i18n="dash_chart_title">الإيرادات آخر 14 يوماً</h2>
+    <div class="dash-chart-body" id="dash-chart-body"></div>
+  </section>
 
   <!-- بطاقة المصنع — لحسابات المصانع فقط، يملؤها السكربت من قاعدة البيانات.
        الرابط يُكتب في السكربت لأن رقم المصنع لا يُعرف إلا من الخادم. -->
@@ -383,6 +447,148 @@
       var p = window.SF_PROFILE;
       if (!p) return;
 
+      /* ===== رسم الإيرادات عبر الأيام =====
+         المحور الرأسيّ الإيراد، والأفقيّ الأيام — بطلب المالك.
+
+         يُبنى بـ SVG في الكود لا بمكتبة رسوم: المشروع بلا
+         أدوات بناء، وإضافة مكتبة خارجية لرسم خطّ واحد
+         تخالف قاعدة المشروع في الرسوم كلّها.
+
+         المحور الرأسيّ إيراد الطلبات المدفوعة وحدها (بطلب
+         المالك)، لا عدد الطلبات ولا قيمة ما لم يُدفع بعد. */
+      var CHART_DAYS = 14;
+
+      /* الحالات التي تُعدّ إيراداً — تعريف واحد تقرأه البطاقة
+         والرسم معاً، فلا يفترق الرقمان في الشاشة الواحدة.
+
+         قائمة سماح لا قائمة استثناء، والفرق جوهريٌ: الاستثناء
+         يجعل أيّ حالة تُضاف لاحقاً إلى الجدول تُحسب إيراداً بصمت
+         وإن لم يُدفع شيء.
+
+         pending و awaiting_payment مستبعدتان بطلب المالك: الدفع
+         في المنصة يدوي، فقد يبقى الطلب معلّقاً أسابيع ثمّ يُلغى. */
+      var PAID_STATUS = {
+        paid: 1, processing: 1, shipped: 1, completed: 1
+      };
+
+      function drawRevenueChart(rows) {
+        var wrap = document.getElementById("dash-chart");
+        var body = document.getElementById("dash-chart-body");
+        if (!wrap || !body) return;
+
+        wrap.hidden = false;
+
+        /* مفتاح اليوم بالتوقيت المحلّي لا UTC: طلب الساعة
+           الثانية ليلاً بتوقيت الرياض يقع في اليوم السابق بـ UTC،
+           فيظهر في العمود الخطأ. */
+        function dayKey(d) {
+          return d.getFullYear() + "-" +
+                 String(d.getMonth() + 1).padStart(2, "0") + "-" +
+                 String(d.getDate()).padStart(2, "0");
+        }
+
+        var buckets = {};
+        var labels = [];
+        var today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        for (var i = CHART_DAYS - 1; i >= 0; i--) {
+          var d = new Date(today);
+          d.setDate(d.getDate() - i);
+          var k = dayKey(d);
+          buckets[k] = 0;
+          labels.push({ key: k, day: d.getDate(), month: d.getMonth() + 1 });
+        }
+
+        (rows || []).forEach(function (o) {
+          if (!PAID_STATUS[o.status]) return;
+          var k = dayKey(new Date(o.created_at));
+          if (k in buckets) buckets[k] += Number(o.total || 0);
+        });
+
+        var values = labels.map(function (l) { return buckets[l.key]; });
+        var peak = Math.max.apply(null, values);
+
+        /* لا خروج مبكّر عند انعدام الطلبات: المالك طلب رسماً
+           بمحورين، فيجب أن يظهرا دائماً مع الأيام والقيم،
+           ويستوي الخطّ على الصفر — وهذا خبر صادق لا هيكل فارغ.
+           وتبقى الرسالة فوقه لتوضّح سبب استوائه. */
+        var empty = peak <= 0;
+
+        /* سقف مريح يُرفع إلى رقم مستدير، فيقرأ المحور
+           الرأسيّ أرقاماً مرتّبة لا كسوراً. وعند الفراغ يُتّخذ
+           سلّم من 100 حتّى يكون للمحور تدريج يُقرأ. */
+        var top;
+        if (empty) {
+          top = 100;
+        } else {
+          var mag = Math.pow(10, Math.floor(Math.log10(peak)));
+          top = Math.ceil(peak / mag) * mag;
+          if (top === peak) top = peak + mag;
+        }
+
+        var W = 720, H = 240;
+        var padL = 56, padR = 16, padT = 12, padB = 30;
+        var plotW = W - padL - padR;
+        var plotH = H - padT - padB;
+
+        function x(i) {
+          return padL + (labels.length < 2
+            ? plotW / 2
+            : i * plotW / (labels.length - 1));
+        }
+        function y(v) { return padT + plotH - (v / top) * plotH; }
+
+        var svg = '<svg viewBox="0 0 ' + W + " " + H + '" ' +
+                  'preserveAspectRatio="xMidYMid meet" role="img">';
+
+        for (var g = 0; g <= 4; g++) {
+          var gv = top * g / 4;
+          var gy = y(gv);
+          svg += '<line class="grid-line" x1="' + padL + '" y1="' + gy +
+                 '" x2="' + (W - padR) + '" y2="' + gy + '"></line>' +
+                 '<text class="y-label" x="' + (padL - 8) + '" y="' +
+                 (gy + 3.5) + '">' + Math.round(gv) + "</text>";
+        }
+
+        var area = "M" + x(0) + " " + (padT + plotH);
+        var line = "";
+        values.forEach(function (v, i) {
+          area += " L" + x(i) + " " + y(v);
+          line += (i ? " L" : "M") + x(i) + " " + y(v);
+        });
+        area += " L" + x(values.length - 1) + " " + (padT + plotH) + " Z";
+
+        svg += '<path class="area" d="' + area + '"></path>' +
+               '<path class="line" d="' + line + '"></path>';
+
+        /* المحوران: الأفقيّ للأيام والرأسيّ للإيراد */
+        svg += '<line class="axis-line" x1="' + padL + '" y1="' +
+               (padT + plotH) + '" x2="' + (W - padR) + '" y2="' +
+               (padT + plotH) + '"></line>' +
+               '<line class="axis-line" x1="' + padL + '" y1="' + padT +
+               '" x2="' + padL + '" y2="' + (padT + plotH) + '"></line>';
+
+        /* تاريخ واحد من كلّ يومين لئلّا تتداخل الأرقام */
+        labels.forEach(function (l, i) {
+          if (i % 2 && i !== labels.length - 1) return;
+          svg += '<text class="x-label" x="' + x(i) + '" y="' +
+                 (H - 10) + '">' + l.day + "/" + l.month + "</text>";
+        });
+
+        /* نقاط على الأيام ذات الإيراد فقط */
+        values.forEach(function (v, i) {
+          if (v <= 0) return;
+          svg += '<circle class="dot" cx="' + x(i) + '" cy="' + y(v) +
+                 '" r="3.5"></circle>';
+        });
+
+        svg += "</svg>";
+        body.innerHTML = svg +
+          (empty ? '<p class="dash-chart-empty">' +
+                   I18N.t("dash_chart_empty") + "</p>" : "");
+      }
+
       /* ===== أرقام لوحة التحكم =====
          كانت أصفاراً ثابتة في الوسم. الطلبات وإجماليها يُقرآن
          من جدول orders، وRLS تحصر ما يراه كلّ مستخدم:
@@ -390,20 +596,31 @@
       (function fillStats() {
         if (!window.sb) return;
 
-        sb.from("orders").select("total").then(function (res) {
+        sb.from("orders").select("total, status, created_at")
+          .then(function (res) {
           if (res.error || !res.data) return;
 
+          /* البطاقة والرسم يقيسان الشيء نفسه: المدفوع فقط
+             (بطلب المالك). وكانت البطاقة تجمع كلّ الطلبات حتّى
+             الملغاة، فيظهر في الشاشة الواحدة رقمان مختلفان
+             للشيء نفسه. */
+          var paid = res.data.filter(function (o) {
+            return PAID_STATUS[o.status];
+          });
+
           var countEl = document.getElementById("stat-orders");
-          if (countEl) countEl.textContent = res.data.length;
+          if (countEl) countEl.textContent = paid.length;
 
           var sum = 0;
-          res.data.forEach(function (o) { sum += Number(o.total || 0); });
+          paid.forEach(function (o) { sum += Number(o.total || 0); });
 
           var totalEl = document.getElementById("stat-total");
           if (totalEl) {
             totalEl.textContent =
               sum.toFixed(2) + " " + I18N.t("currency_sar");
           }
+
+          drawRevenueChart(res.data);
         }).catch(function () { /* البطاقات تبقى أصفاراً */ });
 
         /* الرسائل غير المقروءة: نفس الدالة التي تغذّي شارة القائمة */

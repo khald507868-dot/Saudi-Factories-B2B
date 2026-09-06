@@ -1079,6 +1079,19 @@
     margin-top: 18px;
   }
 
+  /* رسم الإيرادات تحت البطاقات الثلاث، في العمود نفسه */
+  .dash-chart {
+    grid-column: 2;
+    display: block;
+    background: #ffffff;
+    border: 1px solid #e6ebe8;
+    border-radius: 14px;
+    padding: 18px;
+    margin-top: 14px;
+  }
+
+  .dash-chart[hidden] { display: none !important; }
+
   .dash-stat {
     background: #ffffff;
     border: 1px solid #e6ebe8;
@@ -1731,4 +1744,5 @@
   .auth-brandbar,
   .dt-supplier,
   .dash-stats { display: none !important; }
+  .dash-chart { display: none !important; }
 }
