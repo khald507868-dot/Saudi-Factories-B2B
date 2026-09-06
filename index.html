@@ -2034,23 +2034,32 @@
          فهي ثابتة فعلاً لا بإخفاء زرّ في الواجهة. */
       var catImages = {};
 
+      /* العنوان يتبع الفئة الممرّر عليها، والشبكة تعرض
+         الفئات كلّها معاً — فالمقصود تصفّح الفئات لا عرض
+         واحدة فقط (بطلب المالك). */
       function showPreview(i) {
         if (!prev || !cats[i]) return;
-        var name = I18N.categoryName(cats[i]);
-        var en = cats[i].en || "";
-        var link = "web-factories.html?cat=" + encodeURIComponent(en);
-        var url = catImages[en];
+        var title = I18N.categoryName(cats[i]);
 
-        var media = url
-          ? '<img src="' + url + '" alt="" loading="lazy">'
-          : '<div class="dt-preview-thumb">' + thumbSvg + "</div>";
+        var items = "";
+        cats.forEach(function (cat) {
+          var en = cat.en || "";
+          var nm = I18N.categoryName(cat);
+          var url = catImages[en];
+          var media = url
+            ? '<img src="' + url + '" alt="" loading="lazy">'
+            : thumbSvg;
 
-        prev.innerHTML =
-          "<h4>" + name + "</h4>" +
-          '<a class="dt-preview-hero" href="' + link + '">' +
-            '<span class="dt-preview-mark">' + media + "</span>" +
-            "<span>" + name + "</span>" +
-          "</a>";
+          items +=
+            '<a class="dt-preview-item" href="web-factories.html?cat=' +
+              encodeURIComponent(en) + '">' +
+              '<div class="dt-preview-thumb">' + media + "</div>" +
+              "<span>" + nm + "</span>" +
+            "</a>";
+        });
+
+        prev.innerHTML = "<h4>" + title + "</h4>" +
+                         '<div class="dt-preview-grid">' + items + "</div>";
       }
 
       /* تُقرأ مرّة واحدة ثم تُعاد المعاينة — اللوحة تظهر

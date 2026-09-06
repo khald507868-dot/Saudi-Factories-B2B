@@ -527,8 +527,14 @@
   /* لوحة المعاينة: بطاقات الفئة المختارة */
   .dt-catpreview {
     flex: 1;
+    /* عنصر flex لا ينكمش دون عرض محتواه إلا بـ min-width: 0.
+       بدونها تفيض شبكة الفئات أفقياً فيظهر شريط تمرير
+       وتختلف أحجام الدوائر — لأنّ aspect-ratio يقيس على عرض
+       العمود. وهي نفسها قاعدة minmax(0, 1fr) في الشبكات. */
+    min-width: 0;
     padding: 18px 20px;
     overflow-y: auto;
+    overflow-x: hidden;
   }
 
   .dt-catpreview h4 {
@@ -537,67 +543,48 @@
     color: #04361b;
   }
 
-  /* مربّع واحد كبير للفئة: يعرض صورة المدير إن وُجدت،
-     وإلا فالرمز النائب. */
-  .dt-preview-hero {
+  .dt-preview-grid {
+    display: grid;
+    /* ثلاثة أعمدة لا أربعة: اللوحة 780px وعمود الأسماء
+       يأخذ 250px، فلا يبقى للمعاينة إلا نحو 530px — وهذا
+       ضيّق على أربعة، فتفيض الشبكة وتختلف أقطار الدوائر.
+       minmax(0, 1fr) تمنع العمود من رفض الانكماش دون محتواه. */
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+  }
+
+  .dt-preview-item {
+    text-decoration: none;
+    text-align: center;
+    /* الأسماء مختلفة الطول، فمنها ما ينكسر على سطرين.
+       المحاذاة من الأعلى تُبقي الدوائر على خطّ واحد. */
     display: flex;
     flex-direction: column;
-    align-items: center;
-    gap: 13px;
-    padding: 22px 16px;
-    text-decoration: none;
-    border: 1px solid #e6ebe8;
-    border-radius: 16px;
-    background: #fbfcfb;
-  }
-
-  .dt-preview-hero:hover {
-    background: #f4f8f5;
-    border-color: #c7dfce;
-  }
-
-  .dt-preview-mark {
-    width: 150px;
-    height: 150px;
-    border-radius: 50%;
-    background: #f2f5f3;
-    overflow: hidden;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .dt-preview-mark img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-  }
-
-  .dt-preview-hero > span {
-    font-size: 15px;
-    font-weight: 700;
-    color: #04361b;
-    text-align: center;
-    line-height: 1.5;
+    align-items: stretch;
   }
 
   .dt-preview-thumb {
     width: 100%;
+    /* سقف للقطر حتّى لا تتمدّد الدائرة مع عرض العمود
+       فتختلف الأحجام بين صفّ وآخر. */
+    max-width: 148px;
+    margin-inline: auto;
     aspect-ratio: 1;
     border-radius: 50%;
     background: #f2f5f3;
+    /* overflow لأنّ صورة المدير تملأ الدائرة وتُقصّ عند حافتها */
+    overflow: hidden;
     display: flex;
     align-items: center;
     justify-content: center;
+    margin-bottom: 7px;
   }
 
-  .dt-preview-thumb svg {
-    width: 46px;
-    height: 46px;
-    stroke: #9daea3;
-    fill: none;
-    stroke-width: 1.6;
+  .dt-preview-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
   }
 
   .dt-preview-item:hover .dt-preview-thumb { background: #e7efe9; }
@@ -607,6 +594,14 @@
     color: #46584c;
     line-height: 1.5;
     display: block;
+  }
+
+  .dt-preview-thumb svg {
+    width: 30px;
+    height: 30px;
+    stroke: #9daea3;
+    fill: none;
+    stroke-width: 1.6;
   }
 
   /* ===== المحتوى: عمودان ===== */
