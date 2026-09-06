@@ -537,15 +537,49 @@
     color: #04361b;
   }
 
-  .dt-preview-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 14px;
+  /* مربّع واحد كبير للفئة: يعرض صورة المدير إن وُجدت،
+     وإلا فالرمز النائب. */
+  .dt-preview-hero {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 13px;
+    padding: 22px 16px;
+    text-decoration: none;
+    border: 1px solid #e6ebe8;
+    border-radius: 16px;
+    background: #fbfcfb;
   }
 
-  .dt-preview-item {
-    text-decoration: none;
+  .dt-preview-hero:hover {
+    background: #f4f8f5;
+    border-color: #c7dfce;
+  }
+
+  .dt-preview-mark {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    background: #f2f5f3;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .dt-preview-mark img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .dt-preview-hero > span {
+    font-size: 15px;
+    font-weight: 700;
+    color: #04361b;
     text-align: center;
+    line-height: 1.5;
   }
 
   .dt-preview-thumb {
@@ -556,12 +590,11 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-bottom: 7px;
   }
 
   .dt-preview-thumb svg {
-    width: 30px;
-    height: 30px;
+    width: 46px;
+    height: 46px;
     stroke: #9daea3;
     fill: none;
     stroke-width: 1.6;
@@ -1131,6 +1164,18 @@
 
   /* رسائل الحالة تمتدّ بعرض الشبكة كاملاً */
   .account-page .list .state { grid-column: 1 / -1; }
+
+  /* الإخفاء يجب أن يغلب display: grid !important أعلاه،
+     وإلا بقيت قائمة المصانع ظاهرة فوق لوحة صور الفئات. */
+  .account-page .list[hidden] { display: none !important; }
+
+  /* ===== لوحة صور الفئات في لوحة التحكم ===== */
+  .account-page .catimg-wrap {
+    grid-column: 2;
+    padding: 0 !important;
+  }
+
+  .account-page .catimg-wrap[hidden] { display: none !important; }
 
   .page-logo .wm-title {
     font-size: 19px;

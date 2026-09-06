@@ -17,6 +17,7 @@
 <script src="i18n.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase-config.js"></script>
+<script src="media-upload.js"></script>
 <script src="auth-guard.js"></script>
 <script src="messages-badge.js"></script>
 <style>
@@ -98,6 +99,9 @@
 
   /* ===== قائمة المصانع ===== */
   .list { padding: 14px; display: flex; flex-direction: column; gap: 12px; }
+  /* display: flex أعلى تحديداً من سمة hidden، فلا تكفي وحدها
+     لإخفاء قائمة المصانع عند فتح تبويب صور الفئات. */
+  .list[hidden] { display: none; }
 
   .factory-card {
     background: #ffffff;
@@ -267,6 +271,92 @@
   .sheet textarea:focus { outline: none; border-color: #45a06a; }
 
   .sheet-actions { display: flex; gap: 8px; margin-top: 13px; }
+
+  /* ===== لوحة صور الفئات ===== */
+  .catimg-wrap { padding: 0 13px 20px; }
+  .catimg-wrap[hidden] { display: none; }
+
+  .catimg-hint {
+    margin: 0 0 13px;
+    font-size: 12.5px;
+    line-height: 1.6;
+    color: #5c6b62;
+  }
+
+  .catimg-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 12px;
+  }
+
+  .catimg-card {
+    border: 1px solid #e6ebe8;
+    border-radius: 13px;
+    padding: 10px;
+    background: #ffffff;
+  }
+
+  .catimg-box {
+    width: 100%;
+    aspect-ratio: 1;
+    border-radius: 10px;
+    background: #f2f5f3;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 8px;
+    position: relative;
+  }
+
+  .catimg-box img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  /* علامة الفراغ: توضّح أن الفئة بلا صورة بعد */
+  .catimg-empty {
+    font-size: 26px;
+    color: #b8c6bd;
+    line-height: 1;
+  }
+
+  .catimg-name {
+    font-size: 12px;
+    font-weight: 700;
+    color: #04361b;
+    line-height: 1.45;
+    margin-bottom: 8px;
+    min-height: 34px;
+  }
+
+  .catimg-actions { display: flex; gap: 6px; }
+
+  .catimg-btn {
+    flex: 1;
+    font: inherit;
+    font-size: 11.5px;
+    padding: 7px 4px;
+    border-radius: 8px;
+    border: 1px solid #c7dfce;
+    background: #f4f8f5;
+    color: #1f6b42;
+    cursor: pointer;
+  }
+
+  .catimg-btn:hover { background: #e6f2ea; }
+
+  .catimg-btn.danger {
+    border-color: #e8c9c9;
+    background: #fdf5f5;
+    color: #9b2c2c;
+  }
+
+  .catimg-btn.danger:hover { background: #f8e9e9; }
+
+  .catimg-btn[disabled] { opacity: .55; cursor: default; }
 </style>
 <link rel="stylesheet" href="mobile.css">
 <link rel="stylesheet" href="desktop.css">
@@ -371,10 +461,20 @@
   <button class="tab active" data-status="pending"><span data-i18n="fs_pending">قيد المراجعة</span> <span class="count" id="c-pending"></span></button>
   <button class="tab" data-status="approved"><span data-i18n="fs_approved">معتمدة</span> <span class="count" id="c-approved"></span></button>
   <button class="tab" data-status="rejected"><span data-i18n="fs_rejected">مرفوضة</span> <span class="count" id="c-rejected"></span></button>
+  <button class="tab" data-status="catimg" data-i18n="admin_cat_images">صور الفئات</button>
 </div>
 
 <div class="list" id="list">
   <div class="state"><div class="spinner"></div><span data-i18n="fx_loading">جارٍ التحميل…</span></div>
+</div>
+
+<!-- لوحة صور الفئات — للمدير وحده.
+     إخفاء هذه اللوحة ليس هو الحماية — الحماية في سياسات
+     RLS على جدول category_images: الخادم نفسه يرفض الكتابة
+     من غير المدير حتى لو أرسل الطلب مباشرة. -->
+<div class="catimg-wrap" id="catimg-wrap" hidden>
+  <p class="catimg-hint" data-i18n="admin_cat_hint">تظهر هذه الصور لكل الزوّار. الرفع للمدير وحده.</p>
+  <div class="catimg-grid" id="catimg-grid"></div>
 </div>
 
 <!-- نافذة سبب الرفض -->
@@ -536,12 +636,133 @@
       });
   }
 
+  /* ===== صور الفئات =====
+     الصورة تُرفع إلى Storage ثمّ يُحفظ رابطها في الجدول.
+     لا تُخزّن base64 في قاعدة البيانات — قاعدة المشروع
+     منذ حادثة save_factory_content: روابط Storage فقط. */
+  var catWrap = document.getElementById("catimg-wrap");
+  var catGrid = document.getElementById("catimg-grid");
+  var catImages = {};
+
+  /* تصغير قبل الرفع: صورة الجوّال قد تبلغ عدّة ميجابايت،
+     ولا داعي لأكثر من 600 بكسل في مربّع فئة. */
+  function resizeImage(dataUrl, maxSize, done) {
+    var img = new Image();
+    img.onload = function () {
+      var w = img.width, h = img.height;
+      if (w > h && w > maxSize) { h = Math.round(h * maxSize / w); w = maxSize; }
+      else if (h > maxSize) { w = Math.round(w * maxSize / h); h = maxSize; }
+      var c = document.createElement("canvas");
+      c.width = w; c.height = h;
+      c.getContext("2d").drawImage(img, 0, 0, w, h);
+      done(c.toDataURL("image/jpeg", 0.85));
+    };
+    img.onerror = function () { done(null); };
+    img.src = dataUrl;
+  }
+
+  function renderCatImages() {
+    var cats = (window.I18N && I18N.categories) || [];
+    var html = "";
+    cats.forEach(function (cat) {
+      var en = cat.en || "";
+      var url = catImages[en] || "";
+      var box = url
+        ? '<img src="' + url + '" alt="">'
+        : '<span class="catimg-empty">+</span>';
+      html +=
+        '<div class="catimg-card" data-cat="' + en.replace(/"/g, "&quot;") + '">' +
+          '<div class="catimg-box">' + box + "</div>" +
+          '<div class="catimg-name">' + I18N.categoryName(cat) + "</div>" +
+          '<div class="catimg-actions">' +
+            '<button type="button" class="catimg-btn" data-act="up" ' +
+              'data-i18n="admin_cat_upload">رفع صورة</button>' +
+            (url ? '<button type="button" class="catimg-btn danger" data-act="rm" ' +
+                   'data-i18n="admin_cat_remove">إزالة</button>' : "") +
+          "</div>" +
+        "</div>";
+    });
+    catGrid.innerHTML = html;
+    if (window.I18N && I18N.applyTranslations) I18N.applyTranslations();
+  }
+
+  function loadCatImages() {
+    return sb.from("category_images").select("category_en, image_url")
+      .then(function (r) {
+        catImages = {};
+        (r.data || []).forEach(function (row) {
+          catImages[row.category_en] = row.image_url;
+        });
+        renderCatImages();
+      })
+      .catch(function () { renderCatImages(); });
+  }
+
+  catGrid.addEventListener("click", function (e) {
+    var btn = e.target.closest("[data-act]");
+    if (!btn) return;
+    var card = btn.closest(".catimg-card");
+    var en = card.getAttribute("data-cat");
+
+    if (btn.getAttribute("data-act") === "rm") {
+      btn.disabled = true;
+      sb.from("category_images").delete().eq("category_en", en)
+        .then(function (r) {
+          if (r.error) { alert(r.error.message); btn.disabled = false; return; }
+          delete catImages[en];
+          renderCatImages();
+        });
+      return;
+    }
+
+    /* الرفع: حقل ملف مخفيٌ يُنشأ عند الطلب */
+    var input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/*";
+    input.addEventListener("change", function () {
+      var file = input.files && input.files[0];
+      if (!file) return;
+      btn.disabled = true;
+
+      var reader = new FileReader();
+      reader.onload = function () {
+        resizeImage(reader.result, 600, function (small) {
+          if (!small) { btn.disabled = false; return; }
+          SFUpload.uploadDataUrl(small, "factory-media", "category", "image")
+            .then(function (up) {
+              return sb.from("category_images")
+                .upsert({ category_en: en, image_url: up.url },
+                        { onConflict: "category_en" })
+                .select();
+            })
+            .then(function (r) {
+              if (r.error) throw r.error;
+              catImages[en] = (r.data && r.data[0] && r.data[0].image_url) || "";
+              renderCatImages();
+            })
+            .catch(function (err) {
+              alert((err && err.message) || String(err));
+              btn.disabled = false;
+            });
+        });
+      };
+      reader.readAsDataURL(file);
+    });
+    input.click();
+  });
+
   /* ===== الأحداث ===== */
   document.querySelectorAll(".tab").forEach(function (tab) {
     tab.addEventListener("click", function () {
       document.querySelectorAll(".tab").forEach(function (t) { t.classList.remove("active"); });
       tab.classList.add("active");
       current = tab.getAttribute("data-status");
+
+      /* تبويب الصور يستبدل قائمة المصانع بلوحته */
+      var isCat = current === "catimg";
+      listEl.hidden = isCat;
+      catWrap.hidden = !isCat;
+      if (isCat) { loadCatImages(); return; }
       render();
     });
   });
