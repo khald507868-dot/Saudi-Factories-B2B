@@ -8,6 +8,7 @@
 // ============================================================
 
 import '../core/supabase_config.dart';
+import '../core/uuid.dart';
 import 'auth_service.dart';
 
 /// صنف في السلة بعد التطبيع.
@@ -35,15 +36,15 @@ class CartItem {
   double get lineTotal => price * quantity;
 
   CartItem copyWith({int? quantity}) => CartItem(
-        id: id,
-        productId: productId,
-        quantity: quantity ?? this.quantity,
-        name: name,
-        price: price,
-        image: image,
-        factoryId: factoryId,
-        factoryName: factoryName,
-      );
+    id: id,
+    productId: productId,
+    quantity: quantity ?? this.quantity,
+    name: name,
+    price: price,
+    image: image,
+    factoryId: factoryId,
+    factoryName: factoryName,
+  );
 
   factory CartItem.fromRow(Map<String, dynamic> m) {
     final p = (m['products'] as Map?)?.cast<String, dynamic>() ?? {};
@@ -97,7 +98,8 @@ class SFCommerce {
     final rows = await sb
         .from('cart_items')
         .select(
-            'id, product_id, quantity, products(id, factory_id, name, price, image, images, factories(name))')
+          'id, product_id, quantity, products(id, factory_id, name, price, image, images, factories(name))',
+        )
         .eq('cart_id', cartId)
         .order('created_at');
 
@@ -108,10 +110,13 @@ class SFCommerce {
 
   static Future<void> addToCart(int productId, int quantity) async {
     _ready();
-    await sb.rpc('add_to_cart', params: {
-      'p_product_id': productId,
-      'p_quantity': quantity < 1 ? 1 : quantity,
-    });
+    await sb.rpc(
+      'add_to_cart',
+      params: {
+        'p_product_id': productId,
+        'p_quantity': quantity < 1 ? 1 : quantity,
+      },
+    );
   }
 
   static Future<void> setQuantity(int itemId, int quantity) async {
@@ -131,18 +136,19 @@ class SFCommerce {
   }
 
   /// إنشاء طلب — الخادم يحسب المبلغ ويرفض خلط مصنعين في طلب واحد.
-  static Future<dynamic> createOrder(int factoryId) async {
+  static Future<dynamic> createOrder(
+    int factoryId, {
+    String? idempotencyKey,
+  }) async {
     _ready();
-    return sb.rpc('create_order_from_cart', params: {
-      'p_factory_id': factoryId,
-      'p_idempotency_key': _uuid(),
-    });
-  }
-
-  static String _uuid() {
-    // معرّف تكرار كافٍ لمنع ازدواج الطلب عند إعادة الإرسال.
-    final now = DateTime.now().microsecondsSinceEpoch;
-    final rand = Object().hashCode.toRadixString(16);
-    return '$now-$rand';
+    return sb.rpc(
+      'create_order_from_cart',
+      params: {
+        'p_factory_id': factoryId,
+        // PostgreSQL expects an actual uuid here. A timestamp-like string is
+        // rejected with 22P02 before the RPC body is entered.
+        'p_idempotency_key': idempotencyKey ?? newUuidV4(),
+      },
+    );
   }
 }

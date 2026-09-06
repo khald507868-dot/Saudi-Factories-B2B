@@ -18,7 +18,8 @@
 
   /* تطبيق الجوال مستقل داخل app_flutter، وهذا الملف مخصص للموقع. */
   function currentPage() {
-    return location.pathname.split("/").pop() || "index.html";
+    var page = location.pathname.split("/").pop() || "index.html";
+    return page + (location.search || "") + (location.hash || "");
   }
 
   function loginPage() {
@@ -26,7 +27,7 @@
   }
 
   function registerPage() {
-    return "web-login.html#register";
+    return "web-login.html";
   }
 
   /* تُملأ عند التحقق، وتستخدمها الصفحات بدل localStorage */
@@ -54,7 +55,10 @@
     if (global.SF_USER) return true;
     try { localStorage.setItem("sf_account_type", "individual"); } catch (e) {}
     var here = nextPage || currentPage();
-    location.href = registerPage() + "?next=" + encodeURIComponent(here);
+    /* The query string must precede the fragment.  With #register?next=...
+       the browser treats next as part of the fragment and the login page
+       cannot read it from location.search. */
+    location.href = registerPage() + "?next=" + encodeURIComponent(here) + "#register";
     return false;
   };
 
@@ -79,7 +83,7 @@
 
     /* نوع الحساب من الخادم — لا من localStorage القابل للتزوير */
     return sb.from("profiles")
-      .select("account_type, full_name, phone, email, is_admin, company_image")
+      .select("account_type, full_name, gender, country_flag, country_code, phone, email, birthdate, is_admin, company_image")
       .eq("id", session.user.id).single()
       .then(function (p) {
         if (p.data) {

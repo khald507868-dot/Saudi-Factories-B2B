@@ -17,6 +17,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../core/i18n.dart';
 import '../core/theme.dart';
+import '../core/uuid.dart';
+import '../services/auth_service.dart';
 import '../services/messages_service.dart';
 import '../widgets/common.dart';
 
@@ -47,8 +49,8 @@ class _ChatPageState extends State<ChatPage> {
   Object? _error;
   RealtimeChannel? _channel;
 
-  /// معرّفات الرسائل التي أرسلناها — يُسقَط صدى الاشتراك لها.
-  final Set<String> _sentIds = {};
+  /// مفاتيح الرسائل التي أرسلناها — يُسقَط صدى الاشتراك لها.
+  final Set<String> _sentClientKeys = {};
 
   @override
   void initState() {
@@ -69,10 +71,20 @@ class _ChatPageState extends State<ChatPage> {
     super.dispose();
   }
 
-  void _onRealtime() {
-    // صدى إرسالنا: نتجاهل إشعاراً واحداً لكل رسالة أرسلناها.
-    if (_sentIds.isNotEmpty) {
-      _sentIds.remove(_sentIds.first);
+  void _onRealtime(PostgresChangePayload payload) {
+    final record = payload.newRecord.isNotEmpty
+        ? payload.newRecord
+        : payload.oldRecord;
+    final conversationId = (record['conversation_id'] as num?)?.toInt();
+    if (conversationId != widget.conversationId) return;
+
+    // client_key معروف قبل INSERT بعكس معرّف الخادم؛ وهذا يمنع أيضاً إسقاط
+    // رسالة واردة لا علاقة لها بإرسال متزامن من هذا الجهاز.
+    final clientKey = (record['client_key'] as String?) ?? '';
+    final senderId = record['sender_id'] as String?;
+    if (senderId == AuthService.instance.user?.id &&
+        clientKey.isNotEmpty &&
+        _sentClientKeys.remove(clientKey)) {
       return;
     }
     _load(silent: true);
@@ -111,6 +123,7 @@ class _ChatPageState extends State<ChatPage> {
     if (text.isEmpty) return;
 
     final tempId = 'tmp-${DateTime.now().millisecondsSinceEpoch}';
+    final clientKey = newUuidV4();
     final optimistic = SFMessage(
       id: tempId,
       mine: true,
@@ -126,17 +139,20 @@ class _ChatPageState extends State<ChatPage> {
       _composer.clear();
     });
     _jumpToEnd();
+    _sentClientKeys.add(clientKey);
 
     try {
-      final saved = await SFMessages.sendText(widget.conversationId, text);
-      _sentIds.add(saved.id);
+      final saved = await SFMessages.sendText(
+        widget.conversationId,
+        text,
+        clientKey: clientKey,
+      );
       if (!mounted) return;
       setState(() {
-        _messages = _messages
-            .map((m) => m.id == tempId ? saved : m)
-            .toList();
+        _messages = _messages.map((m) => m.id == tempId ? saved : m).toList();
       });
     } catch (e) {
+      _sentClientKeys.remove(clientKey);
       if (!mounted) return;
       // الفشل ظاهر: تُزال الفقاعة ويعود النص إلى المحرّر.
       setState(() {
@@ -209,8 +225,9 @@ class _Bubble extends StatelessWidget {
     final mine = message.mine;
 
     return Align(
-      alignment:
-          mine ? AlignmentDirectional.centerEnd : AlignmentDirectional.centerStart,
+      alignment: mine
+          ? AlignmentDirectional.centerEnd
+          : AlignmentDirectional.centerStart,
       child: Container(
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 9),

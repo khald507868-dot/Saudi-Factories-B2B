@@ -932,12 +932,29 @@
           /* يُرجِع وعدًا ليُنتظر قبل إنشاء الطلب. */
           function flush() {
             if (item._timer) { clearTimeout(item._timer); item._timer = null; }
+            /* Serialize writes for this row.  Checkout calls flush() too, so
+               it must wait for an already-running update before the server
+               calculates the order total. */
+            if (item._write) {
+              return item._write.then(function () { return flush(); });
+            }
             var q = Number(item.quantity || 0);
             if (q === Number(item._sent)) return Promise.resolve();
             item._sent = q;
-            return SFCommerce.setQuantity(item.id, q).catch(function (err) {
+            item._write = SFCommerce.setQuantity(item.id, q).catch(function (err) {
               alert((err && err.message) || "تعذّر التحديث");
               return SFCommerce.loadCart().then(renderCart).catch(function () {});
+            }).then(function (result) {
+              item._write = null;
+              return result;
+            }, function (err) {
+              item._write = null;
+              throw err;
+            });
+            return item._write.then(function (result) {
+              return Number(item.quantity || 0) === Number(item._sent)
+                ? result
+                : flush();
             });
           }
 

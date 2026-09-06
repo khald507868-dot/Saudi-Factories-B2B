@@ -72,6 +72,11 @@ class SFProduct {
   int get factoryId => (raw['factory_id'] as num?)?.toInt() ?? 0;
   String get name => (raw['name'] as String?) ?? '';
   double get price => (raw['price'] as num?)?.toDouble() ?? 0;
+  String get description => (raw['description'] as String?) ?? '';
+  String get material => (raw['material'] as String?) ?? '';
+  String get sizes => (raw['sizes'] as String?) ?? '';
+  String get colors => (raw['colors'] as String?) ?? '';
+  int? get moq => (raw['moq'] as num?)?.toInt();
 
   /// يُفضّل images[] على image — انظر تعليق CartItem.
   String get image {
@@ -149,11 +154,15 @@ class FactoryService {
     return row == null ? null : SFFactory(Map<String, dynamic>.from(row));
   }
 
-  static Future<List<SFProduct>> products(int factoryId,
-      {int limit = 100}) async {
+  static Future<List<SFProduct>> products(
+    int factoryId, {
+    int limit = 100,
+  }) async {
     final rows = await sb
         .from('products')
-        .select('id, factory_id, name, price, image, images, sort_order')
+        .select(
+          'id, factory_id, name, price, image, images, sort_order, description, material, sizes, colors, moq',
+        )
         .eq('factory_id', factoryId)
         .order('sort_order')
         .limit(limit);
@@ -167,7 +176,8 @@ class FactoryService {
     final rows = await sb
         .from('products')
         .select(
-            'id, factory_id, name, price, image, images, factories(name)')
+          'id, factory_id, name, price, image, images, description, material, sizes, colors, moq, factories(name)',
+        )
         .order('created_at', ascending: false)
         .limit(limit);
     return rows
@@ -200,13 +210,16 @@ class FactoryService {
     List<Map<String, dynamic>>? posts,
     String? expectedUpdatedAt,
   }) {
-    return sb.rpc('save_factory_content', params: {
-      'p_factory_id': factoryId,
-      'p_factory': factory,
-      'p_products': ?products,
-      'p_posts': ?posts,
-      'p_expected_updated_at': ?expectedUpdatedAt,
-    });
+    return sb.rpc(
+      'save_factory_content',
+      params: {
+        'p_factory_id': factoryId,
+        'p_factory': factory,
+        'p_products': ?products,
+        'p_posts': ?posts,
+        'p_expected_updated_at': ?expectedUpdatedAt,
+      },
+    );
   }
 
   /// لوحة الإدارة: تغيير حالة مصنع.

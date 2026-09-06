@@ -166,7 +166,9 @@
 
   .thread-time {
     font-size: 10.5px;
-    color: #9aa8a0;
+    /* أصغر خطّ في القائمة، فتباين 2.48:1 كان يجعله
+       شبه غير مرئي. رُفِع إلى 4.08:1. */
+    color: #6b7d70;
     flex-shrink: 0;
     white-space: nowrap;
   }
@@ -1553,7 +1555,7 @@
 
       function startChatWith(fid) {
         closePicker();
-        showNote(I18N.t("msg_loading"), false);
+        showNote(I18N.t("fx_loading"), false);
         SFMessages.ensureFactoryConversation(fid).then(function (thread) {
           threads[String(thread.id)] = thread;
           renderThreadList();
@@ -1615,7 +1617,7 @@
             return;
           }
 
-          showNote(I18N.t("msg_loading"), false);
+          showNote(I18N.t("fx_loading"), false);
           SFMessages.ensureFactoryConversation(factoryId).then(function (thread) {
             var key = String(thread.id);
             threads[key] = thread;

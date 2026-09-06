@@ -30,7 +30,7 @@ class _MessagesPageState extends State<MessagesPage> {
   void initState() {
     super.initState();
     _future = _load();
-    _channel = SFMessages.subscribe(() {
+    _channel = SFMessages.subscribe((_) {
       if (mounted) setState(() => _future = _load());
     });
   }
@@ -81,10 +81,7 @@ class _MessagesPageState extends State<MessagesPage> {
           future: _future,
           builder: (context, snap) {
             if (snap.connectionState == ConnectionState.waiting) {
-              return SFStateView(
-                message: i18n.t('fx_loading'),
-                loading: true,
-              );
+              return SFStateView(message: i18n.t('fx_loading'), loading: true);
             }
             if (snap.hasError) {
               return SFStateView(
@@ -129,14 +126,11 @@ class _ThreadTile extends StatelessWidget {
     final last = thread.lastMessage;
     final preview = last == null
         ? ''
-        : (last.isText
-            ? last.text
-            : (last.type == 'video' ? '🎬' : '📷'));
+        : (last.isText ? last.text : (last.type == 'video' ? '🎬' : '📷'));
 
     return ListTile(
       tileColor: SFColors.white,
-      contentPadding:
-          const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       leading: SFImage(
         url: thread.avatar,
         width: 46,
@@ -148,10 +142,7 @@ class _ThreadTile extends StatelessWidget {
         thread.name.isEmpty ? '—' : thread.name,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style: const TextStyle(
-          fontSize: 15,
-          fontWeight: FontWeight.w700,
-        ),
+        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
       ),
       subtitle: preview.isEmpty
           ? null
@@ -159,10 +150,7 @@ class _ThreadTile extends StatelessWidget {
               preview,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontSize: 13,
-                color: SFColors.muted2,
-              ),
+              style: const TextStyle(fontSize: 13, color: SFColors.muted2),
             ),
       trailing: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -175,8 +163,7 @@ class _ThreadTile extends StatelessWidget {
           const SizedBox(height: 6),
           if (thread.unread > 0)
             Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
                 color: SFColors.danger,
                 borderRadius: BorderRadius.circular(999),

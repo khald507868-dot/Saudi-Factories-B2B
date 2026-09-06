@@ -33,9 +33,15 @@ class AppShell extends StatefulWidget {
   /// يتيح لأي شاشة داخلية أن تنتقل إلى تبويب آخر.
   static AppShellState? of(BuildContext context) =>
       context.findAncestorStateOfType<AppShellState>();
+
+  /// المسارات المدفوعة تكون أشقاء لمسار الهيكل لا أبناءً له، ولذلك لا يستطيع
+  /// [of] الوصول إلى الهيكل من صفحة تفاصيل منتج مثلاً.
+  static AppShellState? get active => AppShellState._active;
 }
 
 class AppShellState extends State<AppShell> {
+  static AppShellState? _active;
+
   late SFTab _tab = widget.initialTab;
 
   int _unread = 0;
@@ -45,14 +51,16 @@ class AppShellState extends State<AppShell> {
   @override
   void initState() {
     super.initState();
+    _active = this;
     _refreshCounters();
     // الشارة تتحدّث مع كل تغيّر في جدول الرسائل — مقابل
     // messages-badge.js الذي كان يُحقن في 19 صفحة.
-    _channel = SFMessages.subscribe(_refreshCounters);
+    _channel = SFMessages.subscribe((_) => _refreshCounters());
   }
 
   @override
   void dispose() {
+    if (identical(_active, this)) _active = null;
     if (_channel != null) {
       // ignore: discarded_futures
       _channel!.unsubscribe();
@@ -63,7 +71,12 @@ class AppShellState extends State<AppShell> {
   /// تُستدعى من الشاشات بعد أي تغيير يمسّ العدّادات.
   Future<void> _refreshCounters() async {
     if (!AuthService.instance.isSignedIn) {
-      if (mounted) setState(() { _unread = 0; _cartCount = 0; });
+      if (mounted) {
+        setState(() {
+          _unread = 0;
+          _cartCount = 0;
+        });
+      }
       return;
     }
     final unread = await SFMessages.unreadTotal();

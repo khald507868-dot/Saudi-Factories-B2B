@@ -13,12 +13,13 @@ import 'dart:async';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../core/supabase_config.dart';
+import '../core/uuid.dart';
 import 'auth_service.dart';
 
 const String _conversationSelect =
     'id, factory_id, individual_id, last_message_at, created_at';
 const String _messageSelect =
-    'id, sender_id, body, attachment_url, attachment_type, created_at';
+    'id, sender_id, body, attachment_url, attachment_type, client_key, created_at';
 
 /// رسالة واحدة بعد التطبيع — نفس شكل mapMessage في الويب.
 class SFMessage {
@@ -31,6 +32,7 @@ class SFMessage {
     required this.at,
     this.pending = false,
     this.failed = false,
+    this.clientKey = '',
   });
 
   final String id;
@@ -49,22 +51,27 @@ class SFMessage {
   /// رسالة متفائلة لم يؤكّدها الخادم بعد.
   final bool pending;
   final bool failed;
+  final String clientKey;
 
   bool get isText => type == 'text' || type.isEmpty;
 
   SFMessage copyWith({bool? pending, bool? failed}) => SFMessage(
-        id: id,
-        mine: mine,
-        type: type,
-        text: text,
-        src: src,
-        at: at,
-        pending: pending ?? this.pending,
-        failed: failed ?? this.failed,
-      );
+    id: id,
+    mine: mine,
+    type: type,
+    text: text,
+    src: src,
+    at: at,
+    pending: pending ?? this.pending,
+    failed: failed ?? this.failed,
+    clientKey: clientKey,
+  );
 
-  static SFMessage fromRow(Map<String, dynamic> m, String currentId,
-      {String signedUrl = ''}) {
+  static SFMessage fromRow(
+    Map<String, dynamic> m,
+    String currentId, {
+    String signedUrl = '',
+  }) {
     return SFMessage(
       id: '${m['id']}',
       mine: m['sender_id'] == currentId,
@@ -73,7 +80,9 @@ class SFMessage {
           : 'text',
       text: (m['body'] as String?) ?? '',
       src: signedUrl,
-      at: DateTime.tryParse('${m['created_at']}')?.toLocal() ??
+      clientKey: (m['client_key'] as String?) ?? '',
+      at:
+          DateTime.tryParse('${m['created_at']}')?.toLocal() ??
           DateTime.fromMillisecondsSinceEpoch(0),
     );
   }
@@ -113,24 +122,25 @@ class SFThread {
     int? unread,
     SFMessage? lastMessage,
     DateTime? updated,
-  }) =>
-      SFThread(
-        id: id,
-        conversationId: conversationId,
-        factoryId: factoryId,
-        name: name,
-        role: role,
-        avatar: avatar,
-        updated: updated ?? this.updated,
-        unread: unread ?? this.unread,
-        lastMessage: lastMessage ?? this.lastMessage,
-        messages: messages ?? this.messages,
-        messagesLoaded: messagesLoaded ?? this.messagesLoaded,
-      );
+  }) => SFThread(
+    id: id,
+    conversationId: conversationId,
+    factoryId: factoryId,
+    name: name,
+    role: role,
+    avatar: avatar,
+    updated: updated ?? this.updated,
+    unread: unread ?? this.unread,
+    lastMessage: lastMessage ?? this.lastMessage,
+    messages: messages ?? this.messages,
+    messagesLoaded: messagesLoaded ?? this.messagesLoaded,
+  );
 }
 
 class SFMessages {
   SFMessages._();
+
+  static int _subscriptionSerial = 0;
 
   static void _ready() {
     if (AuthService.instance.user == null) {
@@ -149,7 +159,7 @@ class SFMessages {
       final lastAt = m['last_message_created_at'] ?? m['last_message_at'];
       final updated =
           DateTime.tryParse('$lastAt')?.toLocal() ??
-              DateTime.fromMillisecondsSinceEpoch(0);
+          DateTime.fromMillisecondsSinceEpoch(0);
       SFMessage? last;
       if (m['last_message_created_at'] != null) {
         last = SFMessage(
@@ -214,10 +224,10 @@ class SFMessages {
     _ready();
     if (conversationId <= 0) throw Exception('معرّف المحادثة غير صالح');
     try {
-      final res =
-          await sb.rpc('mark_conversation_read', params: {
-        'p_conversation_id': conversationId,
-      });
+      final res = await sb.rpc(
+        'mark_conversation_read',
+        params: {'p_conversation_id': conversationId},
+      );
       return (res as num?)?.toInt() ?? 0;
     } catch (_) {
       return 0;
@@ -251,7 +261,8 @@ class SFMessages {
     if (factoryId <= 0) throw Exception('معرّف المصنع غير صالح');
     if (AuthService.instance.profile?.accountType == 'factory') {
       throw Exception(
-          'حساب المصنع يستقبل محادثات العملاء ولا يبدأ محادثة مع مصنع آخر');
+        'حساب المصنع يستقبل محادثات العملاء ولا يبدأ محادثة مع مصنع آخر',
+      );
     }
 
     Map<String, dynamic>? row = await sb
@@ -290,7 +301,8 @@ class SFMessages {
       name: (peer?['peer_name'] as String?) ?? '',
       role: (peer?['peer_role'] as String?) ?? '',
       avatar: (peer?['peer_avatar'] as String?) ?? '',
-      updated: DateTime.tryParse('${row['last_message_at'] ?? row['created_at']}')
+      updated:
+          DateTime.tryParse('${row['last_message_at'] ?? row['created_at']}')
               ?.toLocal() ??
           DateTime.now(),
     );
@@ -310,8 +322,13 @@ class SFMessages {
     }
   }
 
-  static Future<SFMessage> sendText(int conversationId, String text) async {
+  static Future<SFMessage> sendText(
+    int conversationId,
+    String text, {
+    String? clientKey,
+  }) async {
     _ready();
+    final key = clientKey ?? newUuidV4();
     final row = await sb
         .from('messages')
         .insert({
@@ -320,6 +337,7 @@ class SFMessages {
           'body': text.length > 10000 ? text.substring(0, 10000) : text,
           'attachment_url': '',
           'attachment_type': '',
+          'client_key': key,
         })
         .select(_messageSelect)
         .single();
@@ -327,15 +345,20 @@ class SFMessages {
   }
 
   /// يشترك في تغيّرات جدول الرسائل — البديل عن realtime في الويب.
-  static RealtimeChannel? subscribe(void Function() onChange) {
+  static RealtimeChannel? subscribe(
+    void Function(PostgresChangePayload payload) onChange,
+  ) {
     if (AuthService.instance.user == null) return null;
+    final serial = _subscriptionSerial++;
     return sb
-        .channel('sf-messages-$_uid')
+        // يجب أن يكون موضوع Phoenix فريداً لكل اشتراك نشط؛ فالهيكل وقائمة
+        // المحادثات وصفحة المحادثة قد تكون مشتركة في الوقت نفسه.
+        .channel('sf-messages-$_uid-$serial')
         .onPostgresChanges(
           event: PostgresChangeEvent.all,
           schema: 'public',
           table: 'messages',
-          callback: (_) => onChange(),
+          callback: onChange,
         )
         .subscribe();
   }

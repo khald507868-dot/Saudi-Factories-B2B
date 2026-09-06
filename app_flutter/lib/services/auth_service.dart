@@ -92,11 +92,14 @@ class AuthService extends ChangeNotifier {
   Future<void> _loadProfile() async {
     final id = _user?.id;
     if (id == null) return;
+    // Never retain another session's privileges/details if this request fails.
+    _profile = null;
     try {
       final row = await sb
           .from('profiles')
           .select(
-              'account_type, full_name, phone, email, is_admin, company_image')
+            'account_type, full_name, phone, email, is_admin, company_image',
+          )
           .eq('id', id)
           .maybeSingle();
       if (row != null) {
@@ -141,8 +144,11 @@ class AuthService extends ChangeNotifier {
       password: password,
       data: data,
     );
-    _user = res.user;
-    if (res.session != null && _user != null) await _loadProfile();
+    // With email confirmation enabled Supabase returns a User but no Session.
+    // Such a user is not authenticated yet and must not pass client-side guards.
+    _user = res.session?.user;
+    _profile = null;
+    if (_user != null) await _loadProfile();
     notifyListeners();
     return res;
   }

@@ -29,13 +29,14 @@ class ProductPage extends StatefulWidget {
 }
 
 class _ProductPageState extends State<ProductPage> {
-  int _quantity = 1;
+  late int _quantity;
   bool _busy = false;
   int _cartCount = 0;
 
   @override
   void initState() {
     super.initState();
+    _quantity = widget.product.moq ?? 1;
     _refreshCartCount();
   }
 
@@ -63,7 +64,7 @@ class _ProductPageState extends State<ProductPage> {
       if (!mounted) return;
       showSFMessage(context, context.t('product_added_to_cart'));
       await _refreshCartCount();
-      if (mounted) AppShell.of(context)?.refreshCounters();
+      AppShell.active?.refreshCounters();
     } catch (e) {
       if (!mounted) return;
       showSFError(context, e);
@@ -88,7 +89,10 @@ class _ProductPageState extends State<ProductPage> {
             conversationId: thread.conversationId,
             title: thread.name,
             // نص مبدئي يشرح عن أي منتج يسأل العميل.
-            draft: 'استفسار عن المنتج: ${widget.product.name}',
+            draft:
+                '${context.t('product_draft_inquiry')} '
+                '${widget.product.name}\n'
+                '${context.t('product_draft_qty')} $_quantity',
           ),
         ),
       );
@@ -102,8 +106,7 @@ class _ProductPageState extends State<ProductPage> {
   Widget build(BuildContext context) {
     final i18n = context.i18n;
     final p = widget.product;
-    final factoryName =
-        (p.raw['factories'] as Map?)?['name'] as String? ?? '';
+    final factoryName = (p.raw['factories'] as Map?)?['name'] as String? ?? '';
 
     return Scaffold(
       backgroundColor: SFColors.pageBg,
@@ -152,6 +155,49 @@ class _ProductPageState extends State<ProductPage> {
                     ),
                   ),
                 ],
+                if (p.description.isNotEmpty) ...[
+                  const SizedBox(height: 20),
+                  _DetailsCard(
+                    title: i18n.t('product_description'),
+                    child: Text(
+                      p.description,
+                      style: const TextStyle(fontSize: 14, height: 1.8),
+                    ),
+                  ),
+                ],
+                if (p.material.isNotEmpty ||
+                    p.sizes.isNotEmpty ||
+                    p.colors.isNotEmpty ||
+                    p.moq != null) ...[
+                  const SizedBox(height: 12),
+                  _DetailsCard(
+                    title: i18n.t('product_specs'),
+                    child: Column(
+                      children: [
+                        if (p.material.isNotEmpty)
+                          _SpecRow(
+                            label: i18n.t('product_material'),
+                            value: p.material,
+                          ),
+                        if (p.sizes.isNotEmpty)
+                          _SpecRow(
+                            label: i18n.t('product_sizes'),
+                            value: p.sizes,
+                          ),
+                        if (p.colors.isNotEmpty)
+                          _SpecRow(
+                            label: i18n.t('product_colors'),
+                            value: p.colors,
+                          ),
+                        if (p.moq != null)
+                          _SpecRow(
+                            label: i18n.t('product_moq'),
+                            value: '${p.moq} ${i18n.t('product_unit')}',
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 20),
                 Row(
                   children: [
@@ -164,7 +210,7 @@ class _ProductPageState extends State<ProductPage> {
                     ),
                     const Spacer(),
                     IconButton.outlined(
-                      onPressed: _quantity > 1
+                      onPressed: _quantity > (p.moq ?? 1)
                           ? () => setState(() => _quantity--)
                           : null,
                       icon: const Icon(Icons.remove, size: 18),
@@ -180,7 +226,9 @@ class _ProductPageState extends State<ProductPage> {
                       ),
                     ),
                     IconButton.outlined(
-                      onPressed: () => setState(() => _quantity++),
+                      onPressed: _quantity >= 100000
+                          ? null
+                          : () => setState(() => _quantity++),
                       icon: const Icon(Icons.add, size: 18),
                     ),
                   ],
@@ -195,8 +243,7 @@ class _ProductPageState extends State<ProductPage> {
                     foregroundColor: SFColors.darkGreen,
                     side: const BorderSide(color: SFColors.darkGreen),
                     shape: RoundedRectangleBorder(
-                      borderRadius:
-                          BorderRadius.circular(SFMetrics.radius),
+                      borderRadius: BorderRadius.circular(SFMetrics.radius),
                     ),
                   ),
                 ),
@@ -220,14 +267,16 @@ class _ProductPageState extends State<ProductPage> {
                   padding: const EdgeInsetsDirectional.only(end: 12),
                   child: InkWell(
                     onTap: () {
+                      AppShell.active?.goTo(SFTab.cart);
                       Navigator.of(context).popUntil((r) => r.isFirst);
-                      AppShell.of(context)?.goTo(SFTab.cart);
                     },
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.shopping_cart_outlined,
-                            color: SFColors.darkGreen),
+                        const Icon(
+                          Icons.shopping_cart_outlined,
+                          color: SFColors.darkGreen,
+                        ),
                         Text(
                           '$_cartCount ${i18n.t('cart_items_count')}',
                           style: const TextStyle(
@@ -257,6 +306,68 @@ class _ProductPageState extends State<ProductPage> {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _DetailsCard extends StatelessWidget {
+  const _DetailsCard({required this.title, required this.child});
+
+  final String title;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: SFColors.white,
+        border: Border.all(color: SFColors.border),
+        borderRadius: BorderRadius.circular(SFMetrics.radius),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 10),
+          child,
+        ],
+      ),
+    );
+  }
+}
+
+class _SpecRow extends StatelessWidget {
+  const _SpecRow({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 9),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 112,
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontSize: 13,
+                color: SFColors.muted2,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          Expanded(child: Text(value, style: const TextStyle(fontSize: 13.5))),
+        ],
       ),
     );
   }

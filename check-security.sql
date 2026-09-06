@@ -13,5 +13,6 @@ where n.nspname = 'public'
   and c.relkind = 'r'
   and c.relname in ('carts','cart_items','orders','order_items',
                     'payment_attempts','posts','custom_prices',
-                    'conversations','messages','profiles','factories','products')
+                    'conversations','messages','profiles','factories','products',
+                    'favorites')
 order by c.relrowsecurity, c.relname;

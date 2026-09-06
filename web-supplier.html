@@ -1239,7 +1239,7 @@
               /* الدخول نجح فعلاً، فالوجهة الرئيسية في الحالتين.
                  وفصل البوّابتين تنظيمي لا أمني: النوع الحقيقي
                  يأتي من الخادم أعلاه، وRLS هي الحماية. */
-              window.location.href = "index.html";
+              window.location.href = sfAuthReturnTarget("index.html");
             });
         }).catch(function (err) {
           showError(arabicError(err && err.message ? err.message : String(err)));
@@ -1518,7 +1518,7 @@
             return;
           }
 
-          window.location.href = "index.html";
+          window.location.href = sfAuthReturnTarget("index.html");
         }).catch(function (err) {
           showError(arabicError(err && err.message ? err.message : String(err)));
           btn.disabled = false;

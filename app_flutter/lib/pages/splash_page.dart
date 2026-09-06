@@ -29,6 +29,16 @@ class _SplashPageState extends State<SplashPage> {
   }
 
   Future<void> _decide() async {
+    // إنظار إطار واحد قبل أي تنقّل.
+    //
+    // لو كان AuthService جاهزاً أصلاً لما انتظرت الحلقة تحته
+    // ولجرى pushReplacement داخل initState والـ Navigator
+    // لا يزال يُبنى، فينفجر:
+    //   Assertion failed: !navigator._debugLocked
+    // وتبقى الشاشة على شاشة البداية.
+    await Future<void>.delayed(Duration.zero);
+    if (!mounted) return;
+
     // مهلة قصيرة حتى يقرأ AuthService الجلسة المحفوظة.
     final auth = AuthService.instance;
     var waited = 0;

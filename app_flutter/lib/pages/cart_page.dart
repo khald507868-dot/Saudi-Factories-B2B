@@ -17,6 +17,7 @@ import 'package:flutter/material.dart';
 
 import '../core/i18n.dart';
 import '../core/theme.dart';
+import '../core/uuid.dart';
 import '../services/auth_service.dart';
 import '../services/commerce_service.dart';
 import '../widgets/common.dart';
@@ -34,10 +35,12 @@ class _CartPageState extends State<CartPage> {
   bool _loading = true;
   bool _ordering = false;
   Object? _error;
+  String? _checkoutIdempotencyKey;
 
   /// تعديلات كمية بانتظار الإرسال — تُدفع قبل إنشاء الطلب.
   final Map<int, int> _pending = {};
   Timer? _debounce;
+  Future<bool>? _flushInFlight;
 
   @override
   void initState() {
@@ -77,8 +80,7 @@ class _CartPageState extends State<CartPage> {
     }
   }
 
-  double get _total =>
-      _items.fold<double>(0, (sum, i) => sum + i.lineTotal);
+  double get _total => _items.fold<double>(0, (sum, i) => sum + i.lineTotal);
 
   void _changeQuantity(CartItem item, int delta) {
     final next = item.quantity + delta;
@@ -92,25 +94,45 @@ class _CartPageState extends State<CartPage> {
     });
 
     _debounce?.cancel();
-    _debounce = Timer(const Duration(milliseconds: 400), _flush);
+    _debounce = Timer(
+      const Duration(milliseconds: 400),
+      () => unawaited(_flush()),
+    );
   }
 
   /// يرسل التعديلات المؤجّلة؛ عند الرفض يُعاد التحميل من الخادم.
-  Future<void> _flush() async {
-    if (_pending.isEmpty) return;
+  Future<bool> _flush() {
+    final running = _flushInFlight;
+    if (running != null) {
+      return running.then((ok) => ok ? _flush() : false);
+    }
+    if (_pending.isEmpty) return Future<bool>.value(true);
+
     final batch = Map<int, int>.from(_pending);
     _pending.clear();
 
+    final operation = _sendQuantityBatch(batch);
+    late final Future<bool> tracked;
+    tracked = operation.whenComplete(() {
+      if (identical(_flushInFlight, tracked)) _flushInFlight = null;
+    });
+    _flushInFlight = tracked;
+    return tracked.then((ok) => ok ? _flush() : false);
+  }
+
+  Future<bool> _sendQuantityBatch(Map<int, int> batch) async {
     try {
       for (final entry in batch.entries) {
         await SFCommerce.setQuantity(entry.key, entry.value);
       }
-      if (!mounted) return;
-      AppShell.of(context)?.refreshCounters();
+      if (mounted) AppShell.of(context)?.refreshCounters();
+      return true;
     } catch (e) {
-      if (!mounted) return;
-      showSFError(context, e);
-      await _load();
+      if (mounted) {
+        showSFError(context, e);
+        await _load();
+      }
+      return false;
     }
   }
 
@@ -146,8 +168,10 @@ class _CartPageState extends State<CartPage> {
       // تُدفع التعديلات المؤجّلة أولاً حتى لا يُبنى الطلب على
       // كمية لم يرها الخادم بعد.
       _debounce?.cancel();
-      await _flush();
-      await SFCommerce.createOrder(factoryId);
+      if (!await _flush()) return;
+      final idempotencyKey = _checkoutIdempotencyKey ??= newUuidV4();
+      await SFCommerce.createOrder(factoryId, idempotencyKey: idempotencyKey);
+      _checkoutIdempotencyKey = null;
       if (!mounted) return;
       showSFMessage(context, context.t('cart_order_sent'));
       await _load();
@@ -351,8 +375,11 @@ class _CartRow extends StatelessWidget {
           ),
           IconButton(
             onPressed: onRemove,
-            icon: const Icon(Icons.delete_outline,
-                color: SFColors.danger, size: 20),
+            icon: const Icon(
+              Icons.delete_outline,
+              color: SFColors.danger,
+              size: 20,
+            ),
             visualDensity: VisualDensity.compact,
           ),
         ],

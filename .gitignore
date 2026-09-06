@@ -12,3 +12,6 @@ desktop.ini
 !.env.example
 *.pem
 *.key
+
+# مهارات UI/UX — أداة محلية للمساعد، ليست جزءاً من كود الموقع
+.claude/skills/

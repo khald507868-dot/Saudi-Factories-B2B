@@ -320,6 +320,20 @@
     cursor: pointer;
   }
 
+  .profile-save-error {
+    display: none;
+    margin: 12px 0;
+    padding: 12px 14px;
+    border-radius: 0;
+    background: #fdecea;
+    color: #a32020;
+    font-size: 14px;
+    line-height: 1.6;
+    text-align: center;
+  }
+
+  .profile-save-error.show { display: block; }
+
   .btn-logout {
     width: 100%;
     padding: 15px;
@@ -878,6 +892,7 @@
         </div>
       </div>
 
+      <div class="profile-save-error" id="storage-warning" role="alert"></div>
       <button type="submit" class="btn-update" id="update-btn" disabled data-i18n="btn_update">تحديث</button>
     </form>
 
@@ -969,6 +984,9 @@
 
   <script>
     (function () {
+      if (!window.SF_AUTH_READY) return;
+      SF_AUTH_READY.then(function (user) {
+      if (!user || !window.SF_USER) return;
       var form = document.getElementById("profile-form");
       var updateBtn = document.getElementById("update-btn");
 
@@ -984,9 +1002,12 @@
         savedAccount = JSON.parse(localStorage.getItem("sf_account") || "null");
       } catch (err) {}
       if (!savedAccount) savedAccount = {};
+      var serverProfile = window.SF_PROFILE || {};
 
-      /* نوع الحساب: نعتمد أولاً على ما حُفظ مع الحساب نفسه، ثم على المفتاح العام */
-      var accountType = savedAccount.accountType || "";
+      /* The server profile is authoritative.  Waiting for SF_AUTH_READY above
+         prevents a factory form from being irreversibly rendered as an
+         individual form when localStorage is empty or stale. */
+      var accountType = serverProfile.account_type || savedAccount.accountType || "";
       if (!accountType) {
         try {
           accountType = localStorage.getItem("sf_account_type") || "";
@@ -994,7 +1015,9 @@
       }
       var isFactory = accountType === "factory";
 
-      var companyImageData = savedAccount.companyImage || "";
+      /* Database media fields contain URLs only; discard legacy base64 drafts. */
+      var companyImageData = sfSafeHttpUrl(serverProfile.company_image || savedAccount.companyImage || "");
+      var imageUploadPending = false;
       var addressData = savedAccount.address || {
         city: "", district: "", shortAddress: "",
         building: "", secondary: "", postal: "", street: ""
@@ -1028,7 +1051,8 @@
       function checkFilled() {
         var filled = nameInput.value.trim().length > 0 &&
           phoneInput.value.trim().length > 0 &&
-          (!crInput || crInput.value.trim().length > 0);
+          (!crInput || crInput.value.trim().length > 0) &&
+          !imageUploadPending;
         updateBtn.disabled = !filled;
         updateBtn.classList.toggle("enabled", filled);
       }
@@ -1102,16 +1126,17 @@
       }
 
       /* ===== تعبئة الحقول بالبيانات المسجّلة ===== */
-      if (savedAccount.name) nameInput.value = savedAccount.name;
+      if (serverProfile.full_name || savedAccount.name) nameInput.value = serverProfile.full_name || savedAccount.name;
       if (crInput && savedAccount.commercialRegister) crInput.value = savedAccount.commercialRegister;
-      if (savedAccount.gender) {
-        var genderRadio = form.querySelector('input[name="gender"][value="' + savedAccount.gender + '"]');
+      var savedGender = serverProfile.gender || savedAccount.gender;
+      if (savedGender) {
+        var genderRadio = form.querySelector('input[name="gender"][value="' + savedGender + '"]');
         if (genderRadio) genderRadio.checked = true;
       }
-      if (savedAccount.countryFlag) countryFlagEl.textContent = savedAccount.countryFlag;
-      if (savedAccount.countryCode) countryCodeEl.textContent = savedAccount.countryCode;
-      if (savedAccount.phone) phoneInput.value = savedAccount.phone;
-      if (savedAccount.email) emailInput.value = savedAccount.email;
+      if (serverProfile.country_flag || savedAccount.countryFlag) countryFlagEl.textContent = serverProfile.country_flag || savedAccount.countryFlag;
+      if (serverProfile.country_code || savedAccount.countryCode) countryCodeEl.textContent = serverProfile.country_code || savedAccount.countryCode;
+      if (serverProfile.phone || savedAccount.phone) phoneInput.value = serverProfile.phone || savedAccount.phone;
+      if (serverProfile.email || savedAccount.email) emailInput.value = serverProfile.email || savedAccount.email;
 
       /* ===== صورة الشركة ===== */
       var imageTrigger = document.getElementById("image-upload-trigger");
@@ -1123,6 +1148,23 @@
         imagePreview.src = dataUrl;
         imagePreview.style.display = "block";
         imageIcon.style.display = "none";
+      }
+
+      function restoreCompanyImage(url) {
+        if (url) {
+          showCompanyImage(url);
+          return;
+        }
+        imagePreview.removeAttribute("src");
+        imagePreview.style.display = "none";
+        imageIcon.style.display = "";
+      }
+
+      function showProfileError(error) {
+        var message = document.getElementById("storage-warning");
+        if (!message) return;
+        message.textContent = (error && error.message) || String(error || "تعذّر حفظ التغييرات على الخادم.");
+        message.classList.add("show");
       }
 
       if (companyImageData) showCompanyImage(companyImageData);
@@ -1153,12 +1195,27 @@
         reader.onload = function (e) {
           /* الصورة تُعرض فقط، ولا تُحفظ إلا عند الضغط على "تحديث" */
           resizeImage(e.target.result, 400, function (resized) {
-            companyImageData = resized;
-            showCompanyImage(companyImageData);
+            var previousImage = companyImageData;
+            showCompanyImage(resized);
             if (window.SFUpload && window.SF_USER) {
+              imageUploadPending = true;
+              checkFilled();
               SFUpload.uploadDataUrl(resized, "factory-media", "profile", "image")
-                .then(function (uploaded) { companyImageData = uploaded.url; })
-                .catch(function (err) { console.warn("company image upload:", err && err.message); });
+                .then(function (uploaded) {
+                  companyImageData = uploaded.url;
+                  imageUploadPending = false;
+                  checkFilled();
+                })
+                .catch(function (err) {
+                  companyImageData = previousImage;
+                  imageUploadPending = false;
+                  restoreCompanyImage(previousImage);
+                  showProfileError(err);
+                  checkFilled();
+                });
+            } else {
+              restoreCompanyImage(previousImage);
+              showProfileError(new Error("تعذّر رفع الصورة. أعد تحميل الصفحة وحاول مرة أخرى."));
             }
           });
         };
@@ -1201,8 +1258,9 @@
       }
 
       /* تاريخ الميلاد المحفوظ سابقاً */
-      if (savedAccount.birthdate) {
-        dateInput.value = savedAccount.birthdate;
+      var savedBirthdate = serverProfile.birthdate || savedAccount.birthdate;
+      if (savedBirthdate) {
+        dateInput.value = savedBirthdate;
         showBirthdate();
       }
 
@@ -1220,16 +1278,18 @@
 
       form.addEventListener("submit", function (e) {
         e.preventDefault();
+        var message = document.getElementById("storage-warning");
+        if (message) message.classList.remove("show");
+        if (imageUploadPending) {
+          showProfileError(new Error("انتظر اكتمال رفع الصورة ثم حاول مجددًا."));
+          return;
+        }
         var accountData = saveAccountData();
         saveAccountToServer(accountData).then(function () {
           showConfirm();
         }).catch(function (err) {
           console.warn("profile save:", err && err.message);
-          var message = document.getElementById("storage-warning");
-          if (message) {
-            message.textContent = (err && err.message) || "تعذّر حفظ التغييرات على الخادم.";
-            message.classList.add("show");
-          }
+          showProfileError(err);
         });
       });
 
@@ -1652,7 +1712,31 @@
           updateAddressValue();
           closeAddressModal();
         });
+
+        /* Factory-specific fields live in factories, not profiles.  Hydrate
+           them from Supabase so this form works on a new browser/device too. */
+        sb.from("factories")
+          .select("commercial_register, address_city, address_district, address_short, address_building, address_secondary, address_postal, address_street")
+          .eq("owner_id", SF_USER.id)
+          .maybeSingle()
+          .then(function (res) {
+            if (res.error || !res.data) return;
+            var factory = res.data;
+            crInput.value = factory.commercial_register || "";
+            addressData = {
+              city: factory.address_city || "",
+              district: factory.address_district || "",
+              shortAddress: factory.address_short || "",
+              building: factory.address_building || "",
+              secondary: factory.address_secondary || "",
+              postal: factory.address_postal || "",
+              street: factory.address_street || ""
+            };
+            updateAddressValue();
+            checkFilled();
+          });
       }
+      });
     })();
   /* ============================================================
      القائمة الجانبية (سطح المكتب): الاسم ونوع الحساب ورابط

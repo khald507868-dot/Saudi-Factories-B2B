@@ -2898,6 +2898,11 @@
             sb.from("products").select("*").eq("factory_id", row.id).order("sort_order"),
             sb.from("posts").select("*").eq("factory_id", row.id).order("created_at", { ascending: false })
           ]).then(function (out) {
+            /* PostgREST resolves query errors as response objects.  Do not
+               replace the local draft with empty arrays when either child
+               query failed; a later save would otherwise delete valid rows. */
+            if (out[0].error) throw out[0].error;
+            if (out[1].error) throw out[1].error;
             applyRow(row, out[0].data, out[1].data);
 
             var mine = !!(SF_USER && row.owner_id === SF_USER.id);

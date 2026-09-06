@@ -771,7 +771,10 @@
 
       if (window.sb) {
         (window.SF_AUTH_READY || Promise.resolve()).then(function () {
-          var query = sb.from("products").select("id, factory_id, name, price, image, images, factories(id, name, cover, logo, status)");
+          var query = sb.from("products").select(
+            "id, factory_id, name, price, image, images, description, material, sizes, colors, moq, " +
+            "factories(id, name, cover, logo, status)"
+          );
           if (productId) query = query.eq("id", productId);
           else query = query.eq("factory_id", factoryId).order("sort_order").range(prodIndex, prodIndex);
           return query.maybeSingle();
