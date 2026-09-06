@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<!-- نوع الصفحة: متصفّح | فاتورة ضريبية مبسّطة
+     البادئة web- تعني نسخة الموقع؛ والتطبيق في app_flutter/.
+     تُفتح بـ ?id=<رقم الطلب> من صفحة الفواتير.
+
+     لا desktop.css هنا عمداً: الفاتورة ورقة مقاس A4 لا صفحة
+     موقع، فلا تحتاج شريطاً جانبياً ولا قائمة سفلية.
+     الدليل الكامل: الصفحات.md -->
+
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<title data-i18n="inv_tax_invoice">فاتورة ضريبية مبسطة</title>
+<script src="i18n.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
+<script src="favorites-service.js"></script>
+<script src="qr-code.js"></script>
+<script src="auth-guard.js"></script>
+<link rel="stylesheet" href="green-frames.css">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: "Segoe UI", Tahoma, "Arial", sans-serif;
+    background: #eef1ef;
+    color: #1a1a1a;
+    padding: 24px 14px 60px;
+  }
+
+  /* ورقة الفاتورة: عرض ثابت يقارب A4 حتى تُطبع كما تُعرض */
+  .sheet {
+    width: 100%;
+    max-width: 720px;
+    margin: 0 auto;
+    background: #ffffff;
+    border: 1px solid #e2e7e4;
+    border-radius: 14px;
+    padding: 30px 34px 38px;
+  }
+
+  .brand { text-align: center; margin-bottom: 20px; }
+
+  /* الشعار نفسه المستعمل في الموقع، مكبَّراً للطباعة */
+  .brand .wm-title {
+    font-size: 27px;
+    font-weight: 800;
+    letter-spacing: .3px;
+    line-height: 1.5;
+  }
+  .brand .w-green { color: #2e8b57; }
+  .brand .w-dark  { color: #04361b; }
+  .brand .w-b2b {
+    color: #c9a227;
+    font-size: .58em;
+    vertical-align: 0.68em;
+    font-weight: 800;
+  }
+
+  .doc-title {
+    margin-top: 14px;
+    font-size: 17px;
+    font-weight: 800;
+    color: #04361b;
+  }
+
+  .doc-title .en {
+    display: block;
+    font-size: 13.5px;
+    font-weight: 700;
+    color: #5c6b62;
+    margin-top: 2px;
+  }
+
+  .seller-name {
+    margin-top: 12px;
+    font-size: 15px;
+    font-weight: 700;
+  }
+
+  .seller-addr {
+    margin-top: 5px;
+    font-size: 12px;
+    line-height: 1.7;
+    color: #5c6b62;
+  }
+
+  /* صفّ حقل: العنوان يمنة والقيمة يسرة، ويتبع اتجاه اللغة */
+  .row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 9px 0;
+    font-size: 13px;
+  }
+
+  .row .label { color: #3a4a41; }
+
+  .row .label .en {
+    display: block;
+    font-size: 11.5px;
+    color: #8a968f;
+  }
+
+  /* الأرقام والتواريخ لاتينية دائماً فلا ينعكس ترتيبها */
+  .row .value {
+    font-weight: 700;
+    text-align: end;
+    direction: ltr;
+    white-space: nowrap;
+  }
+
+  .divider {
+    border: none;
+    border-top: 1px dashed #d5ddd8;
+    margin: 12px 0;
+  }
+
+  .section-title {
+    margin: 18px 0 4px;
+    font-size: 14px;
+    font-weight: 800;
+    color: #04361b;
+  }
+
+  .section-title .en {
+    display: block;
+    font-size: 12px;
+    font-weight: 700;
+    color: #8a968f;
+  }
+
+  /* جدول الأصناف */
+  .items { margin-top: 8px; }
+
+  .item {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 0;
+    border-bottom: 1px solid #f1f4f2;
+    font-size: 13px;
+  }
+
+  .item:last-child { border-bottom: none; }
+
+  .item .qty {
+    color: #6b7d70;
+    font-size: 12px;
+    direction: ltr;
+  }
+
+  .item .amount {
+    font-weight: 700;
+    direction: ltr;
+    white-space: nowrap;
+  }
+
+  .grand {
+    display: flex;
+    justify-content: space-between;
+    gap: 14px;
+    margin-top: 14px;
+    padding-top: 13px;
+    border-top: 2px solid #04361b;
+    font-size: 16px;
+    font-weight: 800;
+    color: #04361b;
+  }
+
+  .grand .value { direction: ltr; }
+
+  .qr-wrap { margin-top: 26px; text-align: center; }
+
+  .qr-label {
+    font-size: 13px;
+    font-weight: 700;
+    color: #04361b;
+    margin-bottom: 10px;
+  }
+
+  .qr-label .en {
+    display: block;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: #8a968f;
+  }
+
+  .qr-wrap svg {
+    width: 190px;
+    height: 190px;
+    display: block;
+    margin: 0 auto;
+  }
+
+  .actions {
+    max-width: 720px;
+    margin: 16px auto 0;
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+  }
+
+  .btn {
+    padding: 11px 22px;
+    border: none;
+    border-radius: 9px;
+    font: inherit;
+    font-size: 13.5px;
+    font-weight: 700;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+  }
+
+  .btn.primary { background: #1f6b42; color: #ffffff; }
+  .btn.primary:hover { background: #175433; }
+
+  .btn.ghost {
+    background: #ffffff;
+    color: #1f6b42;
+    border: 1px solid #c7dfce;
+  }
+  .btn.ghost:hover { background: #f4f8f5; }
+
+  .state {
+    max-width: 720px;
+    margin: 40px auto;
+    padding: 30px;
+    background: #ffffff;
+    border-radius: 14px;
+    text-align: center;
+    font-size: 14px;
+    color: #5c6b62;
+  }
+
+  /* الطباعة: تُحذف الأزرار والخلفيات فتخرج ورقة نظيفة */
+  @media print {
+    body { background: #ffffff; padding: 0; }
+    .sheet {
+      border: none;
+      border-radius: 0;
+      max-width: none;
+      padding: 0;
+    }
+    .actions { display: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<div id="root">
+  <div class="state" data-i18n="fx_loading">جارٍ التحميل…</div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* رقم التعريف الضريبي: ثابت في الكود بطلب المالك، وهو رقم
+     تجريبي لا يعود لمنشأة حقيقية. حين تُسجَّل المنصّة ضريبياً
+     يُستبدل بالرقم الفعلي من مكان واحد. */
+  var TAX_NUMBER = "300000000000003";
+
+  var SELLER_NAME_AR = "منصّة المصانع السعودية";
+  var SELLER_NAME_EN = "Saudi Factories B2B";
+  var SELLER_ADDR = "الرياض، المملكة العربية السعودية";
+
+  var root = document.getElementById("root");
+
+  function esc(v) {
+    return String(v == null ? "" : v).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;",
+               '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
+  function money(v) {
+    return Number(v || 0).toFixed(2) + " " + I18N.t("currency_sar");
+  }
+
+  /* التاريخ بصيغة ISO المحلّية — الفاتورة مستند، فالثانية فيها
+     جزء من الهوية لا تفصيل تجميلي. */
+  function stamp(iso) {
+    var d = new Date(iso);
+    function p(n) { return String(n).padStart(2, "0"); }
+    return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()) +
+           " " + p(d.getHours()) + ":" + p(d.getMinutes()) + ":" + p(d.getSeconds());
+  }
+
+  function shortId(id) {
+    return String(id || "").split("-")[0].toUpperCase();
+  }
+
+  /* صفّ بعنوان عربي وإنجليزي معاً، كما في الفاتورة السعودية */
+  function row(ar, en, value) {
+    return '<div class="row">' +
+             '<span class="label">' + esc(ar) +
+               '<span class="en">' + esc(en) + "</span>" +
+             "</span>" +
+             '<span class="value">' + esc(value) + "</span>" +
+           "</div>";
+  }
+
+  function show(html) { root.innerHTML = html; }
+
+  function fail(msg) {
+    show('<div class="state">' + esc(msg) + "</div>");
+  }
+
+  var orderId = "";
+  try {
+    orderId = new URLSearchParams(window.location.search).get("id") || "";
+  } catch (e) {}
+
+  SF_AUTH_READY.then(function () {
+    if (!orderId) throw new Error(I18N.t("inv_not_found"));
+
+    /* RLS تتكفّل بالحماية: المشتري وصاحب المصنع والمدير وحدهم
+       يقرؤون الطلب، فلا حاجة لفحص إضافي في الصفحة. */
+    return sb.from("orders")
+      .select("id, status, subtotal, shipping, payment_fee, vat_rate, " +
+              "vat_amount, total, created_at, factories(name), " +
+              "order_items(product_name, unit_price, quantity, line_total)")
+      .eq("id", orderId)
+      .limit(1);
+  }).then(function (res) {
+    if (res.error) throw res.error;
+    var o = (res.data || [])[0];
+    if (!o) throw new Error(I18N.t("inv_not_found"));
+    render(o);
+  }).catch(function (err) {
+    fail((err && err.message) || String(err));
+  });
+
+  function render(o) {
+    var factory = (o.factories && o.factories.name) || "";
+    var when = stamp(o.created_at);
+
+    var items = (o.order_items || []).map(function (it) {
+      return '<div class="item">' +
+               "<span>" + esc(it.product_name) +
+                 '<span class="qty">' + esc(it.quantity) + " × " +
+                   money(it.unit_price) + "</span>" +
+               "</span>" +
+               '<span class="amount">' + money(it.line_total) + "</span>" +
+             "</div>";
+    }).join("");
+
+    var vatPct = (Number(o.vat_rate || 0) * 100).toFixed(1) + "%";
+
+    /* محتوى الرمز: الحقول الخمسة الإلزامية بترميز TLV ثم base64 */
+    var payload = SFQR.invoicePayload(
+      SELLER_NAME_AR, TAX_NUMBER, new Date(o.created_at).toISOString(),
+      Number(o.total || 0).toFixed(2), Number(o.vat_amount || 0).toFixed(2)
+    );
+
+    var qr = SFQR.svg(payload, 190);
+
+    var html =
+      '<div class="sheet">' +
+        '<div class="brand">' +
+          '<div class="wm-title">' +
+            '<span class="w-green">Saudi</span> ' +
+            '<span class="w-dark">Factories</span> ' +
+            '<span class="w-b2b">B2B</span>' +
+          "</div>" +
+          '<div class="doc-title">' + esc(I18N.t("inv_tax_invoice")) +
+            '<span class="en">Simplified Tax Invoice</span>' +
+          "</div>" +
+          '<div class="seller-name">' + esc(SELLER_NAME_AR) + "</div>" +
+          '<div class="seller-name">' + esc(SELLER_NAME_EN) + "</div>" +
+          '<div class="seller-addr">' + esc(SELLER_ADDR) + "</div>" +
+        "</div>" +
+
+        row(I18N.t("inv_tin"), "Tax Identification Number", TAX_NUMBER) +
+        row(I18N.t("inv_invoice_no"), "Invoice Number / Order Request",
+            shortId(o.id)) +
+        row(I18N.t("inv_invoice_date"), "Invoice Date", when) +
+        (factory ? row(I18N.t("inv_seller"), "Seller", factory) : "") +
+
+        '<hr class="divider">' +
+
+        '<div class="section-title">' + esc(I18N.t("order_details")) +
+          '<span class="en">Details</span>' +
+        "</div>" +
+        '<div class="items">' + items + "</div>" +
+
+        '<hr class="divider">' +
+
+        row(I18N.t("order_subtotal"), "Subtotal", money(o.subtotal)) +
+        (Number(o.shipping) > 0
+          ? row(I18N.t("order_shipping"), "Delivery Fees", money(o.shipping))
+          : "") +
+        (Number(o.payment_fee) > 0
+          ? row(I18N.t("order_payment_fee"), "Service Fees", money(o.payment_fee))
+          : "") +
+
+        '<hr class="divider">' +
+
+        row(I18N.t("inv_vat_rate"), "VAT", vatPct) +
+        row(I18N.t("inv_total_vat_collected"), "Total VAT Collected",
+            money(o.vat_amount)) +
+
+        '<div class="grand">' +
+          "<span>" + esc(I18N.t("inv_subtotal_incl_vat")) + "</span>" +
+          '<span class="value">' + esc(money(o.total)) + "</span>" +
+        "</div>" +
+
+        '<div class="qr-wrap">' +
+          '<div class="qr-label">' + esc(I18N.t("inv_qr")) +
+            '<span class="en">QR Code</span>' +
+          "</div>" +
+          (qr || "") +
+        "</div>" +
+      "</div>" +
+
+      '<div class="actions">' +
+        '<button type="button" class="btn primary" id="print-btn">' +
+          esc(I18N.t("invoice_print")) +
+        "</button>" +
+        '<a class="btn ghost" href="web-invoices.html">' +
+          esc(I18N.t("row_invoices")) +
+        "</a>" +
+      "</div>";
+
+    show(html);
+
+    var pb = document.getElementById("print-btn");
+    if (pb) pb.addEventListener("click", function () { window.print(); });
+
+    if (window.I18N && I18N.applyTranslations) I18N.applyTranslations();
+  }
+})();
+</script>
+
+</body>
+</html>

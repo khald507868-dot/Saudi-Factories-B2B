@@ -126,6 +126,9 @@
     padding: 8px 16px;
     border-radius: 10px;
     cursor: pointer;
+    /* صار رابطاً لا زرّاً، فيحتاج هذين ليبدو كما كان */
+    display: inline-block;
+    text-decoration: none;
   }
   .btn-print:hover { background: #f2f8f4; }
 
@@ -488,9 +491,13 @@
             '<span class="total-label">' + esc(I18N.t("cart_total_label")) + '</span> ' +
             '<span class="total-value">' + money(o.total) + '</span>' +
           '</div>' +
-          '<button class="btn-print" onclick="window.print()">' +
+          /* يفتح الفاتورة الضريبية بدل طباعة بطاقة القائمة:
+             window.print() كان يطبع الصفحة كلّها بقائمتها
+             الجانبية، لا مستنداً يصلح للحفظ. */
+          '<a class="btn-print" href="web-invoice.html?id=' +
+            encodeURIComponent(o.id) + '">' +
             esc(I18N.t("invoice_print")) +
-          '</button>' +
+          '</a>' +
         '</div>' +
       '</div>';
   }
