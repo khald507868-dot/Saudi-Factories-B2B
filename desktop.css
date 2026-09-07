@@ -1578,7 +1578,7 @@
      بطاقة واحدة لا غير، فالعمود الضيّق يبقى
      فارغاً إلى جانبها فتبدو غير محاذية
      للترويسة فوقها. */
-  body.store-page:not([class*="tab-"]) .content-wrap,
+  body.store-page:not([class*="tab-"]):not(.product-page) .content-wrap,
   body.store-page.tab-about .content-wrap,
   body.store-page.tab-posts .content-wrap,
   body.store-page.tab-products .content-wrap {
@@ -1588,8 +1588,8 @@
   /* إلغاء إسناد الأعمدة والصفوف،
      فالتدفّق التلقائي يرتّبهما
      على ترتيب الماركأب: نبذة ثم منشورات. */
-  body.store-page:not([class*="tab-"]) #card-about,
-  body.store-page:not([class*="tab-"]) #card-posts,
+  body.store-page:not([class*="tab-"]):not(.product-page) #card-about,
+  body.store-page:not([class*="tab-"]):not(.product-page) #card-posts,
   body.store-page.tab-about #card-about,
   body.store-page.tab-posts #card-posts,
   body.store-page.tab-products #card-products {
@@ -1712,14 +1712,112 @@
     background: linear-gradient(to right, #1f6b42, #45a06a, #c9a227);
   }
 
-  .store-page .product-hero {
-    border-radius: 12px 12px 0 0 !important;
-    margin-bottom: 0 !important;
+  /* ============================================================
+     صفحة المنتج — ثلاثة أعمدة على نمط أمازون
+     (بطلب المالك مع لقطة مرجعية، 2026-09-07).
+
+     موصولة بـ.product-page لا بـ.store-page وحده:
+     الصفحتان تتقاسمان store-page، وشبكة تلك
+     (264px للعمود الجانبي) مبنية لصفحة المصنع،
+     فوراثتها صفحة المنتج فامتدّت صورتها عرض الشاشة.
+     ============================================================ */
+
+  .product-page .content-wrap {
+    /* المحتوى يتوسّط ولا يلامس الحافتين:
+       المنتج صفحة قراءة لا رفّ عرض، وسطر الوصف
+       الممتدّ متر كامل يتعب العين. وأمازون نفسها
+       تحصر صفحة المنتج في عمود محدود. */
+    max-width: 1400px !important;
+    width: auto !important;
+    margin: 18px auto 0 !important;
+    padding: 0 18px !important;
+    display: grid;
+    /* عمود الصورة بعرض ثابت لا بكسر متمدّد:
+       1.05fr كان يكبّرها مع الشاشة حتّى صارت
+       نصف الصفحة — وأمازون تثبّتها. */
+    grid-template-columns: 360px minmax(0, 1fr) 300px !important;
+    column-gap: 20px;
+    row-gap: 14px;
+    align-items: start;
   }
 
-  .store-page .supplier-card {
-    border-radius: 0 0 12px 12px !important;
-    margin-top: 0 !important;
+  /* الصورة عموداً وحدها على اليمين، وتمتدّ
+     لأسفل الصفحة فلا تترك فراغاً تحتها. */
+  .product-page .product-hero {
+    grid-column: 1;
+    grid-row: 1;
+    position: sticky;
+    top: 18px;
+    aspect-ratio: 1 / 1;
+    border-radius: 14px !important;
+    margin: 0 !important;
+    padding: 18px;
+  }
+
+  /* بطاقة الاسم والسعر ثمّ الوصف والمواصفات
+     والمورّد — كلّها في العمود الأوسط متتابعة. */
+  .product-page .content-wrap > .card {
+    grid-column: 2;
+    margin: 0 !important;
+    padding: 18px !important;
+  }
+
+  /* صندوق الشراء: عمود ثالث يرافق القراءة،
+     فالأزرار تبقى في العين مهما طال الوصف. */
+  .product-page .actions {
+    grid-column: 3;
+    grid-row: 1 / span 20;
+    position: sticky;
+    top: 18px;
+    margin: 0 !important;
+    padding: 18px;
+    background: #ffffff;
+    border-radius: 14px;
+    box-shadow: 0 2px 10px rgba(4, 54, 27, 0.06);
+  }
+
+  /* لا لصق بين الصورة وبطاقة المورّد هنا:
+     ذاك لعمود الجوّال حيث كانتا متجاورتين،
+     وقد افترقتا إلى عمودين. */
+  .product-page .supplier-card {
+    border-radius: 14px !important;
+    border-top: 0 !important;
+  }
+
+  /* بطاقة "المنتج غير متاح" وحدها في الصفحة:
+     تعبر الأعمدة الثلاثة وتتوسّط، وإلّا وقعت في
+     العمود الأوسط وجاراها عمودان فارغان. */
+  .product-page .missing-card {
+    grid-column: 1 / -1 !important;
+    max-width: 460px;
+    margin: 0 auto !important;
+  }
+
+  .product-page .prod-name { font-size: 22px; line-height: 1.5; }
+
+  /* شاشة أضيق من أن تسع ثلاثة: الصندوق
+     ينزل تحت الصورة ويبقى الوصف إلى جانبها. */
+  @media (max-width: 1100px) {
+    .product-page .content-wrap {
+      grid-template-columns: 320px minmax(0, 1fr) !important;
+    }
+    .product-page .actions {
+      grid-column: 1;
+      grid-row: auto;
+      position: static;
+    }
+    .product-page .product-hero { position: static; }
+  }
+
+  /* عمود واحد على الشاشات الضيّقة */
+  @media (max-width: 780px) {
+    .product-page .content-wrap {
+      grid-template-columns: minmax(0, 1fr) !important;
+      padding: 0 14px !important;
+    }
+    .product-page .product-hero,
+    .product-page .content-wrap > .card,
+    .product-page .actions { grid-column: 1; }
   }
 
   /* لا قاعدة عرض خاصّة بـview-only هنا:
