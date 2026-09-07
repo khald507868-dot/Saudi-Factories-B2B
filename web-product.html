@@ -309,6 +309,9 @@
     border-top: 1px solid #eef2ef;
   }
 
+  /* خلية قابلة للنقر (بطلب المالك): تُلغى
+     مظاهر الزرّ الافتراضية ويُضبط المحاذاة،
+     ويبقى الشكل كما كان قبل أن يصير زرّاً. */
   .tier-cell {
     flex: 1 1 92px;
     min-width: 92px;
@@ -316,6 +319,26 @@
     border: 1px solid #e4eae6;
     border-radius: 10px;
     background: #ffffff;
+    font-family: inherit;
+    text-align: inherit;
+    cursor: pointer;
+    transition: border-color .15s, background .15s, transform .1s;
+  }
+
+  /* تغذية راجعة عند المرور والضغط فيُعلم المشتري
+     أنّها تُنقر. */
+  .tier-cell:hover { border-color: #9dc6ae; background: #fbfdfb; }
+  .tier-cell:active { transform: scale(.985); }
+
+  /* دليل التركيز لمن يتنقّل بـTab. */
+  .tier-cell:focus-visible {
+    outline: 2px solid #1f6b42;
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .tier-cell { transition: none; }
+    .tier-cell:active { transform: none; }
   }
 
   /* الإبراز بالإطار والخلفية لا باللون وحده:
@@ -929,8 +952,32 @@
            يضع رقمين متناقضين في بطاقة واحدة. */
         showTierPrice(active >= 0 ? list[active].price : null);
         list.forEach(function (t, i) {
-          var cell = document.createElement("div");
+          /* button لا div: ينال التركيز بـTab ويستجيب
+             لـEnter والمسافة بلا عمل إضافيّ، ويقرأه قارئ
+             الشاشة زرّاً لا نصّاً. */
+          var cell = document.createElement("button");
+          cell.type = "button";
           cell.className = "tier-cell" + (i === active ? " is-active" : "");
+          cell.setAttribute("aria-pressed", i === active ? "true" : "false");
+
+          /* النقر ينقل الكمّية إلى أدنى حدّ الشريحة،
+             إلّا إن كانت الكمّية داخلها أصلاً فتُترك —
+             وإلّا أنقصت طلب من كتب 150 ثمّ نقر شريحته. */
+          cell.addEventListener("click", function () {
+            var lo = parseInt(t.min, 10);
+            if (isNaN(lo) || lo < 1) return;
+            var hasHi = t.max != null && String(t.max) !== "";
+            var hi = hasHi ? parseInt(t.max, 10) : Infinity;
+            var now = readQty();
+            if (now >= lo && now <= hi) return;
+
+            var box = document.getElementById("qty-value");
+            if (!box) return;
+            box.value = String(lo);
+            var minusBtn = document.getElementById("qty-minus");
+            if (minusBtn) minusBtn.disabled = (lo <= 1);
+            renderTiers();
+          });
 
           var pr = document.createElement("div");
           pr.className = "tier-cell-price";
