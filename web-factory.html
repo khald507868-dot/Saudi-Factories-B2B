@@ -2121,9 +2121,11 @@
 
       function paintFollow() {
         if (!followBtn) return;
-        followBtn.classList.toggle("is-following", followState.is_following);
-        followText.textContent = I18N.t(
-          followState.is_following ? "fx_following" : "fx_follow");
+        /* المالك لا يُرسم زرّه متابِعاً أبداً: لو بقي صفّ
+           متابعة قديم لظهر الزرّ محدّداً وهو معطّل — تناقض. */
+        var on = followState.is_following && !canEdit;
+        followBtn.classList.toggle("is-following", on);
+        followText.textContent = I18N.t(on ? "fx_following" : "fx_follow");
       }
 
       /* المالك لا يتابِع مصنعه، لكنّه يرى
@@ -2441,11 +2443,28 @@
         return d.getFullYear() + "/" + (d.getMonth() + 1) + "/" + d.getDate();
       }
 
+      /* ما يراه الزائر فعلاً: المالك يرى الكلّ ليكمل،
+         والزائر لا يرى إلّا ما فيه محتوى. دالّة واحدة
+         يقرأها الرسم والعدّ، فلا يفترقان في تعديل لاحق. */
+      function visiblePosts() {
+        if (canEdit) return data.posts;
+        return data.posts.filter(function (po) {
+          return String(po.body || "").trim() || po.image || po.video;
+        });
+      }
+
       function renderPosts() {
         postsList.innerHTML = "";
-        postsEmpty.style.display = data.posts.length ? "none" : "";
+        postsEmpty.style.display = visiblePosts().length ? "none" : "";
 
         data.posts.forEach(function (post, index) {
+          /* منشور بلا نصّ ولا وسائط لا يُعرض للزائر:
+             زرّ "إضافة منشور" ينشئ صفّاً فارغاً ليُملأ، فإن حُفظ
+             قبل الكتابة ظهر للمشتري تاريخاً بلا محتوى.
+             والمالك يراه ليكمله. */
+          if (!canEdit && !String(post.body || "").trim() &&
+              !post.image && !post.video) return;
+
           var item = document.createElement("div");
           item.className = "post-item";
 
@@ -2573,7 +2592,7 @@
       }
 
       /* الزائر لا يرى بطاقة منشورات فارغة */
-      if (!canEdit && !data.posts.length) {
+      if (!canEdit && !visiblePosts().length) {
         var postsCard = document.getElementById("card-posts");
         if (postsCard) postsCard.classList.add("is-empty");
       }
