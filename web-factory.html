@@ -1052,6 +1052,73 @@
   .product-specs-box textarea:focus,
   .product-specs-box input:focus { outline: none; border-color: #45a06a; }
 
+  /* شرائح التسعير — ثلاثة حقول وزرّ حذف في صفّ.
+     المقاسات بـfr لا ببكسل: الأرقام قصيرة والعمود
+     ضيّق، فالعرض الثابت يفيض عنه في اللغات الطويلة. */
+  .tier-box { margin-top: 9px; }
+
+  .tier-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 7px;
+  }
+
+  .tier-title {
+    font-size: 12.5px;
+    font-weight: 700;
+    color: #04361b;
+  }
+
+  .tier-add {
+    border: 1px solid #1f6b42;
+    background: #ffffff;
+    color: #1f6b42;
+    border-radius: 999px;
+    padding: 5px 12px;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .tier-add:hover { background: #f0f4f1; }
+  .tier-add:disabled { opacity: .5; cursor: default; }
+
+  .tier-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1.2fr auto;
+    gap: 6px;
+    align-items: center;
+    margin-bottom: 6px;
+  }
+
+  .tier-hint {
+    font-size: 11.5px;
+    color: #6d7d73;
+    line-height: 1.6;
+    margin-top: 2px;
+  }
+
+  .tier-row input {
+    width: 100%;
+    padding: 7px 8px;
+    border: 1px solid #dfe5e1;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 12.5px;
+  }
+
+  .tier-del {
+    border: 0;
+    background: transparent;
+    color: #b34747;
+    font-size: 17px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 4px 6px;
+  }
+
   .spec-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1852,7 +1919,8 @@
               material: pr.material || "",
               sizes: pr.sizes || "",
               colors: pr.colors || "",
-              moq: pr.moq == null ? "" : String(pr.moq)
+              moq: pr.moq == null ? "" : String(pr.moq),
+            tiers: Array.isArray(pr.tiers) ? pr.tiers : []
             };
           }),
           p_posts: (data.posts || []).map(function (po) {
@@ -3137,6 +3205,115 @@
             specGrid.appendChild(f);
           });
 
+          /* شرائح الأسعار: كلّما زادت الكمّية قلّ السعر.
+             وتُبنى بـDOM لا بسلاسل نصّية متصلة. */
+          product.tiers = Array.isArray(product.tiers) ? product.tiers : [];
+
+          var tierBox = document.createElement("div");
+          tierBox.className = "tier-box";
+
+          var tierHead = document.createElement("div");
+          tierHead.className = "tier-head";
+
+          var tierTitle = document.createElement("span");
+          tierTitle.className = "tier-title";
+          tierTitle.textContent = I18N.t("tier_pricing");
+          tierHead.appendChild(tierTitle);
+
+          var tierAdd = document.createElement("button");
+          tierAdd.type = "button";
+          tierAdd.className = "tier-add";
+          tierAdd.textContent = I18N.t("tier_add");
+          tierHead.appendChild(tierAdd);
+
+          tierBox.appendChild(tierHead);
+
+          var tierList = document.createElement("div");
+          tierBox.appendChild(tierList);
+
+          /* يشرح أنّ ترك "إلى" فارغاً يفتح الشريحة
+             إلى ما لا نهاية — وهذا غير بديهيّ بلا قول. */
+          var tierHint = document.createElement("div");
+          tierHint.className = "tier-hint";
+          tierHint.textContent = I18N.t("tier_hint");
+          tierBox.appendChild(tierHint);
+
+          /* السقف 8 مطابق لقيد القاعدة
+             products_tiers_len — ولو زاد لرُفض الحفظ كلّه. */
+          var TIER_MAX = 8;
+
+          function syncAddBtn() {
+            tierAdd.disabled = product.tiers.length >= TIER_MAX;
+          }
+
+          function drawTiers() {
+            tierList.innerHTML = "";
+            product.tiers.forEach(function (tier, ti) {
+              var row = document.createElement("div");
+              row.className = "tier-row";
+
+              [["min", "tier_from"],
+               ["max", "tier_to"],
+               ["price", "tier_price"]].forEach(function (pair) {
+                var key = pair[0];
+                var f = document.createElement("input");
+                f.type = "text";
+                f.inputMode = key === "price" ? "decimal" : "numeric";
+                f.maxLength = 9;
+                f.value = tier[key] == null ? "" : String(tier[key]);
+                /* نائب كلّ حقل اسمُه لا غير. ووضع "فما فوق"
+                   نائباً لـ"إلى" جعله يُقرأ مبتوراً ("and")،
+                   فالمعنى موضوع في سطر الإرشاد تحت الصندوق. */
+                f.placeholder = I18N.t(pair[1]);
+                f.addEventListener("input", function () {
+                  var raw = f.value.trim();
+                  if (raw === "") {
+                    tier[key] = key === "max" ? null : "";
+                  } else {
+                    tier[key] = raw;
+                  }
+                  save();
+                });
+                row.appendChild(f);
+              });
+
+              var del = document.createElement("button");
+              del.type = "button";
+              del.className = "tier-del";
+              del.innerHTML = "&times;";
+              del.setAttribute("aria-label", I18N.t("tier_remove"));
+              del.addEventListener("click", function () {
+                product.tiers.splice(ti, 1);
+                drawTiers();
+                syncAddBtn();
+                save();
+              });
+              row.appendChild(del);
+
+              tierList.appendChild(row);
+            });
+          }
+
+          tierAdd.addEventListener("click", function () {
+            if (product.tiers.length >= TIER_MAX) return;
+            /* الشريحة الجديدة تبدأ بعد أعلى ما قبلها
+               فلا يكتب المالك مدىً متداخلاً بغير قصد. */
+            var next = 1;
+            product.tiers.forEach(function (t) {
+              var hi = parseInt(t.max, 10);
+              if (isNaN(hi)) hi = parseInt(t.min, 10);
+              if (!isNaN(hi) && hi + 1 > next) next = hi + 1;
+            });
+            product.tiers.push({ min: String(next), max: null, price: "" });
+            drawTiers();
+            syncAddBtn();
+            save();
+          });
+
+          drawTiers();
+          syncAddBtn();
+          specsBox.appendChild(tierBox);
+
           specsBox.appendChild(specGrid);
           body.appendChild(specsBtn);
           body.appendChild(specsBox);
@@ -3205,7 +3382,8 @@
             material: pr.material || "",
             sizes: pr.sizes || "",
             colors: pr.colors || "",
-            moq: pr.moq == null ? "" : String(pr.moq)
+            moq: pr.moq == null ? "" : String(pr.moq),
+            tiers: Array.isArray(pr.tiers) ? pr.tiers : []
           };
         });
 

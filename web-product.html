@@ -287,6 +287,62 @@
 
   .supplier-link:hover { text-decoration: underline; }
 
+  /* ===== شرائح التسعير =====
+     صفّ أفقيّ من الشرائح كما في علي بابا:
+     السعر فوق والمدى تحته، والشريحة المطابقة
+     للكمّية المختارة تُبرز بإطار. */
+  /* [hidden] مجرّد افتراض ضعيف من المتصفّح
+     يغلبه أيّ display صريح — فبلا هذا السطر
+     يظهر الجدول الفارغ شريطاً مؤطّراً في كلّ
+     منتج بلا شرائح. */
+  .tier-table[hidden] { display: none !important; }
+
+  .tier-table {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #eef2ef;
+  }
+
+  .tier-cell {
+    flex: 1 1 92px;
+    min-width: 92px;
+    padding: 9px 10px;
+    border: 1px solid #e4eae6;
+    border-radius: 10px;
+    background: #ffffff;
+  }
+
+  /* الإبراز بالإطار والخلفية لا باللون وحده:
+     من لا يميّز الألوان يرى الفرق كذلك. */
+  .tier-cell.is-active {
+    border-color: #1f6b42;
+    background: #f2f8f4;
+    box-shadow: 0 0 0 1px #1f6b42 inset;
+  }
+
+  .tier-cell-price {
+    font-size: 15.5px;
+    font-weight: 700;
+    color: #04361b;
+    white-space: nowrap;
+  }
+
+  .tier-cell-price .currency {
+    font-size: 11.5px;
+    font-weight: 700;
+    margin-inline-start: 3px;
+  }
+
+  .tier-cell-range {
+    margin-top: 3px;
+    font-size: 11.5px;
+    color: #6d7d73;
+    white-space: nowrap;
+  }
+
   /* ===== منتقي الكمّية ===== */
   .qty-picker {
     display: flex;
@@ -613,6 +669,7 @@
           priceBlock +
           '<div class="prod-moq">' + escapeHTML(I18N.t("product_reorder_rate")) +
             ' ' + reorder + '%</div>' +
+          '<div class="tier-table" id="tier-table" hidden></div>' +
           '<div class="prod-badges">' +
             '<span class="prod-verified">' + checkIcon +
               escapeHTML(I18N.t("product_verified")) + '</span>' +
@@ -751,6 +808,83 @@
          هو نفسه حدّ الخادم في add_to_cart. */
       /* بناء المنتقي عنصراً عنصراً — يستعمله المسار
          البديل حين يصل صفّ الخادم بعد أوّل رسم. */
+      /* الشرائح الصالحة مرتّبة تصاعدياً.
+         والتصفية هنا للعرض فقط — الخادم يصفّي مرّة
+         أخرى عند الحفظ وعند حساب الطلب، فلا يُعتمد
+         على هذه في المال. */
+      function validTiers(list) {
+        if (!Array.isArray(list)) return [];
+        return list.filter(function (t) {
+          if (!t) return false;
+          var lo = parseInt(t.min, 10);
+          var pr = parseFloat(t.price);
+          if (isNaN(lo) || lo < 1) return false;
+          if (isNaN(pr) || pr <= 0) return false;
+          if (t.max != null && String(t.max) !== "") {
+            var hi = parseInt(t.max, 10);
+            if (isNaN(hi) || hi < lo) return false;
+          }
+          return true;
+        }).sort(function (a, b) {
+          return parseInt(a.min, 10) - parseInt(b.min, 10);
+        });
+      }
+
+      /* أعلى شريحة يشملها العدد — نفس منطق
+         tier_unit_price في القاعدة، واختلافهما يُري
+         المشتري سعراً غير الذي يُحاسَب عليه. */
+      function activeTierIndex(list, qty) {
+        var found = -1;
+        list.forEach(function (t, i) {
+          var lo = parseInt(t.min, 10);
+          var hasHi = t.max != null && String(t.max) !== "";
+          var hi = hasHi ? parseInt(t.max, 10) : Infinity;
+          if (qty >= lo && qty <= hi) found = i;
+        });
+        return found;
+      }
+
+      function tierRangeText(t) {
+        var lo = parseInt(t.min, 10);
+        var hasHi = t.max != null && String(t.max) !== "";
+        var piece = I18N.t("tier_piece");
+        if (!hasHi) return lo + "+ " + piece;
+        return lo + "-" + parseInt(t.max, 10) + " " + piece;
+      }
+
+      /* يُعاد رسمه عند كلّ تغيير كمّية ليتتبّع
+         الإبراز الشريحة المطبّقة فعلاً. */
+      function renderTiers() {
+        var host = document.getElementById("tier-table");
+        if (!host) return;
+        var list = validTiers(product.tiers);
+        host.innerHTML = "";
+        if (!list.length) { host.hidden = true; return; }
+        host.hidden = false;
+
+        var active = activeTierIndex(list, readQty());
+        list.forEach(function (t, i) {
+          var cell = document.createElement("div");
+          cell.className = "tier-cell" + (i === active ? " is-active" : "");
+
+          var pr = document.createElement("div");
+          pr.className = "tier-cell-price";
+          pr.textContent = parseFloat(t.price).toFixed(2);
+          var cur = document.createElement("span");
+          cur.className = "currency";
+          cur.textContent = I18N.t("currency_sar");
+          pr.appendChild(cur);
+          cell.appendChild(pr);
+
+          var rg = document.createElement("div");
+          rg.className = "tier-cell-range";
+          rg.textContent = tierRangeText(t);
+          cell.appendChild(rg);
+
+          host.appendChild(cell);
+        });
+      }
+
       function buildQtyPicker() {
         var box = document.createElement("div");
         box.className = "qty-picker";
@@ -810,12 +944,14 @@
           if (n > 100000) n = 100000;
           val.textContent = n;
           minus.disabled = (n <= 1);
+          renderTiers();
         }
         minus.addEventListener("click", function () { step(-1); });
         plus.addEventListener("click", function () { step(1); });
         minus.disabled = true;
       }
       bindQtyPicker();
+      renderTiers();
 
       function bindCartButton() {
         var cartButton = wrap.querySelector(".add-cart-btn");
@@ -856,6 +992,11 @@
         if (hero) hero.innerHTML = liveImage ? '<img alt="" src="' + escapeHTML(liveImage) + '">' : imageIcon;
         var title = wrap.querySelector(".prod-name");
         if (title) title.textContent = row.name || factory.name || factoryName;
+        /* الشرائح من الخادم تحلّ محلّ المحلّية */
+        if (Array.isArray(row.tiers)) {
+          product.tiers = row.tiers;
+          renderTiers();
+        }
         var priceEl = wrap.querySelector(".prod-price");
         if (priceEl) {
           priceEl.className = row.price ? "prod-price" : "prod-price on-request";
@@ -907,6 +1048,7 @@
             if (!wrap.querySelector(".qty-picker")) {
               actionBox.insertBefore(buildQtyPicker(), rowBox);
               bindQtyPicker();
+              renderTiers();
             }
             bindCartButton();
           }
@@ -916,7 +1058,7 @@
       if (window.sb) {
         (window.SF_AUTH_READY || Promise.resolve()).then(function () {
           var query = sb.from("products").select(
-            "id, factory_id, name, price, image, images, description, material, sizes, colors, moq, " +
+            "id, factory_id, name, price, image, images, description, material, sizes, colors, moq, tiers, " +
             "factories(id, name, cover, logo, status)"
           );
           if (productId) query = query.eq("id", productId);
