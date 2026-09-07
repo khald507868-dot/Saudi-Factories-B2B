@@ -151,7 +151,11 @@
   }
 
   /* البحث يتمدّد ويأخذ وسط الشريط */
-  .top-bar .search-box {
+  /* .dt-bar معه: الرئيسية تلفّ الشريط بـ.top-bar،
+     والشريط المحقون في بقية الصفحات بلا غلاف —
+     فكان البحث يظهر بلا إطار أخضر هناك. */
+  .top-bar .search-box,
+  .dt-bar .search-box {
     flex: 1;
     max-width: 620px;
     height: 44px !important;
@@ -163,13 +167,16 @@
     padding: 0 16px !important;
   }
 
-  .top-bar .search-box input {
+  .top-bar .search-box input,
+  .dt-bar .search-box input {
     font-size: 15px !important;
     color: #12331d !important;
   }
 
-  .top-bar .search-box input::placeholder { color: #12331d !important; }
-  .top-bar .search-box svg { stroke: #12331d !important; }
+  .top-bar .search-box input::placeholder,
+  .dt-bar .search-box input::placeholder { color: #12331d !important; }
+  .top-bar .search-box svg,
+  .dt-bar .search-box svg { stroke: #12331d !important; }
 
   /* أدوات الحساب على يسار الشريط */
   .dt-actions {
@@ -1604,6 +1611,96 @@
      القاعدة فوق تفرض 12px وهامشاً سفليّاً بـ!important على كل
      .card، وهي تغلب قاعدة الصفحة لأن desktop.css يُحمّل بعدها —
      فالوصل يجب أن يقع هنا لا هناك. */
+  /* الشعار يحمل display: flex في قواعد أعلاه، وهي تغلب
+     سمة hidden — لأنّ [hidden] { display: none } قاعدة افتراضية
+     ضعيفة يهزمها أيّ display صريح. وtop-bar.js يُخفي الشعار
+     عند حقن الشريط لأنّ الشريط يحمله أصلاً. */
+  .page-logo[hidden] { display: none !important; }
+
+  /* ============================================================
+     أنماط الشريط العلوي المشترك
+     ------------------------------------------------------------
+     كانت في index.html وحدها، فلمّا صار الشريط يُحقن
+     في صفحات المصنع والمنتج والمصانع ظهر بلا تنسيق:
+     عناصره متناثرة رأسيّاً والبحث بلا إطار.
+     ونسخة index.html باقية ومطابقة، فلا تعارض.
+     ============================================================ */
+  .search-box {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #ffffff;
+    border-radius: 999px;
+    padding: 8px 16px;
+  }
+
+  .search-box svg {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    stroke: #04361b;
+  }
+
+  .search-box input {
+    flex: 1;
+    border: none;
+    outline: none;
+    font-size: 15px;
+    font-family: inherit;
+    color: #04361b;
+    background: transparent;
+  }
+
+  .search-box input::placeholder {
+    color: #04361b;
+  }
+
+  /* ===== الشعار الكتابي في الشريط العلوي ===== */
+  .top-bar-logo {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    flex-shrink: 0;
+    /* min-width لا width: العرض الثابت يقصّ آخر حرف من B2B */
+    min-width: 108px;
+  }
+
+  .top-bar-logo .wm-title {
+    font-size: 11px;
+    font-weight: 800;
+    /* 1.55 لا 1.1: B2B مرفوعة بـ vertical-align فوق السطر،
+       وارتفاع السطر الضيّق كان يقصّ أعلاها */
+    line-height: 1.55;
+    white-space: nowrap;
+    /* الاسم لاتيني دائماً، فيثبّت اتجاهه حتى لا ينعكس ترتيب الكلمتين في RTL */
+    direction: ltr;
+  }
+
+  /* "مصانع" أخضر فاتح و"السعودية" أبيض فوق خلفية الشريط الخضراء */
+  .top-bar-logo .w-green { color: #45a06a; }
+  .top-bar-logo .w-dark { color: #ffffff; }
+
+  /* "B2B" ذهبي وبحجم أصغر لتمييزها عن الاسم */
+  .top-bar-logo .w-b2b {
+    color: #c9a227;
+    font-size: 0.62em;
+    vertical-align: 0.58em;
+  }
+
+  /* الخط المتدرج تحت الاسم */
+  .top-bar-logo .wm-rule {
+    width: 100%;
+    height: 1.5px;
+    border-radius: 2px;
+    background: linear-gradient(to left, #1f6b42, #45a06a, #c9a227);
+  }
+
+  html[dir="ltr"] .top-bar-logo .wm-rule {
+    background: linear-gradient(to right, #1f6b42, #45a06a, #c9a227);
+  }
+
   .store-page .product-hero {
     border-radius: 12px 12px 0 0 !important;
     margin-bottom: 0 !important;
