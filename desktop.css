@@ -1562,12 +1562,14 @@
      عمود واحد: النبذة فوق المنشورات
      بعرض واحد، وبينهما فاصل فلا تلتحمان.
 
-     وتبويب نبذة معها: بطاقة واحدة لا غير،
-     فالعمودان يتركان فراغاً واسعاً إلى
-     جانبها — ويختلف عرضها عن الرئيسية.
-     والمنشورات والمنتجات تبقى على عمودين. */
+     وكلّ تبويب آخر معها: كلّ واحد يعرض
+     بطاقة واحدة لا غير، فالعمود الضيّق يبقى
+     فارغاً إلى جانبها فتبدو غير محاذية
+     للترويسة فوقها. */
   body.store-page:not([class*="tab-"]) .content-wrap,
-  body.store-page.tab-about .content-wrap {
+  body.store-page.tab-about .content-wrap,
+  body.store-page.tab-posts .content-wrap,
+  body.store-page.tab-products .content-wrap {
     grid-template-columns: minmax(0, 1fr);
   }
 
@@ -1576,7 +1578,9 @@
      على ترتيب الماركأب: نبذة ثم منشورات. */
   body.store-page:not([class*="tab-"]) #card-about,
   body.store-page:not([class*="tab-"]) #card-posts,
-  body.store-page.tab-about #card-about {
+  body.store-page.tab-about #card-about,
+  body.store-page.tab-posts #card-posts,
+  body.store-page.tab-products #card-products {
     grid-column: 1;
     grid-row: auto;
   }
