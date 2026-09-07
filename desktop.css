@@ -1617,6 +1617,28 @@
      عند حقن الشريط لأنّ الشريط يحمله أصلاً. */
   .page-logo[hidden] { display: none !important; }
 
+  /* صفحة المصنع تقيّد جسمها بـ700px لتطابق عمود لينكدإن،
+     والشريط داخل الجسم فيرث القيد فيظهر مضغوطاً —
+     بينما يمتدّ في بقية الصفحات. والشريط يخصّ الموقع
+     كلّه لا الصفحة، فيفلت من قيدها بعرض 100vw
+     مع إزاحة تردّه إلى حافة الشاشة. */
+  body.store-page .dt-bar,
+  body.store-page .dt-catbar {
+    width: 100vw;
+    position: relative;
+    inset-inline-start: 50%;
+    transform: translateX(50%);
+    max-width: none;
+  }
+
+  html[dir="ltr"] body.store-page .dt-bar,
+  html[dir="ltr"] body.store-page .dt-catbar {
+    transform: translateX(-50%);
+  }
+
+  /* محتوى الشريط يبقى محاذياً لبقية الصفحات */
+  body.store-page .dt-bar { padding: 14px 24px; }
+
   /* ============================================================
      أنماط الشريط العلوي المشترك
      ------------------------------------------------------------
