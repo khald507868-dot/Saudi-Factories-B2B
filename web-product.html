@@ -627,8 +627,6 @@
          في الرئيسية بالضبط — نفس المعادلتين هناك. */
       var idNum   = parseInt(factoryId, 10);
       if (isNaN(idNum)) idNum = 0;
-      var years   = (idNum % 17) + 1;
-      var reorder = (idNum % 61) + 12;
 
       var factoryName = factory.name || (I18N.t("msg_role_factory") + " " + factoryId);
 
@@ -736,14 +734,15 @@
         '<div class="card">' +
           '<div class="prod-name">' + escapeHTML(displayName) + '</div>' +
           priceBlock +
-          '<div class="prod-moq">' + escapeHTML(I18N.t("product_reorder_rate")) +
-            ' ' + reorder + '%</div>' +
           '<div class="tier-table" id="tier-table" hidden></div>' +
-          '<div class="prod-badges">' +
-            '<span class="prod-verified">' + checkIcon +
-              escapeHTML(I18N.t("product_verified")) + '</span>' +
-            '<span>' + years + ' ' + escapeHTML(I18N.t("product_years")) + '</span>' +
-          '</div>' +
+          /* الشارة للمعتمد وحده (بطلب المالك): إظهارها
+             لمن لم يُراجَع ادّعاء توثيق بلا سند. */
+          (factory.status === "approved"
+            ? '<div class="prod-badges">' +
+                '<span class="prod-verified">' + checkIcon +
+                  escapeHTML(I18N.t("product_verified")) + '</span>' +
+              '</div>'
+            : '') +
         '</div>' +
 
         descCardHTML(product) +
@@ -1120,10 +1119,38 @@
       }
       bindCartButton();
 
+      /* الشارة تُرسم مرّتين: الصفحة تُبنى أوّلاً من
+         النسخة المحلّية ولا status فيها، فلولا هذا لما
+         ظهرت أبداً حتّى لمصنع معتمد. */
+      function syncVerified() {
+        var host = wrap.querySelector(".prod-badges");
+        var ok = factory && factory.status === "approved";
+
+        if (!ok) {
+          if (host) host.parentNode.removeChild(host);
+          return;
+        }
+        if (host) return;
+
+        var moqEl = wrap.querySelector(".prod-name");
+        if (!moqEl) return;
+        var card = moqEl.parentNode;
+
+        var box = document.createElement("div");
+        box.className = "prod-badges";
+        var span = document.createElement("span");
+        span.className = "prod-verified";
+        span.innerHTML = checkIcon;
+        span.appendChild(document.createTextNode(I18N.t("product_verified")));
+        box.appendChild(span);
+        card.appendChild(box);
+      }
+
       function applyLiveProduct(row) {
         if (!row) return;
         product = row;
         factory = row.factories || factory;
+        syncVerified();
         /* رابط Storage أولاً — دالة الحفظ تقصّ عند 2048 حرفًا،
            فتصل قيمة base64 مقصوصة لا يعرضها المتصفّح. */
         var liveImage = "";

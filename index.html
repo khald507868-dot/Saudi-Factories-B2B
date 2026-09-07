@@ -872,13 +872,6 @@
     flex-shrink: 0;
   }
 
-  .product-reorder {
-    margin-top: 3px;
-    font-size: 9.5px;
-    color: #5c8a70;
-    white-space: nowrap;
-  }
-
   /* ===== قائمة الفئات الجانبية ===== */
   .drawer-overlay {
     position: fixed;
@@ -1746,8 +1739,6 @@
 
       var riyal = I18N.t('currency_sar');
       var verified = I18N.t('product_verified');
-      var yearsLabel = I18N.t('product_years');
-      var reorderLabel = I18N.t('product_reorder_rate');
 
       function showState(msg) {
         grid.innerHTML = '<p class="grid-state">' + escapeHTML(msg) + '</p>';
@@ -1811,11 +1802,7 @@
             }
           }
 
-          /* قيم العرض مشتقّة من رقم المصنع — نفس معادلة
-             web-product.html حتى تتطابق البطاقة والصفحة التي تفتحها */
           var fid = row.factory_id;
-          var years = (fid % 17) + 1;
-          var reorder = (fid % 61) + 12;
 
           html +=
             '<div class="product-cell">' +
@@ -1849,11 +1836,10 @@
                   ? priceHTML
                   : '') +
                 '<div class="product-meta">' +
-                  '<span class="product-verified">' + checkIcon + escapeHTML(verified) + '</span>' +
-                  '<span>' + years + ' ' + escapeHTML(yearsLabel) + '</span>' +
-                '</div>' +
-                '<div class="product-reorder">' +
-                  escapeHTML(reorderLabel) + ' ' + reorder + '%' +
+                  /* للمعتمد وحده (بطلب المالك) */
+                  (factory.status === 'approved'
+                    ? '<span class="product-verified">' + checkIcon + escapeHTML(verified) + '</span>'
+                    : '') +
                 '</div>' +
               '</div>' +
             '</a>' +
@@ -2027,7 +2013,7 @@
 
       ready.then(function () {
         return sb.from('products')
-          .select('id, factory_id, name, price, tiers, image, images, factories(name, cover)')
+          .select('id, factory_id, name, price, tiers, image, images, factories(name, cover, status)')
           .order('sort_order')
           .limit(LIMIT);
       }).then(function (res) {
