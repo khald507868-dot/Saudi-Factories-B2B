@@ -386,13 +386,26 @@
   .qty-btn:hover:not(:disabled) { background: #f0f4f1; }
   .qty-btn:disabled { color: #b6c0ba; cursor: default; }
 
+  /* حقل لا نصّ: تُزال حدود المتصفّح وخلفيّته
+     ليبقى شكل المنتقي كما هو، والإطار الخارجيّ
+     وحده يؤطّر المجموعة. */
   .qty-value {
-    min-width: 34px;
+    width: 46px;
+    min-width: 46px;
+    padding: 0;
+    border: 0;
+    background: transparent;
     text-align: center;
+    font-family: inherit;
     font-size: 15px;
     font-weight: 700;
     color: #04361b;
   }
+
+  /* التركيز يظهر على الإطار الحاوي لا داخله،
+     فلا يُحذف دليل التركيز عمّن يتنقّل بـTab. */
+  .qty-value:focus { outline: none; }
+  .qty-ctrl:focus-within { border-color: #1f6b42; }
 
   /* ===== أزرار التواصل ===== */
   .actions { margin: 14px 14px 0; }
@@ -613,6 +626,10 @@
         return url;
       }
 
+      /* نصّ السعر الأساسي يُحفظ ليُرجع إليه حين
+         تخرج الكمّية من كلّ الشرائح. */
+      var basePriceText = price;
+
       var priceBlock = price
         ? '<div class="prod-price">' + escapeHTML(price) +
           ' <span class="currency">' + escapeHTML(I18N.t("currency_sar")) + '</span></div>'
@@ -702,7 +719,9 @@
                   escapeHTML(I18N.t("prod_quantity")) + '</span>' +
                 '<div class="qty-ctrl">' +
                   '<button type="button" class="qty-btn" id="qty-minus" aria-label="-">&#8722;</button>' +
-                  '<span class="qty-value" id="qty-value">1</span>' +
+                  '<input type="text" class="qty-value" id="qty-value" ' +
+                    'inputmode="numeric" value="1" maxlength="6" ' +
+                    'aria-label="' + escapeHTML(I18N.t("prod_quantity")) + '">' +
                   '<button type="button" class="qty-btn" id="qty-plus" aria-label="+">+</button>' +
                 '</div>' +
               '</div>' +
@@ -852,6 +871,24 @@
         return lo + "-" + parseInt(t.max, 10) + " " + piece;
       }
 
+      /* السعر المعروض في الرأس. null يعيد الأساسي —
+         وهو ما يقع حين لا تشمل أيّ شريحة الكمّية. */
+      function showTierPrice(value) {
+        var el = wrap.querySelector(".prod-price");
+        if (!el || el.classList.contains("on-request")) return;
+
+        var shown = value == null
+          ? basePriceText
+          : String(parseFloat(value).toFixed(2)).replace(/[.]00$/, "");
+        if (shown === "") return;
+
+        el.textContent = shown + " ";
+        var cur = document.createElement("span");
+        cur.className = "currency";
+        cur.textContent = I18N.t("currency_sar");
+        el.appendChild(cur);
+      }
+
       /* يُعاد رسمه عند كلّ تغيير كمّية ليتتبّع
          الإبراز الشريحة المطبّقة فعلاً. */
       function renderTiers() {
@@ -863,6 +900,9 @@
         host.hidden = false;
 
         var active = activeTierIndex(list, readQty());
+        /* السعر الكبير يتبع الشريحة: إبقاؤه على الأساسي
+           يضع رقمين متناقضين في بطاقة واحدة. */
+        showTierPrice(active >= 0 ? list[active].price : null);
         list.forEach(function (t, i) {
           var cell = document.createElement("div");
           cell.className = "tier-cell" + (i === active ? " is-active" : "");
@@ -906,10 +946,14 @@
         minus.textContent = "−";
         ctrl.appendChild(minus);
 
-        var val = document.createElement("span");
+        var val = document.createElement("input");
+        val.type = "text";
         val.className = "qty-value";
         val.id = "qty-value";
-        val.textContent = "1";
+        val.inputMode = "numeric";
+        val.maxLength = 6;
+        val.value = "1";
+        val.setAttribute("aria-label", I18N.t("prod_quantity"));
         ctrl.appendChild(val);
 
         var plus = document.createElement("button");
@@ -926,7 +970,8 @@
 
       function readQty() {
         var el = document.getElementById("qty-value");
-        var n = el ? parseInt(el.textContent, 10) : 1;
+        /* value لا textContent: صار حقل إدخال. */
+        var n = el ? parseInt(el.value, 10) : 1;
         if (isNaN(n) || n < 1) n = 1;
         if (n > 100000) n = 100000;
         return n;
@@ -938,16 +983,42 @@
         var val   = document.getElementById("qty-value");
         if (!minus || !plus || !val) return;
 
-        function step(by) {
-          var n = readQty() + by;
+        function apply(n) {
           if (n < 1) n = 1;
           if (n > 100000) n = 100000;
-          val.textContent = n;
+          val.value = String(n);
           minus.disabled = (n <= 1);
           renderTiers();
         }
+        function step(by) { apply(readQty() + by); }
+
         minus.addEventListener("click", function () { step(-1); });
         plus.addEventListener("click", function () { step(1); });
+
+        /* أثناء الكتابة: تُنقّى الأحرف غير الرقمية وتُحدّث
+           الشرائح، لكنّ القيمة لا تُصحّح إلى 1 هنا: من يمسح
+           الحقل ليكتب 500 يمرّ بالفراغ، فإقحام 1 عليه لحظتها
+           يجعل النتيجة 1500. والتصحيح عند ترك الحقل. */
+        val.addEventListener("input", function () {
+          var clean = val.value.replace(/[^0-9]/g, "");
+          if (clean !== val.value) val.value = clean;
+          minus.disabled = (readQty() <= 1);
+          renderTiers();
+        });
+
+        /* عند ترك الحقل: تُثبّت قيمة صالحة دائماً،
+           فلا يُرسل حقل فارغ إلى السلة. */
+        val.addEventListener("blur", function () { apply(readQty()); });
+
+        /* Enter يُضيف مباشرة — وهو مقصد من يكتب عدده. */
+        val.addEventListener("keydown", function (e) {
+          if (e.key !== "Enter") return;
+          e.preventDefault();
+          apply(readQty());
+          var cartBtn = wrap.querySelector(".add-cart-btn");
+          if (cartBtn && !cartBtn.disabled) cartBtn.click();
+        });
+
         minus.disabled = true;
       }
       bindQtyPicker();
@@ -993,9 +1064,13 @@
         var title = wrap.querySelector(".prod-name");
         if (title) title.textContent = row.name || factory.name || factoryName;
         /* الشرائح من الخادم تحلّ محلّ المحلّية */
+        if (row.price != null && row.price !== "") {
+          /* الأساسي من الخادم يحلّ محلّ المحلّي،
+             وإلّا عاد showTierPrice إلى رقم قديم. */
+          basePriceText = String(row.price).replace(/[.]00$/, "");
+        }
         if (Array.isArray(row.tiers)) {
           product.tiers = row.tiers;
-          renderTiers();
         }
         var priceEl = wrap.querySelector(".prod-price");
         if (priceEl) {
@@ -1004,6 +1079,12 @@
             ? escapeHTML(row.price) + ' <span class="currency">' + escapeHTML(I18N.t("currency_sar")) + '</span>'
             : escapeHTML(I18N.t("product_price_on_request"));
         }
+
+        /* بعد كتابة السعر الأساسي لا قبلها:
+           السطر أعلاه يكتب في نفس العنصر، فرسمُ
+           الشرائح قبله يُمحى فوراً ويعود السعر
+           إلى الأساسي مهما كانت الكمّية. */
+        renderTiers();
         /* الصفحة تُرسم أولاً من localStorage حيث قد لا يكون
            للمنتج معرّف، فلا يُبنى زر السلة ولا القلب. وحين تصل
            بيانات الخادم يُبنيان معاً داخل .act-row — وبناء زر

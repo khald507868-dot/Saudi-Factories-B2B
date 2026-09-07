@@ -902,6 +902,34 @@
       function renderCart(items) {
         /* تجاهل أي صفّ منتج بلا اسم ولا سعر: منعُ حفظه من صفحة
            المصنع هو الأصل، وهذا حاجز ثانٍ لصفوف أُنشئت قبله. */
+        /* سعر الوحدة عند كمّية — نفس منطق tier_unit_price
+           في القاعدة: أعلى شريحة يشملها العدد، وإلّا
+           فالسعر الأساسي. واختلافهما يُري المشتري
+           رقماً غير الذي يُحاسَب عليه — فلا يُعدّل أحدهما
+           دون الآخر. والمال يبقى حساب الخادم وحده. */
+        function unitPrice(product, qty) {
+          var base = Number(product.price || 0);
+          var list = product.tiers;
+          if (!Array.isArray(list) || !list.length) return base;
+
+          var best = null;
+          var bestMin = -1;
+          list.forEach(function (t) {
+            if (!t) return;
+            var lo = parseInt(t.min, 10);
+            var pr = parseFloat(t.price);
+            if (isNaN(lo) || lo < 1 || isNaN(pr) || pr <= 0) return;
+            var hasHi = t.max != null && String(t.max) !== "";
+            var hi = hasHi ? parseInt(t.max, 10) : Infinity;
+            if (isNaN(hi) || hi < lo) return;
+            if (qty >= lo && qty <= hi && lo > bestMin) {
+              bestMin = lo;
+              best = pr;
+            }
+          });
+          return best == null ? base : best;
+        }
+
         items = (items || []).filter(function (it) {
           var p = it.products || {};
           return String(p.name || "").trim() !== "" || Number(p.price || 0) > 0;
@@ -911,8 +939,11 @@
         cartItemsEl.innerHTML = "";
         items.forEach(function (item) {
           var product = item.products || {};
-          var price = Number(product.price || 0);
           var quantity = Number(item.quantity || 0);
+          /* سعر الشريحة لا الأساسي: الخادم يحسب بها
+             عند إنشاء الطلب، فعرض الأساسي هنا يُري
+             المشتري مبلغاً غير الذي سيدفعه. */
+          var price = unitPrice(product, quantity);
           total += price * quantity;
 
           /* صورة المنتج: رابط Storage فقط — قيم base64 القديمة مقصوصة عند 2048 حرفًا. */
@@ -970,12 +1001,19 @@
           function paint(q) {
             item.quantity = q;
             row.querySelector(".ci-count").textContent = q;
+            /* السعر يُعاد حسابه مع كلّ تغيير: الكمّية
+               الجديدة قد تقع في شريحة أخرى، وإمساك السعر
+               المحسوب عند التحميل يجمّده على شريحة قديمة. */
+            var unit = unitPrice(product, q);
+            row.querySelector(".ci-unit").textContent =
+              unit.toFixed(2) + " " + I18N.t("currency_sar") + " " + I18N.t("cart_per_unit");
             row.querySelector(".ci-price").textContent =
-              (price * q).toFixed(2) + " " + I18N.t("currency_sar");
+              (unit * q).toFixed(2) + " " + I18N.t("currency_sar");
             var sum = 0;
             items.forEach(function (it) {
               var pp = it.products || {};
-              sum += Number(pp.price || 0) * Number(it.quantity || 0);
+              var iq = Number(it.quantity || 0);
+              sum += unitPrice(pp, iq) * iq;
             });
             /* عبر paintSums لا كتابةً مباشرةً، وإلا أظهرت الزيادة
                والنقصان مجموعاً بلا ضريبة ثم عاد الرقم الكامل

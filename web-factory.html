@@ -1100,6 +1100,21 @@
     margin-top: 2px;
   }
 
+  /* [hidden] يغلبه أيّ display صريح، فيُصرّح هنا. */
+  .tier-warn[hidden] { display: none !important; }
+
+  .tier-warn {
+    display: block;
+    margin-top: 6px;
+    padding: 7px 9px;
+    border-radius: 8px;
+    background: #fff7ed;
+    border: 1px solid #f0d9b5;
+    color: #8a5a1a;
+    font-size: 11.5px;
+    line-height: 1.6;
+  }
+
   .tier-row input {
     width: 100%;
     padding: 7px 8px;
@@ -3238,12 +3253,32 @@
           tierHint.textContent = I18N.t("tier_hint");
           tierBox.appendChild(tierHint);
 
+          var tierWarn = document.createElement("div");
+          tierWarn.className = "tier-warn";
+          tierWarn.textContent = I18N.t("tier_gap_warn");
+          tierWarn.hidden = true;
+          tierBox.appendChild(tierWarn);
+
           /* السقف 8 مطابق لقيد القاعدة
              products_tiers_len — ولو زاد لرُفض الحفظ كلّه. */
           var TIER_MAX = 8;
 
           function syncAddBtn() {
             tierAdd.disabled = product.tiers.length >= TIER_MAX;
+          }
+
+          /* آخر شريحة مغلقة تترك كلّ كمّية فوقها بلا سعر
+             جملة، فيرجع المشتري إلى السعر الأساسي —
+             وهذا يُفاجئه ويُضيّع على البائع طلباً كبيراً. */
+          function syncGapWarn() {
+            var list = product.tiers.filter(function (t) {
+              return String(t.min || "").trim() !== "";
+            });
+            if (!list.length) { tierWarn.hidden = true; return; }
+            var closed = list.every(function (t) {
+              return t.max != null && String(t.max).trim() !== "";
+            });
+            tierWarn.hidden = !closed;
           }
 
           function drawTiers() {
@@ -3272,6 +3307,7 @@
                   } else {
                     tier[key] = raw;
                   }
+                  syncGapWarn();
                   save();
                 });
                 row.appendChild(f);
@@ -3286,6 +3322,7 @@
                 product.tiers.splice(ti, 1);
                 drawTiers();
                 syncAddBtn();
+                syncGapWarn();
                 save();
               });
               row.appendChild(del);
@@ -3307,11 +3344,13 @@
             product.tiers.push({ min: String(next), max: null, price: "" });
             drawTiers();
             syncAddBtn();
+            syncGapWarn();
             save();
           });
 
           drawTiers();
           syncAddBtn();
+          syncGapWarn();
           specsBox.appendChild(tierBox);
 
           specsBox.appendChild(specGrid);

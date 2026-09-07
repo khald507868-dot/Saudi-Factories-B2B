@@ -13,7 +13,7 @@
         if (cartRes.error) throw cartRes.error;
         var cart = cartRes.data;
         return root.sb.from("cart_items")
-          .select("id, product_id, quantity, products(id, factory_id, name, price, image, images, factories(name))")
+          .select("id, product_id, quantity, products(id, factory_id, name, price, tiers, image, images, factories(name))")
           .eq("cart_id", cart.id)
           .order("created_at");
       }).then(function (itemsRes) {
