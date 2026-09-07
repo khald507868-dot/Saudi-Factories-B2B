@@ -1487,26 +1487,24 @@
      ============================================================ */
 
   body.store-page {
-    /* عرض عمود لينكدإن الرئيس نفسه (بطلب المالك،
-       2026-09-07 مع لقطة مرجعية). وكان 970px بتقدير خاطئ
-       لعرض ذلك العمود: لينكدإن يوزّع 1128px على عمود
-       ~700px وشريط جانبي، لا على 970 + شريط. */
-    max-width: 700px !important;
-    margin: 0 auto !important;
-    padding: 0 24px 60px !important;
+    /* عرض الشاشة كاملاً على نمط متاجر أمازون
+       (بطلب المالك مع لقطة مرجعية، 2026-09-07).
+       وكان 700px على نمط عمود لينكدإن، ثمّ اختير
+       أمازون مرجعاً لأنّ الصفحة متجر لا ملفّ شركة. */
+    max-width: none !important;
+    margin: 0 !important;
+    /* بلا حشوة أفقيّة: المحتوى يلامس حافتي الشاشة
+       كما في متاجر أمازون، والشريط يحمل حشوته بنفسه. */
+    padding: 0 0 60px !important;
     background: #f6f7f6;
   }
 
-  /* الرأس يصير عاديّاً في مجرى الصفحة لا ثابتاً */
-  .store-page .page-header {
-    position: static !important;
-    background: transparent !important;
-    border-bottom: none !important;
-    padding: 18px 0 14px !important;
-    margin: 0 !important;
-  }
-
-  .store-page .page-header h1 { font-size: 24px !important; }
+  /* لا رأس في صفحة المصنع (بطلب المالك): عنوان
+     "صفحة المصنع" لا يضيف شيئاً — الغلاف والاسم
+     تحته يقولان ما هي الصفحة، وحذفه يُلصق المحتوى
+     بشريط الفئات فوقه. والماركأب باقٍ لأنّ مسار
+     التطبيق يستعمل الصفحة نفسها. */
+  .store-page.factory-page .page-header { display: none !important; }
 
   .store-page .content-wrap {
     /* الصفحة تقيّد هذه الحاوية بـ max-width: 520px لعمود
@@ -1617,27 +1615,18 @@
      عند حقن الشريط لأنّ الشريط يحمله أصلاً. */
   .page-logo[hidden] { display: none !important; }
 
-  /* صفحة المصنع تقيّد جسمها بـ700px لتطابق عمود لينكدإن،
-     والشريط داخل الجسم فيرث القيد فيظهر مضغوطاً —
-     بينما يمتدّ في بقية الصفحات. والشريط يخصّ الموقع
-     كلّه لا الصفحة، فيفلت من قيدها بعرض 100vw
-     مع إزاحة تردّه إلى حافة الشاشة. */
-  body.store-page .dt-bar,
-  body.store-page .dt-catbar {
-    width: 100vw;
-    position: relative;
-    inset-inline-start: 50%;
-    transform: translateX(50%);
+  /* الشريط يملأ عرض الشاشة في صفحة المصنع: قاعدته
+     العامّة تحصره في 1280px وتوسّطه، وهو مناسب للرئيسية
+     لا لصفحة تملأ الشاشة. */
+  body.store-page .dt-bar {
     max-width: none;
+    margin: 0;
   }
 
-  html[dir="ltr"] body.store-page .dt-bar,
-  html[dir="ltr"] body.store-page .dt-catbar {
-    transform: translateX(-50%);
-  }
-
-  /* محتوى الشريط يبقى محاذياً لبقية الصفحات */
-  body.store-page .dt-bar { padding: 14px 24px; }
+  /* لا حاجة لإفلات الشريط من قيد الجسم هنا: صار الجسم
+     بعرض الشاشة فامتدّ الشريط معه. وقاعدة 100vw
+     السابقة كانت ستفتح تمريراً أفقيّاً لأنّ 100vw تشمل
+     عرض شريط التمرير الرأسيّ. */
 
   /* ============================================================
      أنماط الشريط العلوي المشترك
