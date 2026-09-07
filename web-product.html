@@ -287,6 +287,57 @@
 
   .supplier-link:hover { text-decoration: underline; }
 
+  /* ===== منتقي الكمّية ===== */
+  .qty-picker {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .qty-label {
+    font-size: 14px;
+    font-weight: 700;
+    color: #04361b;
+  }
+
+  /* لا نظير لـdir=ltr هنا: الصفّ يتبع اتّجاه
+     القراءة وحده وليس ترتيباً مختاراً، فـflex
+     يعكسه تلقائياً مع dir. */
+  .qty-ctrl {
+    display: flex;
+    align-items: center;
+    border: 2px solid #c7dfce;
+    border-radius: 999px;
+    overflow: hidden;
+    background: #ffffff;
+  }
+
+  .qty-btn {
+    width: 38px;
+    height: 38px;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 19px;
+    font-weight: 700;
+    color: #1f6b42;
+    line-height: 1;
+  }
+
+  .qty-btn:hover:not(:disabled) { background: #f0f4f1; }
+  .qty-btn:disabled { color: #b6c0ba; cursor: default; }
+
+  .qty-value {
+    min-width: 34px;
+    text-align: center;
+    font-size: 15px;
+    font-weight: 700;
+    color: #04361b;
+  }
+
   /* ===== أزرار التواصل ===== */
   .actions { margin: 14px 14px 0; }
 
@@ -589,7 +640,16 @@
 
         '<div class="actions">' +
           (product.id
-            ? '<div class="act-row">' +
+            ? '<div class="qty-picker">' +
+                '<span class="qty-label" data-i18n="prod_quantity">' +
+                  escapeHTML(I18N.t("prod_quantity")) + '</span>' +
+                '<div class="qty-ctrl">' +
+                  '<button type="button" class="qty-btn" id="qty-minus" aria-label="-">&#8722;</button>' +
+                  '<span class="qty-value" id="qty-value">1</span>' +
+                  '<button type="button" class="qty-btn" id="qty-plus" aria-label="+">+</button>' +
+                '</div>' +
+              '</div>' +
+              '<div class="act-row">' +
                 '<button type="button" class="act-btn primary add-cart-btn" data-product-id="' +
                   escapeHTML(product.id) + '">' + escapeHTML(I18N.t("product_add_to_cart")) + '</button>' +
                 '<button type="button" class="fav-btn" id="fav-btn" data-product-id="' +
@@ -685,6 +745,78 @@
         }
       }
 
+      /* الكمّية تُقرأ عند النقر لا عند البناء:
+         المشتري يغيّرها بعد رسم الصفحة، وقراءتها مرّة
+         واحدة ترسل 1 دائماً. والحدّ الأعلى 100000
+         هو نفسه حدّ الخادم في add_to_cart. */
+      /* بناء المنتقي عنصراً عنصراً — يستعمله المسار
+         البديل حين يصل صفّ الخادم بعد أوّل رسم. */
+      function buildQtyPicker() {
+        var box = document.createElement("div");
+        box.className = "qty-picker";
+
+        var lbl = document.createElement("span");
+        lbl.className = "qty-label";
+        lbl.setAttribute("data-i18n", "prod_quantity");
+        lbl.textContent = I18N.t("prod_quantity");
+        box.appendChild(lbl);
+
+        var ctrl = document.createElement("div");
+        ctrl.className = "qty-ctrl";
+
+        var minus = document.createElement("button");
+        minus.type = "button";
+        minus.className = "qty-btn";
+        minus.id = "qty-minus";
+        minus.setAttribute("aria-label", "-");
+        minus.textContent = "−";
+        ctrl.appendChild(minus);
+
+        var val = document.createElement("span");
+        val.className = "qty-value";
+        val.id = "qty-value";
+        val.textContent = "1";
+        ctrl.appendChild(val);
+
+        var plus = document.createElement("button");
+        plus.type = "button";
+        plus.className = "qty-btn";
+        plus.id = "qty-plus";
+        plus.setAttribute("aria-label", "+");
+        plus.textContent = "+";
+        ctrl.appendChild(plus);
+
+        box.appendChild(ctrl);
+        return box;
+      }
+
+      function readQty() {
+        var el = document.getElementById("qty-value");
+        var n = el ? parseInt(el.textContent, 10) : 1;
+        if (isNaN(n) || n < 1) n = 1;
+        if (n > 100000) n = 100000;
+        return n;
+      }
+
+      function bindQtyPicker() {
+        var minus = document.getElementById("qty-minus");
+        var plus  = document.getElementById("qty-plus");
+        var val   = document.getElementById("qty-value");
+        if (!minus || !plus || !val) return;
+
+        function step(by) {
+          var n = readQty() + by;
+          if (n < 1) n = 1;
+          if (n > 100000) n = 100000;
+          val.textContent = n;
+          minus.disabled = (n <= 1);
+        }
+        minus.addEventListener("click", function () { step(-1); });
+        plus.addEventListener("click", function () { step(1); });
+        minus.disabled = true;
+      }
+      bindQtyPicker();
+
       function bindCartButton() {
         var cartButton = wrap.querySelector(".add-cart-btn");
         if (!cartButton) return;
@@ -692,7 +824,7 @@
           if (typeof sfRequireLogin === "function" && !sfRequireLogin("web-cart.html")) return;
           if (!window.SFCommerce || !product.id) return;
           cartButton.disabled = true;
-          SFCommerce.addToCart(product.id, 1).then(function () {
+          SFCommerce.addToCart(product.id, readQty()).then(function () {
             cartButton.textContent = I18N.t("product_added_to_cart");
             /* لا نقل قسري للسلة (طلب المالك): يبقى المشتري ليواصل
                التسوّق، وشريط سفليّ يبيّن عدد المشتريات ويفتح السلة. */
@@ -770,6 +902,12 @@
             rowBox.appendChild(buildFavButton(row.id));
 
             actionBox.insertBefore(rowBox, actionBox.firstChild);
+            /* المنتقي فوق صفّ الأزرار، ويُبنى بـDOM
+               لا بسلاسل نصّية متصلة. */
+            if (!wrap.querySelector(".qty-picker")) {
+              actionBox.insertBefore(buildQtyPicker(), rowBox);
+              bindQtyPicker();
+            }
             bindCartButton();
           }
         }

@@ -5,6 +5,7 @@
   var dict = {
     ar: {
       product_add_to_cart: 'إضافة إلى السلة',
+      prod_quantity: "الكمية",
       product_added_to_cart: 'تمت الإضافة إلى السلة',
       cart_view_cart: 'عرض السلة',
       cart_items_count: 'منتج في السلة',
@@ -373,6 +374,7 @@
     },
     en: {
       product_add_to_cart: 'Add to cart',
+      prod_quantity: "Quantity",
       product_added_to_cart: 'Added to cart',
       cart_view_cart: 'View cart',
       cart_items_count: 'in cart',
@@ -741,6 +743,7 @@
     },
     fr: {
       product_add_to_cart: 'Add to cart',
+      prod_quantity: "Quantite",
       product_added_to_cart: 'Added to cart',
       cart_view_cart: 'View cart',
       cart_items_count: 'in cart',
@@ -1109,6 +1112,7 @@
     },
     es: {
       product_add_to_cart: 'Add to cart',
+      prod_quantity: "Cantidad",
       product_added_to_cart: 'Added to cart',
       cart_view_cart: 'View cart',
       cart_items_count: 'in cart',
@@ -1477,6 +1481,7 @@
     },
     de: {
       product_add_to_cart: 'Add to cart',
+      prod_quantity: "Menge",
       product_added_to_cart: 'Added to cart',
       cart_view_cart: 'View cart',
       cart_items_count: 'in cart',
@@ -1845,6 +1850,7 @@
     },
     it: {
       product_add_to_cart: 'Add to cart',
+      prod_quantity: "Quantita",
       product_added_to_cart: 'Added to cart',
       cart_view_cart: 'View cart',
       cart_items_count: 'in cart',
@@ -2213,6 +2219,7 @@
     },
     pt: {
       product_add_to_cart: 'Add to cart',
+      prod_quantity: "Quantidade",
       product_added_to_cart: 'Added to cart',
       cart_view_cart: 'View cart',
       cart_items_count: 'in cart',
@@ -2581,6 +2588,7 @@
     },
     ru: {
       product_add_to_cart: 'Add to cart',
+      prod_quantity: "Количество",
       product_added_to_cart: 'Added to cart',
       cart_view_cart: 'View cart',
       cart_items_count: 'in cart',
@@ -2949,6 +2957,7 @@
     },
     tr: {
       product_add_to_cart: 'Add to cart',
+      prod_quantity: "Miktar",
       product_added_to_cart: 'Added to cart',
       cart_view_cart: 'View cart',
       cart_items_count: 'in cart',
@@ -3317,6 +3326,7 @@
     },
     fa: {
       product_add_to_cart: 'Add to cart',
+      prod_quantity: "تعداد",
       product_added_to_cart: 'Added to cart',
       cart_view_cart: 'View cart',
       cart_items_count: 'in cart',
@@ -3685,6 +3695,7 @@
     },
     ur: {
       product_add_to_cart: 'Add to cart',
+      prod_quantity: "مقدار",
       product_added_to_cart: 'Added to cart',
       cart_view_cart: 'View cart',
       cart_items_count: 'in cart',
@@ -4053,6 +4064,7 @@
     },
     hi: {
       product_add_to_cart: 'Add to cart',
+      prod_quantity: "मात्रा",
       product_added_to_cart: 'Added to cart',
       cart_view_cart: 'View cart',
       cart_items_count: 'in cart',
@@ -4421,6 +4433,7 @@
     },
     zh: {
       product_add_to_cart: 'Add to cart',
+      prod_quantity: "数量",
       product_added_to_cart: 'Added to cart',
       cart_view_cart: 'View cart',
       cart_items_count: 'in cart',
@@ -4789,6 +4802,7 @@
     },
     ja: {
       product_add_to_cart: 'Add to cart',
+      prod_quantity: "数量",
       product_added_to_cart: 'Added to cart',
       cart_view_cart: 'View cart',
       cart_items_count: 'in cart',
@@ -5157,6 +5171,7 @@
     },
     ko: {
       product_add_to_cart: 'Add to cart',
+      prod_quantity: "수량",
       product_added_to_cart: 'Added to cart',
       cart_view_cart: 'View cart',
       cart_items_count: 'in cart',
@@ -5525,6 +5540,7 @@
     },
     id: {
       product_add_to_cart: 'Add to cart',
+      prod_quantity: "Jumlah",
       product_added_to_cart: 'Added to cart',
       cart_view_cart: 'View cart',
       cart_items_count: 'in cart',
@@ -5893,6 +5909,7 @@
     },
     ms: {
       product_add_to_cart: 'Add to cart',
+      prod_quantity: "Kuantiti",
       product_added_to_cart: 'Added to cart',
       cart_view_cart: 'View cart',
       cart_items_count: 'in cart',
@@ -6261,6 +6278,7 @@
     },
     th: {
       product_add_to_cart: 'Add to cart',
+      prod_quantity: "จำนวน",
       product_added_to_cart: 'Added to cart',
       cart_view_cart: 'View cart',
       cart_items_count: 'in cart',
@@ -6629,6 +6647,7 @@
     },
     vi: {
       product_add_to_cart: 'Add to cart',
+      prod_quantity: "So luong",
       product_added_to_cart: 'Added to cart',
       cart_view_cart: 'View cart',
       cart_items_count: 'in cart',
@@ -6997,6 +7016,7 @@
     },
     he: {
       product_add_to_cart: 'Add to cart',
+      prod_quantity: "כמות",
       product_added_to_cart: 'Added to cart',
       cart_view_cart: 'View cart',
       cart_items_count: 'in cart',
@@ -7365,6 +7385,7 @@
     },
     nl: {
       product_add_to_cart: 'Add to cart',
+      prod_quantity: "Aantal",
       product_added_to_cart: 'Added to cart',
       cart_view_cart: 'View cart',
       cart_items_count: 'in cart',
@@ -7733,6 +7754,7 @@
     },
     pl: {
       product_add_to_cart: 'Add to cart',
+      prod_quantity: "Ilosc",
       product_added_to_cart: 'Added to cart',
       cart_view_cart: 'View cart',
       cart_items_count: 'in cart',
@@ -8101,6 +8123,7 @@
     },
     sv: {
       product_add_to_cart: 'Add to cart',
+      prod_quantity: "Antal",
       product_added_to_cart: 'Added to cart',
       cart_view_cart: 'View cart',
       cart_items_count: 'in cart',
@@ -8469,6 +8492,7 @@
     },
     el: {
       product_add_to_cart: 'Add to cart',
+      prod_quantity: "Ποσότητα",
       product_added_to_cart: 'Added to cart',
       cart_view_cart: 'View cart',
       cart_items_count: 'in cart',
@@ -8837,6 +8861,7 @@
     },
     bn: {
       product_add_to_cart: 'Add to cart',
+      prod_quantity: "পরিমাণ",
       product_added_to_cart: 'Added to cart',
       cart_view_cart: 'View cart',
       cart_items_count: 'in cart',
@@ -9205,6 +9230,7 @@
     },
     pa: {
       product_add_to_cart: 'Add to cart',
+      prod_quantity: "ਮਾਤਰਾ",
       product_added_to_cart: 'Added to cart',
       cart_view_cart: 'View cart',
       cart_items_count: 'in cart',
@@ -9573,6 +9599,7 @@
     },
     ta: {
       product_add_to_cart: 'Add to cart',
+      prod_quantity: "அளவு",
       product_added_to_cart: 'Added to cart',
       cart_view_cart: 'View cart',
       cart_items_count: 'in cart',
@@ -9941,6 +9968,7 @@
     },
     sw: {
       product_add_to_cart: 'Add to cart',
+      prod_quantity: "Kiasi",
       product_added_to_cart: 'Added to cart',
       cart_view_cart: 'View cart',
       cart_items_count: 'in cart',
@@ -10309,6 +10337,7 @@
     },
     am: {
       product_add_to_cart: 'Add to cart',
+      prod_quantity: "መጠን",
       product_added_to_cart: 'Added to cart',
       cart_view_cart: 'View cart',
       cart_items_count: 'in cart',
@@ -10677,6 +10706,7 @@
     },
     ku: {
       product_add_to_cart: 'Add to cart',
+      prod_quantity: "بڕی",
       product_added_to_cart: 'Added to cart',
       cart_view_cart: 'View cart',
       cart_items_count: 'in cart',
