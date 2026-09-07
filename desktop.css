@@ -1070,6 +1070,13 @@
 
   .dash-sub a:hover { background: #f4f8f5; color: #1f6b42; }
 
+  /* display: block فوق يغلب [hidden]: المتصفّح يطبّق
+     [hidden] { display: none } كقاعدة افتراضية ضعيفة،
+     وأيّ display صريح في ورقة أنماط يهزمها — فظلّ
+     رابطا البائع ظاهرين للأفراد بينما اختفت
+     البطاقات لأنّها بلا display صريح. */
+  .dash-sub a[hidden] { display: none !important; }
+
   /* شريط الإحصاءات */
   .dash-stats {
     grid-column: 2;

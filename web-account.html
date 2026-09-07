@@ -287,8 +287,8 @@
           <p class="dash-sub-title" data-i18n="dash_orders">الطلبات</p>
           <a href="web-cart.html" data-i18n="dash_cart">سلة التسوق</a>
           <a href="web-orders.html" data-i18n="dash_my_orders">طلباتي</a>
-          <a href="web-orders.html?status=paid" data-i18n="dash_orders_paid">طلبات مكتملة</a>
-          <a href="web-orders.html?status=unpaid" data-i18n="dash_orders_unpaid">بانتظار الدفع</a>
+          <a href="web-orders.html?status=paid" class="seller-only" hidden data-i18n="dash_orders_paid">طلبات مكتملة</a>
+          <a href="web-orders.html?status=unpaid" class="seller-only" hidden data-i18n="dash_orders_unpaid">بانتظار الدفع</a>
           <a href="web-favorites.html" data-i18n="dash_favorites">المفضّلة</a>
           <a href="web-invoices.html" data-i18n="row_invoices">الفواتير</a>
         </div>
@@ -333,15 +333,18 @@
       <span class="dash-stat-num" id="stat-messages">0</span>
       <span class="dash-stat-label" data-i18n="dash_stat_unread">رسائل غير مقروءة</span>
     </div>
-    <div class="dash-stat">
+    <!-- بطاقات البائع: إيراداته وطلباته المبيعة،
+         ولا معنى لها عند المشتري — يكشفها السكربت
+         لحسابات المصانع وحدها. -->
+    <div class="dash-stat seller-only" hidden>
       <span class="dash-stat-num" id="stat-total">0</span>
       <span class="dash-stat-label" data-i18n="dash_stat_paid_total">إيرادات مدفوعة</span>
     </div>
-    <div class="dash-stat">
+    <div class="dash-stat seller-only" hidden>
       <span class="dash-stat-num" id="stat-orders">0</span>
       <span class="dash-stat-label" data-i18n="dash_stat_paid_orders">طلبات مدفوعة</span>
     </div>
-    <div class="dash-stat">
+    <div class="dash-stat seller-only" hidden>
       <span class="dash-stat-num" id="stat-pending">0</span>
       <span class="dash-stat-label" data-i18n="dash_stat_pending">بانتظار الدفع</span>
     </div>
@@ -606,13 +609,32 @@
                    I18N.t("dash_chart_empty") + "</p>" : "");
       }
 
+      /* ===== ما يخصّ البائع =====
+         الإيرادات والطلبات المبيعة ورسمُها أرقام بائع
+         لا مشترٍ — وكانت تُعرض للجميع، فيرى الفرد ثلاث
+         بطاقات أصفار ورسماً فارغاً لا يعنيه (بطلب المالك).
+
+         والإخفاء عرضٌ لا حماية: الحارس الفعليّ RLS،
+         فالمشتري لا يرى من orders إلّا طلباته. */
+      var isSeller = p.account_type === "factory";
+
+      if (isSeller) {
+        var sellerBits = document.querySelectorAll(".seller-only");
+        for (var si = 0; si < sellerBits.length; si++) {
+          sellerBits[si].hidden = false;
+        }
+      }
+
       /* ===== أرقام لوحة التحكم =====
-         كانت أصفاراً ثابتة في الوسم. الطلبات وإجماليها يُقرآن
-         من جدول orders، وRLS تحصر ما يراه كلّ مستخدم:
-         المشتري يرى طلباته، وصاحب المصنع يرى طلبات مصنعه. */
+         الطلبات وإجماليها يُقرآن من جدول orders،
+         وRLS تحصر ما يراه كلّ مستخدم. */
       (function fillStats() {
         if (!window.sb) return;
 
+        /* الفرد لا يرى هذه البطاقات ولا الرسم، فلا داعي
+           لاستعلام يملأ عناصر مخفيّة. وعدّاد الرسائل تحته
+           يبقى للجميع — فلا يُلفّ معه. */
+        if (isSeller) {
         sb.from("orders").select("total, status, created_at")
           .then(function (res) {
           if (res.error || !res.data) return;
@@ -652,6 +674,7 @@
 
           drawRevenueChart(res.data);
         }).catch(function () { /* البطاقات تبقى أصفاراً */ });
+        }
 
         /* الرسائل غير المقروءة: نفس الدالة التي تغذّي شارة القائمة */
         sb.rpc("get_unread_message_total").then(function (res) {
