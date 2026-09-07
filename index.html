@@ -1738,6 +1738,12 @@
         '<svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">' +
         '<path d="M20 6L9 17l-5-5"/></svg>';
 
+      /* 6.00 ← 6 و 6.50 يبقى، فلا تزدحم البطاقة
+         بأصفار لا تعني شيئاً. */
+      function trimNum(n) {
+        return String(Number(n).toFixed(2)).replace(/[.]00$/, '');
+      }
+
       var riyal = I18N.t('currency_sar');
       var verified = I18N.t('product_verified');
       var yearsLabel = I18N.t('product_years');
@@ -1775,6 +1781,35 @@
           var image = gallery[0] || '';
           var name = row.name || factory.name || '';
           var price = row.price || '';
+          /* مدى السعر: أرخص شريحة إلى أغلاها، كما في
+             علي بابا. وعرض الأساسي وحده يُخفي الخصم
+             في المكان الذي يقارن فيه المشتري. */
+          var priceHTML = '';
+          if (price) {
+            var lo = null, hi = null;
+            (Array.isArray(row.tiers) ? row.tiers : []).forEach(function (t) {
+              if (!t) return;
+              var pr = parseFloat(t.price);
+              var mn = parseInt(t.min, 10);
+              if (isNaN(pr) || pr <= 0 || isNaN(mn) || mn < 1) return;
+              if (lo === null || pr < lo) lo = pr;
+              if (hi === null || pr > hi) hi = pr;
+            });
+            var cur = ' <span class="product-currency">' + escapeHTML(riyal) + '</span>';
+            /* مدىً حقيقيّ فقط حين تختلف الأطراف؛
+               وشريحة واحدة أو متساوية تُعرض رقماً واحداً. */
+            if (lo !== null && hi !== null && hi > lo) {
+              priceHTML = '<div class="product-price">' +
+                escapeHTML(trimNum(lo)) + ' - ' + escapeHTML(trimNum(hi)) + cur +
+                '</div>';
+            } else if (lo !== null) {
+              priceHTML = '<div class="product-price">' +
+                escapeHTML(trimNum(lo)) + cur + '</div>';
+            } else {
+              priceHTML = '<div class="product-price">' +
+                escapeHTML(price) + cur + '</div>';
+            }
+          }
 
           /* قيم العرض مشتقّة من رقم المصنع — نفس معادلة
              web-product.html حتى تتطابق البطاقة والصفحة التي تفتحها */
@@ -1810,9 +1845,8 @@
               '</div>' +
               '<div class="product-body">' +
                 (name ? '<div class="product-name">' + escapeHTML(name) + '</div>' : '') +
-                (price
-                  ? '<div class="product-price">' + escapeHTML(price) +
-                    ' <span class="product-currency">' + escapeHTML(riyal) + '</span></div>'
+                (priceHTML
+                  ? priceHTML
                   : '') +
                 '<div class="product-meta">' +
                   '<span class="product-verified">' + checkIcon + escapeHTML(verified) + '</span>' +
@@ -1993,7 +2027,7 @@
 
       ready.then(function () {
         return sb.from('products')
-          .select('id, factory_id, name, price, image, images, factories(name, cover)')
+          .select('id, factory_id, name, price, tiers, image, images, factories(name, cover)')
           .order('sort_order')
           .limit(LIMIT);
       }).then(function (res) {

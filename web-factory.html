@@ -3084,6 +3084,28 @@
           var body = document.createElement("div");
           body.className = "product-body";
 
+      /* نصّ السعر من الشرائح: أرخصها إلى أغلاها، أو
+         رقم واحد إن تساوت، وإلّا فـ«السعر عند الطلب». */
+      function priceLabel(pr) {
+        var lo = null, hi = null;
+        var list = Array.isArray(pr.tiers) ? pr.tiers : [];
+        list.forEach(function (t) {
+          if (!t) return;
+          var v = parseFloat(t.price);
+          var mn = parseInt(t.min, 10);
+          if (isNaN(v) || v <= 0 || isNaN(mn) || mn < 1) return;
+          if (lo === null || v < lo) lo = v;
+          if (hi === null || v > hi) hi = v;
+        });
+        if (lo === null) return I18N.t("product_price_on_request");
+
+        function trim(n) {
+          return String(Number(n).toFixed(2)).replace(/[.]00$/, "");
+        }
+        var cur = " " + I18N.t("currency_sar");
+        return hi > lo ? trim(lo) + " - " + trim(hi) + cur : trim(lo) + cur;
+      }
+
           /* وضع العرض: اسم المنتج وسعره كنص، بدون حذف أو تعديل */
           if (!canEdit) {
             var readName = document.createElement("div");
@@ -3092,9 +3114,10 @@
 
             var readPrice = document.createElement("div");
             readPrice.className = "product-read-price";
-            if (product.price) {
-              readPrice.textContent = product.price + " " + I18N.t("currency_sar");
-            }
+            /* مدى الشرائح لا السعر الأساسي: التسعير
+               صار بالشرائح وحدها، ومنتج بلا شرائح
+               يُعرض «السعر عند الطلب» لا فراغاً. */
+            readPrice.textContent = priceLabel(product);
 
             body.appendChild(readName);
             body.appendChild(readPrice);
@@ -3146,28 +3169,14 @@
             save();
           });
 
-          var priceRow = document.createElement("div");
-          priceRow.className = "price-row";
+          /* لا حقل سعر أساسي (بطلب المالك، 2026-09-07):
+             التسعير بالشرائح وحدها — حقلان للسعر يتركان
+             المالك يحير أيّهما يُعتمد، وقد يتناقضان.
 
-          var priceField = document.createElement("input");
-          priceField.type = "text";
-          priceField.inputMode = "decimal";
-          priceField.value = product.price || "";
-          priceField.placeholder = I18N.t("product_price_placeholder");
-          priceField.addEventListener("input", function () {
-            product.price = priceField.value;
-            save();
-          });
-
-          var currency = document.createElement("span");
-          currency.className = "currency";
-          currency.textContent = I18N.t("currency_sar");
-
-          priceRow.appendChild(priceField);
-          priceRow.appendChild(currency);
-
+             وproduct.price لا يُحذف من الحمولة: الخادم
+             يستعمله آخر ملاذ لمنتج فقد شرائحه، وإسقاطه
+             يجعل ذلك المنتج بلا سعر ألبتة. */
           body.appendChild(nameField);
-          body.appendChild(priceRow);
 
           /* لوحة الوصف والمواصفات: مطويّة افتراضياً.
              كل حقل يحفظ عند الكتابة على مسار save() نفسه —
