@@ -152,6 +152,9 @@
     margin-bottom: 10px;
   }
 
+  /* [hidden] افتراض ضعيف يغلبه أيّ display صريح. */
+  .prod-price[hidden] { display: none !important; }
+
   .prod-price {
     font-size: 26px;
     font-weight: 800;
@@ -877,10 +880,18 @@
         var el = wrap.querySelector(".prod-price");
         if (!el || el.classList.contains("on-request")) return;
 
-        var shown = value == null
-          ? basePriceText
-          : String(parseFloat(value).toFixed(2)).replace(/[.]00$/, "");
-        if (shown === "") return;
+        /* مع شريحة مطابقة يُخفى الرقم الكبير (بطلب
+           المالك): الشريحة المُبرزة تقول السعر نفسه،
+           فتكراره حشو. ويعود متى غابت الشرائح أو
+           خرجت الكمّية عنها — وإلّا ظهرت البطاقة بلا
+           أيّ سعر، وأكثر المنتجات اليوم بلا شرائح. */
+        el.hidden = (value != null);
+        if (value != null) return;
+
+        /* بلا سعر أساسي يُخفى أيضاً: عنصر فارغ
+           يترك فجوة وحداً بلا محتوى. */
+        var shown = basePriceText;
+        if (shown === "") { el.hidden = true; return; }
 
         el.textContent = shown + " ";
         var cur = document.createElement("span");

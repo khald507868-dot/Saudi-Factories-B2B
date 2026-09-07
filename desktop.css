@@ -79,6 +79,10 @@
     min-width: 168px !important;
     width: auto !important;
     flex-shrink: 0;
+    /* صار رابطاً إلى الرئيسية (بطلب المالك)،
+       فتُلغى زخرفة الرابط ولونه ليبقى شكله كما كان. */
+    text-decoration: none;
+    color: inherit;
   }
 
   .top-bar-logo .wm-title { font-size: 19px !important; }
