@@ -1557,6 +1557,30 @@
     align-self: start;
   }
 
+  /* تبويب الرئيسية = body بلا صنف tab-*،
+     فيُستهدف بـ:not لا بصنف خاصّ به.
+     عمود واحد: النبذة فوق المنشورات
+     بعرض واحد، وبينهما فاصل فلا تلتحمان.
+
+     وتبويب نبذة معها: بطاقة واحدة لا غير،
+     فالعمودان يتركان فراغاً واسعاً إلى
+     جانبها — ويختلف عرضها عن الرئيسية.
+     والمنشورات والمنتجات تبقى على عمودين. */
+  body.store-page:not([class*="tab-"]) .content-wrap,
+  body.store-page.tab-about .content-wrap {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* إلغاء إسناد الأعمدة والصفوف،
+     فالتدفّق التلقائي يرتّبهما
+     على ترتيب الماركأب: نبذة ثم منشورات. */
+  body.store-page:not([class*="tab-"]) #card-about,
+  body.store-page:not([class*="tab-"]) #card-posts,
+  body.store-page.tab-about #card-about {
+    grid-column: 1;
+    grid-row: auto;
+  }
+
   .store-page .card {
     border-radius: 12px;
     /* هامش الجوال (0 14px) يزاحم أعمدة الشبكة فيُصفّر */

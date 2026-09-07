@@ -323,6 +323,90 @@
 
   .fx-meta:empty { display: none; }
 
+  /* ===== أزرار التفاعل ===== */
+  .fx-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 14px 0 4px;
+  }
+
+  .fx-follow,
+  .fx-visit {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 8px 17px;
+    border-radius: 999px;
+    font: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1.4;
+    cursor: pointer;
+    text-decoration: none;
+  }
+
+  /* المتابعة: محدّد قبل الضغط،
+     يصير مصمتاً بعده — والعكس في
+     لينكدإن: المتابع محدّد، لأنّ زرّ
+     الموقع هو المصمت ثمّ. وهنا زرّ
+     المتابعة هو الفعل المقصود. */
+  .fx-follow {
+    border: 1.5px solid #04361b;
+    background: #04361b;
+    color: #ffffff;
+  }
+
+  .fx-follow:hover { background: #0a4a26; }
+
+  .fx-follow.is-following {
+    border-color: #c2ccc6;
+    background: none;
+    color: #04361b;
+  }
+
+  .fx-follow.is-following:hover { border-color: #04361b; }
+
+  .fx-follow svg {
+    width: 16px;
+    height: 16px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2.3;
+  }
+
+  /* العلامة للمتابَع، والزائد لغيره */
+  .fx-follow .fx-follow-check { display: none; }
+  .fx-follow.is-following .fx-follow-check { display: block; }
+  .fx-follow.is-following .fx-follow-plus { display: none; }
+
+  .fx-visit {
+    border: 1.5px solid #c2ccc6;
+    background: none;
+    color: #04361b;
+  }
+
+  .fx-visit:hover { border-color: #04361b; }
+
+  .fx-visit svg {
+    width: 15px;
+    height: 15px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+  }
+
+  /* المالك يراه ولا يضغطه */
+  .fx-follow.is-self {
+    opacity: 0.45;
+    cursor: default;
+  }
+
+  /* بلا موقع محفوظ لا زرّ له،
+     والمالك لا يتابع مصنعه. */
+  .fx-visit[hidden],
+  .fx-follow[hidden] { display: none; }
+
   .fx-tabs {
     display: flex;
     gap: 4px;
@@ -549,6 +633,58 @@
     border: 0;
   }
 
+  /* ===== زرّ عرض كلّ التفاصيل =====
+     مخفيّ أصلاً، ويُظهره تبويب
+     الرئيسية وحده — ففي تبويب نبذة
+     التفاصيل معروضة أصلاً. */
+  .about-more { display: none; }
+
+  body:not([class*="tab-"]) .about-more {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    width: calc(100% + 28px);
+    /* يمتدّ إلى حافتي البطاقة ليصير
+       الفاصل عرضها كلّه — حشوة البطاقة 14px
+       يميناً ويساراً. */
+    margin: 14px -14px 0;
+    padding: 13px 14px 2px;
+    border: none;
+    border-top: 1px solid #e6e9e7;
+    background: none;
+    font: inherit;
+    font-size: 13.5px;
+    font-weight: 700;
+    color: #5a6b60;
+    cursor: pointer;
+  }
+
+  body:not([class*="tab-"]) .about-more:hover { color: #04361b; }
+
+  .about-more-arrow {
+    width: 16px;
+    height: 16px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+  }
+
+  /* السهم يتّجه مع القراءة: يساراً
+     في العربية ويميناً في الإنجليزية. */
+  html[dir="rtl"] .about-more-arrow { transform: scaleX(-1); }
+
+  /* في الرئيسية تُخفى صفوف
+     التفاصيل وتُقصّ النبذة، فالزرّ
+     هو الذي يفتحها كاملة في تبويب نبذة. */
+  body:not([class*="tab-"]) .about-rows { display: none; }
+
+  body:not([class*="tab-"]) #factory-about {
+    max-height: 96px;
+    overflow: hidden;
+    resize: none;
+  }
+
   .about-rows {
     margin-top: 16px;
     display: flex;
@@ -729,6 +865,14 @@
   body.tab-about    #card-products,
   body.tab-products #card-about,
   body.tab-products #card-posts { display: none !important; }
+
+  /* الرئيسية = body بلا صنف tab-* ،
+     فيُستثنى بـ:not لا بصنف خاصّ بها.
+     المنتجات لها تبويبها، فلا تظهر
+     هنا — وتبقى النبذة والمنشورات معاً. */
+  body.store-page:not([class*="tab-"]) #card-products {
+    display: none !important;
+  }
 
   /* ===== زر مراسلة المصنع ===== */
   /* ===== البطاقات ===== */
@@ -1374,6 +1518,21 @@
       <input type="text" id="factory-name" class="fx-name-input" style="display:none;" data-i18n-placeholder="factory_name_placeholder" placeholder="أدخل اسم المصنع">
       <p class="fx-tagline" id="fx-tagline"></p>
       <p class="fx-meta" id="fx-meta"></p>
+
+      <!-- أزرار التفاعل — تُبنى حالتها في JS -->
+      <div class="fx-actions" id="fx-actions">
+        <button type="button" class="fx-follow" id="fx-follow">
+          <svg class="fx-follow-check" viewBox="0 0 24 24" aria-hidden="true" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5.2 5.2L20 7"></path></svg>
+          <svg class="fx-follow-plus" viewBox="0 0 24 24" aria-hidden="true" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"></path></svg>
+          <span id="fx-follow-text" data-i18n="fx_follow">متابعة</span>
+        </button>
+
+        <a class="fx-visit" id="fx-visit" target="_blank" rel="noopener noreferrer">
+          <span data-i18n="fx_visit_site">زيارة الموقع</span>
+          <svg viewBox="0 0 24 24" aria-hidden="true" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6"></path><path d="M20 4l-8.5 8.5"></path><path d="M18 14v5a1 1 0 01-1 1H5a1 1 0 01-1-1V7a1 1 0 011-1h5"></path></svg>
+        </a>
+      </div>
+
       <div class="fx-tabs" id="fx-tabs">
         <button type="button" class="fx-tab is-active" data-tab="home" data-i18n="factory_tab_home">الرئيسية</button>
         <button type="button" class="fx-tab" data-tab="posts" data-i18n="factory_tab_posts">المنشورات</button>
@@ -1421,6 +1580,12 @@
         </div>
 
       </div>
+
+      <!-- يظهر في الرئيسية وحدها، حيث تُقصّ النبذة -->
+      <button type="button" class="about-more" id="about-more">
+        <span data-i18n="about_show_all">عرض كلّ التفاصيل</span>
+        <svg class="about-more-arrow" viewBox="0 0 24 24" aria-hidden="true" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
+      </button>
     </div>
 
     <!-- المنشورات — تظهر في تبويب الرئيسية وتبويب المنشورات -->
@@ -1942,6 +2107,100 @@
           var btn = ev.target.closest(".fx-tab");
           if (!btn) return;
           selectTab(btn.getAttribute("data-tab"));
+        });
+      }
+
+      /* ===== المتابعة وزيارة الموقع =====
+         العدّاد وحالتي يأتيان من get_factory_follows — دالّة
+         تعمل بصلاحية المالك فتعدّ دون أن تكشف من يتابِع من. */
+      var followBtn  = document.getElementById("fx-follow");
+      var followText = document.getElementById("fx-follow-text");
+      var visitLink  = document.getElementById("fx-visit");
+      var followState = { followers: 0, is_following: false };
+      var followBusy = false;
+
+      function paintFollow() {
+        if (!followBtn) return;
+        followBtn.classList.toggle("is-following", followState.is_following);
+        followText.textContent = I18N.t(
+          followState.is_following ? "fx_following" : "fx_follow");
+      }
+
+      /* المالك لا يتابِع مصنعه، لكنّه يرى
+         الزرّ معطّلاً لا مخفيّاً — ليعرف ما يراه
+         زوّار صفحته. وزرّ الموقع يبقى مخفيّاً بلا
+         رابط محفوظ، فلا معنى لزرّ لا يفتح شيئاً. */
+      function paintActions() {
+        if (followBtn) {
+          followBtn.hidden = false;
+          followBtn.disabled = canEdit;
+          followBtn.classList.toggle("is-self", canEdit);
+        }
+        if (!visitLink) return;
+        var url = safeExternalUrl(data.website);
+        if (url === "#") {
+          visitLink.hidden = true;
+        } else {
+          visitLink.hidden = false;
+          visitLink.href = url;
+        }
+      }
+
+      function loadFollows() {
+        if (!window.sb || !factoryRow) return;
+        sb.rpc("get_factory_follows", { p_factory_id: factoryRow.id })
+          .then(function (res) {
+            if (res.error || !res.data) return;
+            followState = res.data;
+            paintFollow();
+          })
+          .catch(function (err) {
+            console.warn("follows:", err && err.message);
+          });
+      }
+
+      if (followBtn) {
+        followBtn.addEventListener("click", function () {
+          /* الزائر غير المسجّل يُرسل إلى التسجيل */
+          if (typeof sfRequireLogin === "function" &&
+              !sfRequireLogin(location.pathname.split("/").pop())) return;
+          if (!window.sb || !factoryRow || followBusy) return;
+
+          /* تفاؤلي: يُرسم فوراً ثمّ يُراجَع من الخادم،
+             ويُردّ إن رُفض — فلا تبقى الواجهة تدّعي متابعة
+             لم تقع. */
+          var wanted = !followState.is_following;
+          followBusy = true;
+          followState.is_following = wanted;
+          paintFollow();
+
+          var call = wanted
+            ? sb.from("factory_follows").insert({
+                user_id: SF_USER.id, factory_id: factoryRow.id })
+            : sb.from("factory_follows").delete()
+                .eq("user_id", SF_USER.id)
+                .eq("factory_id", factoryRow.id);
+
+          call.then(function (res) {
+            if (res.error) throw res.error;
+          }).catch(function (err) {
+            followState.is_following = !wanted;
+            paintFollow();
+            console.warn("follow toggle:", err && err.message);
+          }).then(function () {
+            followBusy = false;
+          });
+        });
+      }
+
+      /* زرّ "عرض كلّ التفاصيل" يفتح
+         تبويب نبذة، فتظهر النبذة كاملة
+         ومعها صفوف التفاصيل. */
+      var aboutMoreBtn = document.getElementById("about-more");
+      if (aboutMoreBtn) {
+        aboutMoreBtn.addEventListener("click", function () {
+          selectTab("about");
+          window.scrollTo({ top: 0, behavior: "smooth" });
         });
       }
 
@@ -2821,6 +3080,7 @@
       renderPosts();
       renderAbout();
       renderHead();
+      paintActions();
 
       /* ===== الربط بقاعدة البيانات =====
          الصفحة تُرسم أولاً من النسخة المحلّية فتظهر فوراً، ثم
@@ -2917,6 +3177,8 @@
             renderPosts();
             renderAbout();
             renderHead();
+            paintActions();
+            loadFollows();
             if (data.cover) fillSlot(coverEl, data.cover);
             if (data.logo) fillSlot(logoEl, data.logo);
             return null;
