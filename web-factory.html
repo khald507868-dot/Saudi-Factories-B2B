@@ -1624,7 +1624,44 @@
       var LEGACY_KEY = "sf_factory_images";
 
       var params = new URLSearchParams(window.location.search);
-      var factoryId = params.get("id") || "0";
+      var rawId = String(params.get("id") || "").trim();
+
+      /* معرّف المصنع عدد موجب من القاعدة. وكان غيابه
+         يُعامَل معاملة "صفر"، فتقرأ الصفحة sf_factories["0"]
+         من المتصفّح وتعرض مسودة قديمة كأنّها مصنع —
+         ولا مصنع بالرقم صفر في القاعدة أصلاً، وأيّ زائر
+         يفتح الرابط ناقصاً يرى ذلك. فالأصحّ رسالة واضحة. */
+      if (!/^[1-9][0-9]*$/.test(rawId)) {
+        document.addEventListener("DOMContentLoaded", function () {
+          var wrap = document.querySelector(".content-wrap");
+          if (!wrap) return;
+          var box = document.createElement("div");
+          box.className = "card";
+          box.style.cssText = "text-align:center; padding:44px 20px;";
+
+          var head = document.createElement("h2");
+          head.setAttribute("data-i18n", "fx_no_id");
+          head.textContent = "لم يُحدّد مصنع";
+          head.style.cssText = "margin:0 0 14px; font-size:19px; color:#04361b;";
+          box.appendChild(head);
+
+          var link = document.createElement("a");
+          link.href = "web-factories.html";
+          link.setAttribute("data-i18n", "fx_browse_all");
+          link.textContent = "تصفّح المصانع";
+          link.style.cssText = "display:inline-block; padding:9px 20px; " +
+            "border-radius:999px; background:#04361b; color:#fff; " +
+            "text-decoration:none; font-weight:700; font-size:14px;";
+          box.appendChild(link);
+
+          wrap.innerHTML = "";
+          wrap.appendChild(box);
+          if (window.I18N) I18N.applyTranslations();
+        });
+        return;
+      }
+
+      var factoryId = rawId;
 
       /* صلاحية التعديل = ملكية هذا المصنع بالذات.
          تُحسم من القاعدة لا من localStorage: الأخيرة يملكها
