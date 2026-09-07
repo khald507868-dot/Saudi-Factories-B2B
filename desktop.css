@@ -1739,22 +1739,21 @@
        نصف الصفحة — وأمازون تثبّتها. */
     grid-template-columns: 360px minmax(0, 1fr) 300px !important;
     column-gap: 20px;
-    row-gap: 14px;
+    /* بلا فجوة صفوف: الصورة وبطاقة المورّد
+       متلاصقتان، وبطاقات الوسط تأخذ هامشها. */
+    row-gap: 0;
     align-items: start;
   }
 
-  /* الصورة تعبر صفوف العمود الأوسط كلّها.
-     وحصرها في grid-row: 1 ترك فجوة: طولها يحدّد
-     طول الصفّ الأوّل، وبطاقة المورّد تنزل إلى
-     الصفّ الثاني فتبتعد إلى أسفل الصورة. */
+  /* الصورة في الصفّ الأوّل، وبطاقة المورّد
+     تحتها ملتصقة بها — فتدويرها أعلى فقط،
+     ولا تثبيت أثناء التمرير لأنّ اللصق يمنعه. */
   .product-page .product-hero {
     grid-column: 1;
-    grid-row: 1 / span 20;
+    grid-row: 1;
     align-self: start;
-    position: sticky;
-    top: 18px;
     aspect-ratio: 1 / 1;
-    border-radius: 14px !important;
+    border-radius: 14px 14px 0 0 !important;
     margin: 0 !important;
     padding: 18px;
   }
@@ -1764,8 +1763,14 @@
      كلّ واحدة في صفّها فتتلاصق بلا فراغ. */
   .product-page .content-wrap > .card {
     grid-column: 2;
-    margin: 0 !important;
+    margin: 0 0 14px !important;
     padding: 18px !important;
+  }
+
+  /* بطاقة المورّد تستثنى: لا هامش يفصلها
+     عن الصورة فوقها. */
+  .product-page .content-wrap > .supplier-card {
+    margin: 0 !important;
   }
 
   /* صندوق الشراء: عمود ثالث يرافق القراءة،
@@ -1782,12 +1787,15 @@
     box-shadow: 0 2px 10px rgba(4, 54, 27, 0.06);
   }
 
-  /* لا لصق بين الصورة وبطاقة المورّد هنا:
-     ذاك لعمود الجوّال حيث كانتا متجاورتين،
-     وقد افترقتا إلى عمودين. */
+  /* بطاقة المورّد تحت الصورة في عمودها
+     (بطلب المالك): قطعة واحدة معها —
+     تُربّع الحوافّ المتلاقية وتُلغى الفجوة
+     بينهما، فيبقى التدوير على الأطراف وحدها. */
   .product-page .supplier-card {
-    border-radius: 14px !important;
-    border-top: 0 !important;
+    grid-column: 1 !important;
+    border-radius: 0 0 14px 14px !important;
+    border-top: 1px solid #eef2ef !important;
+    align-self: start;
   }
 
   /* بطاقة "المنتج غير متاح" وحدها في الصفحة:
@@ -1812,7 +1820,6 @@
       grid-row: auto;
       position: static;
     }
-    .product-page .product-hero { position: static; }
   }
 
   /* عمود واحد على الشاشات الضيّقة */
