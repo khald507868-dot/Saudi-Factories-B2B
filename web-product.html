@@ -679,10 +679,36 @@
          تسمية المصنع برقمه — فلا يبقى العنوان فارغاً. */
       var displayName = name || factoryName;
 
+      var SUPPLIER_HTML =
+        '<div class="card supplier-card">' +
+          '<h2>' + escapeHTML(I18N.t("product_supplier_label")) + '</h2>' +
+          '<div class="supplier-row">' +
+            '<div class="supplier-logo">' +
+              (factory.logo ? '<img alt="" src="' + escapeHTML(factory.logo) + '">' : factoryIcon) +
+            '</div>' +
+            '<div>' +
+              '<div class="supplier-name">' + escapeHTML(factoryName) + '</div>' +
+              '<a class="supplier-link" href="web-factory.html?id=' +
+                encodeURIComponent(factoryId) + '">' +
+                escapeHTML(I18N.t("product_view_store")) + '</a>' +
+            '</div>' +
+          '</div>' +
+        '</div>';
+
       wrap.innerHTML =
-        '<div class="product-hero">' +
-          (sfSafeHttpUrl(image) ? '<img alt="" src="' + escapeHTML(sfSafeHttpUrl(image)) + '">' : imageIcon) +
+        /* عمودان مستقلّان: الصورة والمورّد في غلاف،
+           وبطاقات التفاصيل في غلاف آخر — فلا يربط
+           ارتفاعُ أحدهما الآخر. وخلايا الشبكة
+           المشتركة كانت تمدّد الصفّ إلى ارتفاع الصورة
+           فتترك بطاقة السعر فراغاً تحتها. */
+        '<div class="pd-media">' +
+          '<div class="product-hero">' +
+            (sfSafeHttpUrl(image) ? '<img alt="" src="' + escapeHTML(sfSafeHttpUrl(image)) + '">' : imageIcon) +
+          '</div>' +
+          SUPPLIER_HTML +
         '</div>' +
+
+        '<div class="pd-info">' +
 
         '<div class="card">' +
           '<div class="prod-name">' + escapeHTML(displayName) + '</div>' +
@@ -700,20 +726,8 @@
         descCardHTML(product) +
         specsCardHTML(product) +
 
-        '<div class="card supplier-card">' +
-          '<h2>' + escapeHTML(I18N.t("product_supplier_label")) + '</h2>' +
-          '<div class="supplier-row">' +
-            '<div class="supplier-logo">' +
-              (factory.logo ? '<img alt="" src="' + escapeHTML(factory.logo) + '">' : factoryIcon) +
-            '</div>' +
-            '<div>' +
-              '<div class="supplier-name">' + escapeHTML(factoryName) + '</div>' +
-              '<a class="supplier-link" href="web-factory.html?id=' +
-                encodeURIComponent(factoryId) + '">' +
-                escapeHTML(I18N.t("product_view_store")) + '</a>' +
-            '</div>' +
-          '</div>' +
         '</div>' +
+
 
         '<div class="actions">' +
           (product.id
@@ -1109,12 +1123,15 @@
         });
         var extraHTML = descCardHTML(row) + specsCardHTML(row);
         if (extraHTML) {
-          var anchor = wrap.querySelector(".supplier-card");
-          if (anchor) {
+          /* تُلحَق بعمود التفاصيل لا قبل بطاقة المورّد:
+             المورّد صار داخل غلاف الوسائط في العمود
+             الأوّل، فالإدراج قبله يضع الوصف تحت الصورة. */
+          var infoCol = wrap.querySelector(".pd-info");
+          if (infoCol) {
             var holder = document.createElement("div");
             holder.innerHTML = extraHTML;
             while (holder.firstChild) {
-              anchor.parentNode.insertBefore(holder.firstChild, anchor);
+              infoCol.appendChild(holder.firstChild);
             }
           }
         }

@@ -1749,12 +1749,24 @@
     align-items: start;
   }
 
-  /* الصورة في الصفّ الأوّل، وبطاقة المورّد
-     تحتها ملتصقة بها — فتدويرها أعلى فقط،
-     ولا تثبيت أثناء التمرير لأنّ اللصق يمنعه. */
-  .product-page .product-hero {
+  /* عمود الوسائط: الصورة وبطاقة المورّد قطعة
+     واحدة ملتصقة، وارتفاعه مستقلّ عن عمود
+     التفاصيل — وهذا جوهر الإصلاح: خلايا الشبكة
+     المشتركة كانت تمدّد الصفّ إلى ارتفاع الصورة
+     الأطول فتترك بطاقة السعر فراغاً تحتها. */
+  .product-page .pd-media {
     grid-column: 1;
-    grid-row: 1;
+    align-self: start;
+  }
+
+  /* عمود التفاصيل: السعر ثمّ الوصف ثمّ المواصفات،
+     متلاصقة قطعةً واحدة (بطلب المالك). */
+  .product-page .pd-info {
+    grid-column: 2;
+    align-self: start;
+  }
+
+  .product-page .product-hero {
     align-self: start;
     aspect-ratio: 1 / 1;
     border-radius: 14px 14px 0 0 !important;
@@ -1762,19 +1774,28 @@
     padding: 18px;
   }
 
-  /* بطاقة الاسم والسعر ثمّ الوصف والمواصفات
-     والمورّد — كلّها في العمود الأوسط متتابعة،
-     كلّ واحدة في صفّها فتتلاصق بلا فراغ. */
-  .product-page .content-wrap > .card {
-    grid-column: 2;
-    margin: 0 0 14px !important;
+  .product-page .pd-info > .card {
+    margin: 0 !important;
     padding: 18px !important;
+    border-radius: 0;
+    border-top: 1px solid #eef2ef;
   }
 
-  /* بطاقة المورّد تستثنى: لا هامش يفصلها
-     عن الصورة فوقها. */
-  .product-page .content-wrap > .supplier-card {
-    margin: 0 !important;
+  /* أوّل بطاقة وآخرة — ويصلح :first-child هنا لأنّ
+     الغلاف لا يحوي غير البطاقات، بخلاف الحاوية
+     الأمّ التي تحوي الصورة وصندوق الشراء أيضاً. */
+  .product-page .pd-info > .card:first-child {
+    border-radius: 14px 14px 0 0;
+    border-top: 0;
+  }
+
+  .product-page .pd-info > .card:last-child {
+    border-radius: 0 0 14px 14px;
+  }
+
+  /* بطاقة واحدة فقط: تدوير كامل. */
+  .product-page .pd-info > .card:first-child:last-child {
+    border-radius: 14px;
   }
 
   /* صندوق الشراء: عمود ثالث يرافق القراءة،
@@ -1795,11 +1816,11 @@
      (بطلب المالك): قطعة واحدة معها —
      تُربّع الحوافّ المتلاقية وتُلغى الفجوة
      بينهما، فيبقى التدوير على الأطراف وحدها. */
-  .product-page .supplier-card {
-    grid-column: 1 !important;
+  .product-page .pd-media > .supplier-card {
+    margin: 0 !important;
+    padding: 18px !important;
     border-radius: 0 0 14px 14px !important;
     border-top: 1px solid #eef2ef !important;
-    align-self: start;
   }
 
   /* بطاقة "المنتج غير متاح" وحدها في الصفحة:
@@ -1832,8 +1853,8 @@
       grid-template-columns: minmax(0, 1fr) !important;
       padding: 0 14px !important;
     }
-    .product-page .product-hero,
-    .product-page .content-wrap > .card,
+    .product-page .pd-media,
+    .product-page .pd-info,
     .product-page .actions { grid-column: 1; }
   }
 
