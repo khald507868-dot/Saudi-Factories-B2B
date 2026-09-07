@@ -375,7 +375,7 @@
 
       ready.then(function () {
         var q = sb.from("factories")
-          .select("id, name, cover, logo")
+          .select("id, name, cover, logo, status, owner_id")
           .order("created_at", { ascending: false });
         if (wantedCat) q = q.eq("industry", wantedCat);
         return q;
@@ -384,7 +384,20 @@
           showState(t("fx_failed", "تعذّر تحميل المصانع"));
           return;
         }
-        render(res.data || []);
+        /* الفلترة هنا لا في الاستعلام:
+
+           RLS تكشف للمالك مصنعه المعلّق وللمشرف كلّ
+           المصانع — وهذا صحيح في نفسه، لكنّه يجعل صفحة
+           التصفّح العامّة تعرض مصانع لم تُراجَع بعد.
+
+           وإضافة eq("status","approved") للاستعلام تخفي
+           مصنع المالك المعلّق عنه هو نفسه، فيظنّ أنّه
+           ضاع. فالفلترة هنا مع استثناء صاحبه. */
+        var me = window.SF_USER && SF_USER.id;
+        var visible = (res.data || []).filter(function (f) {
+          return f.status === "approved" || (me && f.owner_id === me);
+        });
+        render(visible);
       }).catch(function () {
         showState(t("fx_failed", "تعذّر تحميل المصانع"));
       });
