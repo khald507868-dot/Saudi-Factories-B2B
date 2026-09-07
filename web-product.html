@@ -781,9 +781,43 @@
           else query = query.eq("factory_id", factoryId).order("sort_order").range(prodIndex, prodIndex);
           return query.maybeSingle();
         }).then(function (res) {
-          if (!res || res.error || !res.data) return;
+          /* تعذّر الاتّصال يترك النسخة المحلّية،
+             أمّا ردّ ناجح بلا صفّ فيعني أنّ المنتج لا
+             وجود له — فعرض مسودة محلّية يوهم المشتري
+             بمنتج ليس في المنصّة (بطلب المالك). */
+          if (!res || res.error) return;
+          if (!res.data) { showMissingProduct(); return; }
           applyLiveProduct(res.data);
         }).catch(function () {});
+      }
+
+      /* منتج طلبه الزائر ولا وجود له في القاعدة. */
+      function showMissingProduct() {
+        var wrap = document.getElementById("content-wrap");
+        if (!wrap) return;
+
+        var box = document.createElement("div");
+        box.className = "card";
+        box.style.cssText = "text-align:center; padding:44px 20px;";
+
+        var head = document.createElement("h2");
+        head.setAttribute("data-i18n", "prod_missing");
+        head.textContent = "المنتج غير متاح";
+        head.style.cssText = "margin:0 0 14px; font-size:19px; color:#04361b;";
+        box.appendChild(head);
+
+        var link = document.createElement("a");
+        link.href = "index.html";
+        link.setAttribute("data-i18n", "prod_browse_all");
+        link.textContent = "تصفّح المنتجات";
+        link.style.cssText = "display:inline-block; padding:9px 20px; " +
+          "border-radius:999px; background:#04361b; color:#fff; " +
+          "text-decoration:none; font-weight:700; font-size:14px;";
+        box.appendChild(link);
+
+        wrap.innerHTML = "";
+        wrap.appendChild(box);
+        if (window.I18N) I18N.applyTranslations();
       }
 
       /* ===== بوابة الحساب على أزرار المراسلة =====

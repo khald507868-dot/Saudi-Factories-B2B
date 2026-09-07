@@ -1663,6 +1663,38 @@
 
       var factoryId = rawId;
 
+      /* مصنع طلبه الزائر ولا وجود له في القاعدة:
+         نفس رسالة المعرّف الناقص، لأنّ النتيجة واحدة —
+         لا صفحة هنا. وتُستدعى بعد ردّ القاعدة لا قبله،
+         فالوجود لا يُعرف إلّا منها. */
+      function showMissingFactory() {
+        var wrap = document.querySelector(".content-wrap");
+        if (!wrap) return;
+
+        var box = document.createElement("div");
+        box.className = "card";
+        box.style.cssText = "text-align:center; padding:44px 20px;";
+
+        var head = document.createElement("h2");
+        head.setAttribute("data-i18n", "fx_no_id");
+        head.textContent = "لم يُحدّد مصنع";
+        head.style.cssText = "margin:0 0 14px; font-size:19px; color:#04361b;";
+        box.appendChild(head);
+
+        var link = document.createElement("a");
+        link.href = "web-factories.html";
+        link.setAttribute("data-i18n", "fx_browse_all");
+        link.textContent = "تصفّح المصانع";
+        link.style.cssText = "display:inline-block; padding:9px 20px; " +
+          "border-radius:999px; background:#04361b; color:#fff; " +
+          "text-decoration:none; font-weight:700; font-size:14px;";
+        box.appendChild(link);
+
+        wrap.innerHTML = "";
+        wrap.appendChild(box);
+        if (window.I18N) I18N.applyTranslations();
+      }
+
       /* صلاحية التعديل = ملكية هذا المصنع بالذات.
          تُحسم من القاعدة لا من localStorage: الأخيرة يملكها
          المستخدم ويعدّلها من الطرفية، فلا تصلح حارساً. وتبدأ
@@ -3208,7 +3240,17 @@
             .eq("id", factoryId)
             .maybeSingle();
         }).then(function (res) {
-          if (!res || res.error || !res.data) return null;
+          /* التمييز بين حالتين لازم:
+
+             • تعذّر الاتّصال (res.error) — تبقى النسخة
+               المحلّية معروضة، فالمصنع قد يكون موجوداً
+               والشبكة هي التي خذلت.
+
+             • ردّ ناجح بلا صفّ (data === null) — المصنع لا
+               وجود له، فعرض مسودة محلّية يوهم الزائر
+               بمصنع ليس في المنصّة (بطلب المالك). */
+          if (!res || res.error) return null;
+          if (!res.data) { showMissingFactory(); return null; }
           var row = res.data;
 
           return Promise.all([
