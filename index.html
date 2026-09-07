@@ -1769,8 +1769,10 @@
           if (!gallery.length && typeof row.image === 'string' &&
               row.image.indexOf('http') === 0) gallery.push(row.image);
 
+          /* منتج بلا صورة يعرض أيقونة نائبة، ولا
+             يستعير غلاف المصنع: الغلاف مشهد عامّ للمنشأة
+             فيظهر للمشتري كأنّه المنتج ويُضلّله. */
           var image = gallery[0] || '';
-          if (!image) image = factory.cover || '';
           var name = row.name || factory.name || '';
           var price = row.price || '';
 

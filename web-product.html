@@ -463,10 +463,13 @@
       var product = products[prodIndex] || {};
       if (productId && product.id && String(product.id) !== String(productId)) product = {};
 
-      /* بطاقة الرئيسية تعرض أول منتج للمصنع، فإن كان المصنع
-         بلا منتجات بعد فالبطاقة تحمل غلافه واسمه — وهو ما
-         نعرضه هنا أيضاً بدل صفحة فارغة. */
-      var image = product.image || factory.cover || "";
+      /* لا استعارة لغلاف المصنع حين تغيب صورة
+         المنتج: الغلاف مشهد عامّ للمنشأة فيظهر
+         للمشتري كأنّه المنتج ويُضلّله، والأيقونة
+         النائبة أصدق. وكان التعليل أنّ الرئيسية تعرض
+         أوّل منتج للمصنع — وقد بطل حين صارت تقرأ
+         منتجات حقيقية من القاعدة. */
+      var image = product.image || "";
       var name  = product.name  || factory.name  || "";
       var price = product.price || "";
 
@@ -713,7 +716,6 @@
           if (!liveImage && typeof u === "string" && u.indexOf("http") === 0) liveImage = u;
         });
         if (!liveImage && typeof row.image === "string" && row.image.indexOf("http") === 0) liveImage = row.image;
-        if (!liveImage) liveImage = factory.cover || "";
         var hero = wrap.querySelector(".product-hero");
         if (hero) hero.innerHTML = liveImage ? '<img alt="" src="' + escapeHTML(liveImage) + '">' : imageIcon;
         var title = wrap.querySelector(".prod-name");
