@@ -124,11 +124,12 @@
       .select()
       .then(function (res) {
         if (res.error) throw res.error;
-        /* صفر صفوف مع نجاح ظاهري = رفضته السياسة، وهو ما
-           يقع لمن لم يشترِ. لا يُقرأ من رمز الحالة. */
+        /* صفر صفوف مع نجاح ظاهري = رفضته السياسة.
+           لا يُقرأ من رمز الحالة: الكتابة المرفوضة تردّ
+           200 وقائمة فارغة لا خطأً. */
         if (!res.data || !res.data.length) {
-          throw new Error(t("review_need_purchase",
-            "التقييم متاح لمن اشترى هذا المنتج."));
+          throw new Error(t("review_rejected",
+            "تعذّر حفظ المراجعة. حدّث الصفحة وحاول مرّة أخرى."));
         }
         return res.data[0];
       });

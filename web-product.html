@@ -1891,7 +1891,14 @@
               '<div class="rv-name">' + escapeHTML(r.author_name || "") + '</div>' +
               '<div class="rv-meta">' +
                 starsHTML(r.rating) +
-                '<span class="rv-verified">' + escapeHTML(I18N.t("review_verified_buyer")) + '</span>' +
+                /* الوسم لمن اشترى فعلاً وحده: التقييم مفتوح
+                   لكلّ مسجّل (بطلب المالك)، فإظهاره للجميع
+                   يجعله ادّعاء بلا سند. والخادم يحسبه من
+                   الطلبات لا من حقل يكتبه المقيّم. */
+                (r.is_verified
+                  ? '<span class="rv-verified">' +
+                      escapeHTML(I18N.t("review_verified_buyer")) + '</span>'
+                  : '') +
                 '<span>' + escapeHTML(rvDate(r.created_at)) + '</span>' +
               '</div>' +
             '</div>' +
@@ -1934,9 +1941,11 @@
             escapeHTML(I18N.t("review_login_first")) + '</div>';
           return;
         }
+        /* التقييم مفتوح لكلّ مسجّل (بطلب المالك)،
+           فمن وصل هنا بلا صلاحية ينقصه الدخول لا الشراء. */
         if (!status.canReview) {
           host.innerHTML = '<div class="rv-note">' +
-            escapeHTML(I18N.t("review_need_purchase")) + '</div>';
+            escapeHTML(I18N.t("review_login_first")) + '</div>';
           return;
         }
 
