@@ -662,14 +662,12 @@
 
           var pendEl = document.getElementById("stat-pending");
           if (pendEl) {
-            pendEl.textContent =
-              waiting.toFixed(2) + " " + I18N.t("currency_sar");
+            pendEl.innerHTML = I18N.money(waiting.toFixed(2));
           }
 
           var totalEl = document.getElementById("stat-total");
           if (totalEl) {
-            totalEl.textContent =
-              sum.toFixed(2) + " " + I18N.t("currency_sar");
+            totalEl.innerHTML = I18N.money(sum.toFixed(2));
           }
 
           drawRevenueChart(res.data);

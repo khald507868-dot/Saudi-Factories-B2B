@@ -78,3 +78,28 @@ html[lang="ar"] select {
 .protection-how-box:hover {
   border-color: var(--sf-product-frame-hover) !important;
 }
+
+
+/* ===== رمز الريال السعودي الجديد (بطلب المالك) =====
+   الرمز اعتُمد سنة 2025 ولم يدخل خطوط الأنظمة ولا خطّ
+   Tajawal بعد، فلو كُتب حرفاً (U+20C0) لظهر مربّعاً
+   فارغاً لأكثر الزوّار. فيُرسم صورةً متجهة تظهر عند
+   الجميع، ولا ملفّ صورة يُضاف للمشروع.
+
+   النصّ داخل العنصر يبقى لقارئ الشاشة ويُخفى بصريّاً،
+   والحجم بـem ليتبع الرقم المجاور في كلّ موضع. */
+.sar,
+.currency,
+.product-currency {
+  display: inline-block;
+  width: 1.04em;
+  height: 0.96em;
+  vertical-align: -0.13em;
+  background-color: currentColor;
+  -webkit-mask: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDgwIDEwMDAiPjxnIGZpbGw9ImN1cnJlbnRDb2xvciI+PHBhdGggZD0iTTU1NiA2MGMtNDUgMzAtODMgNjYtMTEyIDEwOHYzNjZsLTEzNCAyOWMtMTYgMzgtMjcgNzktMzMgMTIybDE2Ny0zNnYxMjhsLTIzMiA1MGMtMTYgMzgtMjcgNzktMzMgMTIybDI4Ni02MmMzNC03IDYzLTI4IDgxLTU3bDQzLTY5VjYweiIvPjxwYXRoIGQ9Ik03NzAgMTA0Yy0zOCAyNy03MSA1Ny05NyA5MHYzMDZsLTg4IDE5djEwNmw4OC0xOXYxMjhsMjUzLTU1YzE2LTM4IDI3LTc5IDMzLTEyMmwtMTgxIDM5di0xMDZsMTgxLTM5YzE2LTM4IDI3LTc5IDMzLTEyMmwtMjIyIDQ4VjEwNHoiLz48cGF0aCBkPSJNNjc2IDgwMGMtMTYgMzgtMjcgNzktMzMgMTIybDI4Ni02MmMxNi0zOCAyNy03OSAzMy0xMjJsLTI4NiA2MnoiLz48L2c+PC9zdmc+") no-repeat center / contain;
+          mask: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDgwIDEwMDAiPjxnIGZpbGw9ImN1cnJlbnRDb2xvciI+PHBhdGggZD0iTTU1NiA2MGMtNDUgMzAtODMgNjYtMTEyIDEwOHYzNjZsLTEzNCAyOWMtMTYgMzgtMjcgNzktMzMgMTIybDE2Ny0zNnYxMjhsLTIzMiA1MGMtMTYgMzgtMjcgNzktMzMgMTIybDI4Ni02MmMzNC03IDYzLTI4IDgxLTU3bDQzLTY5VjYweiIvPjxwYXRoIGQ9Ik03NzAgMTA0Yy0zOCAyNy03MSA1Ny05NyA5MHYzMDZsLTg4IDE5djEwNmw4OC0xOXYxMjhsMjUzLTU1YzE2LTM4IDI3LTc5IDMzLTEyMmwtMTgxIDM5di0xMDZsMTgxLTM5YzE2LTM4IDI3LTc5IDMzLTEyMmwtMjIyIDQ4VjEwNHoiLz48cGF0aCBkPSJNNjc2IDgwMGMtMTYgMzgtMjcgNzktMzMgMTIybDI4Ni02MmMxNi0zOCAyNy03OSAzMy0xMjJsLTI4NiA2MnoiLz48L2c+PC9zdmc+") no-repeat center / contain;
+  /* النصّ يُدفع خارج الصندوق فيُقرأ ولا يُرى. */
+  text-indent: -9999px;
+  overflow: hidden;
+  line-height: 1;
+}

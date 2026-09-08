@@ -3097,13 +3097,20 @@
           if (lo === null || v < lo) lo = v;
           if (hi === null || v > hi) hi = v;
         });
-        if (lo === null) return I18N.t("product_price_on_request");
+        if (lo === null) {
+          /* الموضع صار innerHTML، والنصّ من ملفّ الترجمة
+             لا من المستخدم، لكنّ التنقية أرخص من الثقة. */
+          return String(I18N.t("product_price_on_request"))
+            .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        }
 
         function trim(n) {
           return String(Number(n).toFixed(2)).replace(/[.]00$/, "");
         }
-        var cur = " " + I18N.t("currency_sar");
-        return hi > lo ? trim(lo) + " - " + trim(hi) + cur : trim(lo) + cur;
+        /* ترميز لا نصّاً: رمز الريال مرسوم. */
+        return hi > lo
+          ? trim(lo) + " - " + I18N.money(trim(hi))
+          : I18N.money(trim(lo));
       }
 
           /* وضع العرض: اسم المنتج وسعره كنص، بدون حذف أو تعديل */
@@ -3117,7 +3124,7 @@
             /* مدى الشرائح لا السعر الأساسي: التسعير
                صار بالشرائح وحدها، ومنتج بلا شرائح
                يُعرض «السعر عند الطلب» لا فراغاً. */
-            readPrice.textContent = priceLabel(product);
+            readPrice.innerHTML = priceLabel(product);
 
             body.appendChild(readName);
             body.appendChild(readPrice);

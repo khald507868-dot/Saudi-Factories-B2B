@@ -839,9 +839,13 @@
     text-align: left;
   }
 
+  /* الرمز صورة لا نصّ: مقاسه بالـem في تنسيق
+     green-frames.css فيتبع حجم السعر. وكان هنا
+     font-size: 10.5px يصغّر كلمة SAR حتّى لا تزاحم
+     الرقم — وهو الآن يصغّر الصورة دون حجمها
+     الصحيح، فيُنزع. */
   .product-currency {
-    font-size: 10.5px;
-    font-weight: 700;
+    margin-inline-start: 2px;
   }
 
   /* سطر: موثّق + عدد السنوات */
@@ -1958,7 +1962,7 @@
           if (f) f.textContent = fmt(row.factories_count);
           if (p) p.textContent = fmt(row.products_count);
           if (u) u.textContent = fmt(row.units_sold);
-          if (r) r.textContent = fmt(row.revenue) + ' ' + I18N.t('currency_sar');
+          if (r) r.innerHTML = I18N.money(fmt(row.revenue));
 
           box.hidden = false;
         }).catch(function () { /* تبقى مخفيّة */ });

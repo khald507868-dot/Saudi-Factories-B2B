@@ -403,7 +403,7 @@
 
   function money(v) {
     var n = Number(v || 0);
-    return n.toFixed(2) + " " + I18N.t("currency_sar");
+    return I18N.money(n.toFixed(2));
   }
 
   function showState(el, html, isError) {

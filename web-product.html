@@ -162,9 +162,10 @@
     line-height: 1.2;
   }
 
+  /* الرمز صورة تتبع حجم السعر — وكان 15px يحبسها
+     تحت سعر حجمه أكبر من الضعف. */
   .prod-price .currency {
-    font-size: 15px;
-    font-weight: 700;
+    margin-inline-start: 3px;
   }
 
   .prod-price.on-request {
@@ -356,9 +357,8 @@
     white-space: nowrap;
   }
 
+  /* خلايا الشرائح صغيرة أصلاً، فيكفي الفاصل. */
   .tier-cell-price .currency {
-    font-size: 11.5px;
-    font-weight: 700;
     margin-inline-start: 3px;
   }
 

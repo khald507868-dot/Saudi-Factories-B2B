@@ -279,7 +279,7 @@
   }
 
   function money(v) {
-    return Number(v || 0).toFixed(2) + " " + I18N.t("currency_sar");
+    return I18N.money(Number(v || 0).toFixed(2));
   }
 
   /* التاريخ بصيغة ISO المحلّية — الفاتورة مستند، فالثانية فيها
@@ -407,7 +407,7 @@
 
         '<div class="grand">' +
           "<span>" + esc(I18N.t("inv_subtotal_incl_vat")) + "</span>" +
-          '<span class="value">' + esc(money(o.total)) + "</span>" +
+          '<span class="value">' + money(o.total) + "</span>" +
         "</div>" +
 
         '<div class="qr-wrap">' +

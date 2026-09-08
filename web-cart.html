@@ -981,10 +981,10 @@
           }
           row.querySelector(".ci-name").textContent = product.name || "منتج";
           row.querySelector(".ci-factory").textContent = (product.factories && product.factories.name) || "";
-          row.querySelector(".ci-unit").textContent =
-            price.toFixed(2) + " " + I18N.t("currency_sar") + " " + I18N.t("cart_per_unit");
-          row.querySelector(".ci-price").textContent =
-            (price * quantity).toFixed(2) + " " + I18N.t("currency_sar");
+          row.querySelector(".ci-unit").innerHTML =
+            I18N.money(price.toFixed(2)) + " " + I18N.t("cart_per_unit");
+          row.querySelector(".ci-price").innerHTML =
+            I18N.money((price * quantity).toFixed(2));
           row.querySelector(".ci-count").textContent = quantity;
 
           /* كلّ تغيير يمرّ بالخادم ثمّ يُعاد البناء من ردّه،
@@ -1005,10 +1005,10 @@
                الجديدة قد تقع في شريحة أخرى، وإمساك السعر
                المحسوب عند التحميل يجمّده على شريحة قديمة. */
             var unit = unitPrice(product, q);
-            row.querySelector(".ci-unit").textContent =
-              unit.toFixed(2) + " " + I18N.t("currency_sar") + " " + I18N.t("cart_per_unit");
-            row.querySelector(".ci-price").textContent =
-              (unit * q).toFixed(2) + " " + I18N.t("currency_sar");
+            row.querySelector(".ci-unit").innerHTML =
+              I18N.money(unit.toFixed(2)) + " " + I18N.t("cart_per_unit");
+            row.querySelector(".ci-price").innerHTML =
+              I18N.money((unit * q).toFixed(2));
             var sum = 0;
             items.forEach(function (it) {
               var pp = it.products || {};
@@ -1132,12 +1132,11 @@
       var SHIPPING = 30, FEE_RATE = 0.01, VAT_RATE = 0.15;
 
       function paintSums(subtotal) {
-        var cur = " " + I18N.t("currency_sar");
         var box = document.getElementById("cart-sums");
 
         if (!subtotal) {
           if (box) box.hidden = true;
-          totalEl.textContent = (0).toFixed(2) + cur;
+          totalEl.innerHTML = I18N.money((0).toFixed(2));
           return;
         }
 
@@ -1147,7 +1146,7 @@
 
         function put(id, v) {
           var el = document.getElementById(id);
-          if (el) el.textContent = v.toFixed(2) + cur;
+          if (el) el.innerHTML = I18N.money(v.toFixed(2));
         }
         put("sum-subtotal", subtotal);
         put("sum-shipping", SHIPPING);
@@ -1155,7 +1154,7 @@
         put("sum-vat", vat);
 
         if (box) box.hidden = false;
-        totalEl.textContent = (taxable + vat).toFixed(2) + cur;
+        totalEl.innerHTML = I18N.money((taxable + vat).toFixed(2));
       }
 
       function loadCart() {
