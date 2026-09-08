@@ -107,7 +107,14 @@
         localStorage.removeItem("sf_account");
         localStorage.removeItem("sf_signed_in");
       } catch (e) {}
-      location.replace(loginPage());
+      /* إلى الواجهة الرئيسية زائراً لا إلى صفحة الدخول
+         (بطلب المالك): من خرج لا يريد أن يدخل من
+         فوره، والرئيسية صفحة عامّة (SF_PUBLIC_PAGE)
+         تُفتح بلا حساب — فلا حلقة تحويل.
+
+         والحارس يبقى يردّ إلى صفحة الدخول عند انتهاء
+         الجلسة: ذاك من يريد البقاء فيُعاد إلى حيث كان. */
+      location.replace("index.html");
     });
   };
 })(window);
