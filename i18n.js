@@ -760,7 +760,7 @@
       splash_login_btn: "Log In",
       splash_signup_btn: "Create Account",
       splash_signup_factory_btn: "Register a new factory",
-      nav_become_supplier: "Become a Supplier",
+      nav_become_supplier: "Be a manufacturer",
       supplier_page_title: "Supplier Portal - Saudi Factories",
       auth_switch_supplier: "Are you a factory? Sign in here",
       auth_switch_individual: "Are you a buyer? Sign in here",
