@@ -330,26 +330,45 @@
   .fx-meta:empty { display: none; }
 
   /* ===== أزرار التفاعل ===== */
+  /* الزرّان متساويا العرض (بطلب المالك): الحاوية
+     محدودة العرض ثمّ يقتسمانها بالتساوي، فلا يُكتب
+     عرض ثابت بالبكسل ينكسر حين تطول الترجمة في
+     لغة أخرى — والموقع بثلاثين لغة. */
   .fx-actions {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
     margin: 14px 0 4px;
+    max-width: 420px;
   }
 
+  /* الزرّان بمقاس واحد (بطلب المالك): أحدهما button
+     والآخر a، ولا يتساويان بالحشوة وحدها: الـbutton
+     يرث box-sizing وحدوداً من المتصفّح. فيُوحّد
+     الارتفاع صراحةً ويُضبط الصندوق، فيستويان
+     مهما اختلف وسماهما. */
   .fx-follow,
   .fx-visit {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 7px;
-    padding: 8px 17px;
+    box-sizing: border-box;
+    height: 38px;
+    padding: 0 17px;
     border-radius: 999px;
     font: inherit;
     font-size: 14px;
     font-weight: 700;
-    line-height: 1.4;
+    line-height: 1;
     cursor: pointer;
     text-decoration: none;
+    white-space: nowrap;
+    /* يقتسمان الحاوية بالتساوي، وbasis: 0 يجعل
+       القسمة من الصفر لا من عرض النصّ، وإلّا بقي
+       الأطول أوسع. وmin-width يمنع قصّ النصّ الطويل. */
+    flex: 1 1 0;
+    min-width: fit-content;
   }
 
   /* المتابعة: محدّد قبل الضغط،
@@ -379,6 +398,7 @@
     fill: none;
     stroke: currentColor;
     stroke-width: 2.3;
+    flex-shrink: 0;
   }
 
   /* العلامة للمتابَع، والزائد لغيره */
@@ -394,12 +414,14 @@
 
   .fx-visit:hover { border-color: #04361b; }
 
+  /* 16px مثل أيقونة المتابعة لا 15px. */
   .fx-visit svg {
-    width: 15px;
-    height: 15px;
+    width: 16px;
+    height: 16px;
     fill: none;
     stroke: currentColor;
     stroke-width: 2;
+    flex-shrink: 0;
   }
 
   /* المالك يراه ولا يضغطه */
@@ -2426,9 +2448,48 @@
         return data.industry;
       }
 
+      /* ما لا يبدأ بـhttp يُكمّل بـhttps بدل أن يُرفض:
+         من يكتب www.example.com أو example.com — وهو
+         الأغلب — كان يظنّ أنّه حفظ رابطاً ثمّ لا يرى
+         الزرّ ولا يعرف لماذا.
+
+         ويُردّ ما ليس رابطاً: نصّ بلا نقطة، أو فيه
+         مسافة. ويُردّ كلّ مخطّط غير http/https — وهذا
+         سبب وجود الدالّة أوّلاً: javascript: في href
+         يُنفّذ عند الضغط. */
+      /* يُكمّل البادئ قبل الحفظ: الخادم يرفض ما لا
+         يطابق ^https?:// ويُسقِط الحفظ كلّه لا حقل
+         الموقع وحده — فمن كتب www.example.com ضاع عليه
+         ما كتبه في تلك الجولة بلا بيان.
+
+         وما ليس رابطاً يُترك كما هو ليُصلِحه صاحبه،
+         والفارغ يبقى فارغاً — وهو مقبول عند الخادم. */
+      function normalizeWebsite(raw) {
+        var value = String(raw || "").trim();
+        if (!value) return "";
+        if (/^https?:\/\//i.test(value)) return value;
+
+        /* مخطّط آخر (javascript: ونحوه) لا يُكمّل. */
+        if (/^[a-z][a-z0-9+.-]*:/i.test(value)) return value;
+
+        var host = value.split("/")[0];
+        if (/\s/.test(value) || host.indexOf(".") <= 0) return value;
+        return "https://" + value;
+      }
+
       function safeExternalUrl(raw) {
         var value = String(raw || "").trim();
-        return /^https?:\/\//i.test(value) ? value : "#";
+        if (!value) return "#";
+
+        /* مخطّط مكتوب: يُقبل http/https وحدهما. */
+        if (/^[a-z][a-z0-9+.-]*:/i.test(value)) {
+          return /^https?:\/\//i.test(value) ? value : "#";
+        }
+
+        /* بلا مخطّط: لا مسافات، ونقطة داخل اسم المضيف. */
+        var host = value.split("/")[0];
+        if (/\s/.test(value) || host.indexOf(".") <= 0) return "#";
+        return "https://" + value;
       }
 
       function renderAbout() {
@@ -2469,7 +2530,9 @@
         sizeSel.value      = data.company_size || "";
 
         websiteInput.addEventListener("input", function () {
-          data.website = websiteInput.value.trim();
+          /* يُطبّع هنا لا في الخانة: تغيير قيمة الخانة
+             أثناء الكتابة يقفز بالمؤشّر إلى الآخر. */
+          data.website = normalizeWebsite(websiteInput.value);
           save();
         });
         industrySel.addEventListener("change", function () {
