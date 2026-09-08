@@ -1611,32 +1611,35 @@
 
   .store-page #card-products { padding: 20px !important; }
 
-  /* النبذة والمنشورات قطعة واحدة في تبويب
-     الرئيسية (بطلب المالك): كان بينهما فاصل
-     16px مقصود — والمالك يريدهما ملتحمتين.
-     والقاعدة العامّة تفرض الهامش بـ!important
-     فلا يغلبها إلّا مثلها بمحدّد أدقّ.
+  /* الترويسة تلتصق بالبطاقة تحتها في كلّ التبويبات
+     (بطلب المالك): الفاصل مصدره margin-bottom على
+     .fx-head لا على البطاقات، وأركانها السفلى مدوّرة
+     فتفتح هلالًا أبيض عند الالتقاء.
 
-     والتحديد بتبويب الرئيسية وحده: في بقيّة
-     التبويبات تظهر بطاقة واحدة فلا شيء يُلصق. */
-  /* الترويسة تلتصق بالبطاقة تحتها (بطلب المالك):
-     الفاصل الباقي مصدره margin-bottom على .fx-head
-     لا على البطاقات، وأركانها السفلى مدوّرة
-     فتفتح هلالًا عند الالتقاء. */
-  body.store-page:not([class*="tab-"]):not(.product-page) .fx-head {
+     ولا يُستثنى إلّا صفحة المنتج: تحمل store-page
+     نفسها وليس فيها .fx-head أصلاً. */
+  body.store-page:not(.product-page) .fx-head {
     margin-bottom: 0 !important;
     border-bottom-left-radius: 0;
     border-bottom-right-radius: 0;
   }
 
-  /* والبطاقة تحتها تفقد تدوير أعلاها ليستقيم
-     الوصل، مع خطّ رفيع يفصل المحتوى. */
-  body.store-page:not([class*="tab-"]):not(.product-page) #card-about {
+  /* أوّل بطاقة في كلّ تبويب تفقد تدوير أعلاها
+     ليستقيم الوصل، مع خطّ رفيع يفصل المحتوى دون
+     أن يفتح فراغاً — وإلّا بدتا كتلةً مبهمة الحدود.
+     وكلّ تبويب يعرض بطاقته وحدها، فالثلاث هنا
+     لا تجتمع إلّا في الرئيسية. */
+  body.store-page:not([class*="tab-"]):not(.product-page) #card-about,
+  body.store-page.tab-about #card-about,
+  body.store-page.tab-posts #card-posts,
+  body.store-page.tab-products #card-products {
     border-top-left-radius: 0;
     border-top-right-radius: 0;
     border-top: 1px solid #eef2ef;
   }
 
+  /* وفي الرئيسية وحدها تجتمع بطاقتان، فتُلصق
+     النبذة بالمنشورات كذلك. */
   body.store-page:not([class*="tab-"]):not(.product-page) #card-about {
     margin-bottom: 0 !important;
     border-bottom-left-radius: 0;
@@ -1646,12 +1649,6 @@
   body.store-page:not([class*="tab-"]):not(.product-page) #card-posts {
     border-top-left-radius: 0;
     border-top-right-radius: 0;
-  }
-
-  /* خطّ رفيع عند الالتقاء يفصل المحتوى دون أن
-     يفتح فراغاً، وإلّا بدت البطاقتان كتلةً واحدة
-     مبهمة الحدود. */
-  body.store-page:not([class*="tab-"]):not(.product-page) #card-posts {
     border-top: 1px solid #eef2ef;
   }
 
