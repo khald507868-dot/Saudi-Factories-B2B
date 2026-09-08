@@ -15,6 +15,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title data-i18n="app_title">المصانع السعودية</title>
 <script src="currency.js"></script>
+<script src="translate.js"></script>
 <script src="i18n.js"></script>
 <script src="currency-ui.js"></script>
 <!-- زر اللغة بجانب السلة — في هذه الصفحة وحدها بطلب المالك -->
@@ -1838,7 +1839,7 @@
                       : imageIcon)) +
               '</div>' +
               '<div class="product-body">' +
-                (name ? '<div class="product-name">' + escapeHTML(name) + '</div>' : '') +
+                (name ? '<div class="product-name" data-sf-translate>' + escapeHTML(name) + '</div>' : '') +
                 (priceHTML
                   ? priceHTML
                   : '') +
@@ -1855,6 +1856,9 @@
         grid.innerHTML = html;
         wireFavorites(grid);
         startCardSliders(grid);
+        /* أسماء المنتجات تُترجم بعد الرسم، والخدمة
+           تعود بالأصل إن تعذّرت — فلا شيء ينكسر. */
+        if (window.SFTranslate) SFTranslate.translateAll(grid);
       }
 
       /* ===== تبديل صور البطاقات عند مرور المؤشّر =====

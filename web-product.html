@@ -23,6 +23,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <title data-i18n="product_page_title">تفاصيل المنتج - المصانع السعودية</title>
 <script src="currency.js"></script>
+<script src="translate.js"></script>
 <script src="i18n.js"></script>
 <script src="currency-ui.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -670,7 +671,7 @@
         if (!String(txt).trim()) return "";
         return '<div class="card" id="card-desc">' +
                  '<h2>' + escapeHTML(I18N.t("product_description")) + '</h2>' +
-                 '<div class="prod-desc">' + escapeHTML(txt) + '</div>' +
+                 '<div class="prod-desc" data-sf-translate>' + escapeHTML(txt) + '</div>' +
                '</div>';
       }
 
@@ -735,7 +736,7 @@
         '<div class="pd-info">' +
 
         '<div class="card">' +
-          '<div class="prod-name">' + escapeHTML(displayName) + '</div>' +
+          '<div class="prod-name" data-sf-translate>' + escapeHTML(displayName) + '</div>' +
           priceBlock +
           '<div class="tier-table" id="tier-table" hidden></div>' +
           /* الشارة للمعتمد وحده (بطلب المالك): إظهارها
@@ -1092,6 +1093,9 @@
       }
       bindQtyPicker();
       renderTiers();
+      /* اسم المنتج ووصفه يكتبهما المصنع بلغة واحدة،
+         فيُترجمان إلى لغة الزائر إن دعم متصفّحه ذلك. */
+      if (window.SFTranslate) SFTranslate.translateAll(wrap);
 
       function bindCartButton() {
         var cartButton = wrap.querySelector(".add-cart-btn");
@@ -1144,6 +1148,12 @@
         card.appendChild(box);
       }
 
+      /* الخدمة قد تغيب (متصفّح قديم أو ملفّ لم يُحمّل)،
+         وغيابها لا يجوز أن يُسقِط الصفحة. */
+      function global_SFTranslate() {
+        return typeof window.SFTranslate !== "undefined";
+      }
+
       function applyLiveProduct(row) {
         if (!row) return;
         product = row;
@@ -1158,8 +1168,13 @@
         if (!liveImage && typeof row.image === "string" && row.image.indexOf("http") === 0) liveImage = row.image;
         var hero = wrap.querySelector(".product-hero");
         if (hero) hero.innerHTML = liveImage ? '<img alt="" src="' + escapeHTML(liveImage) + '">' : imageIcon;
+        /* الاسم من الخادم يحلّ محلّ المحليّ: تُمسح
+           data-sf-src وإلّا أعادت الترجمةُ الاسمَ القديم. */
         var title = wrap.querySelector(".prod-name");
-        if (title) title.textContent = row.name || factory.name || factoryName;
+        if (title) {
+          title.textContent = row.name || factory.name || factoryName;
+          title.removeAttribute("data-sf-src");
+        }
         /* الشرائح من الخادم تحلّ محلّ المحلّية */
         if (row.price != null && row.price !== "") {
           /* الأساسي من الخادم يحلّ محلّ المحلّي،
@@ -1169,6 +1184,16 @@
         if (Array.isArray(row.tiers)) {
           product.tiers = row.tiers;
         }
+        /* والوصف كذلك إن جاء من الخادم. */
+        var descEl = wrap.querySelector(".prod-desc");
+        if (descEl && row.description != null && row.description !== "") {
+          descEl.textContent = row.description;
+          descEl.removeAttribute("data-sf-src");
+        }
+
+        /* بعد كلّ كتابة: تُعاد الترجمة لما تغيّر. */
+        if (global_SFTranslate()) SFTranslate.translateAll(wrap);
+
         var priceEl = wrap.querySelector(".prod-price");
         if (priceEl) {
           priceEl.className = row.price ? "prod-price" : "prod-price on-request";
