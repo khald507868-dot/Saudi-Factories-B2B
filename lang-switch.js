@@ -67,7 +67,9 @@
       "transition:background .18s ease,border-color .18s ease,box-shadow .18s ease}",
       ".sf-lang-btn:hover,.sf-lang-btn.open{background:#e6f2ea;border-color:#8fbe9e;",
       "box-shadow:0 4px 10px rgba(4,54,27,0.10)}",
-      ".sf-lang-btn svg{width:22px;height:22px;stroke:#04361b;fill:none;stroke-width:1.9}",
+      /* الحرفان بحجم يملأ المربّع دون أن يلمس حوافّه،
+         وletter-spacing سالب قليلاً ليستقرّا في الوسط. */
+      ".sf-lang-code{font-size:13px;font-weight:800;color:#04361b;letter-spacing:-.3px;font-family:inherit}",
 
       /* لوحة منسدلة تحت الزر مباشرة، لا ورقة سفلية */
       ".sf-lang-panel{position:absolute;top:calc(100% + 10px);z-index:200;",
@@ -228,26 +230,13 @@
     btn.setAttribute("aria-label", t("row_language", "\u0627\u0644\u0644\u063a\u0629"));
     btn.title = currentEntry()[0];
 
-    var svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    svg.setAttribute("viewBox", "0 0 24 24");
-    svg.setAttribute("stroke-linecap", "round");
-    svg.setAttribute("stroke-linejoin", "round");
-
-    var circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-    circle.setAttribute("cx", "12");
-    circle.setAttribute("cy", "12");
-    circle.setAttribute("r", "9");
-
-    var horiz = document.createElementNS("http://www.w3.org/2000/svg", "path");
-    horiz.setAttribute("d", "M3 12h18");
-
-    var vert = document.createElementNS("http://www.w3.org/2000/svg", "path");
-    vert.setAttribute("d", "M12 3a15 15 0 0 1 0 18a15 15 0 0 1 0-18");
-
-    svg.appendChild(circle);
-    svg.appendChild(horiz);
-    svg.appendChild(vert);
-    btn.appendChild(svg);
+    /* حرفان لا كرة أرضية (بطلب المالك): زرّ العملة
+       يحمل كرة أرضية، فلو حملها هذا أيضاً لما فُرّق
+       بينهما. والحرفان يقولان اللغة المختارة نفسها. */
+    var code = document.createElement("span");
+    code.className = "sf-lang-code";
+    code.textContent = String((global.I18N ? global.I18N.getLang() : "ar") || "ar").slice(0, 2).toUpperCase();
+    btn.appendChild(code);
 
     btn.addEventListener("click", toggle);
     theBtn = btn;

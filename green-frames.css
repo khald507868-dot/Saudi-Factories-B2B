@@ -103,3 +103,12 @@ html[lang="ar"] select {
   overflow: hidden;
   line-height: 1;
 }
+
+/* رمز العملة الأجنبية: حرف موجود في الخطوط
+   فيُكتب نصّاً، بخلاف رمز الريال المرسوم صورةً
+   أعلاه. والحجم أصغر قليلاً من الرقم كما في المتاجر. */
+.cur-sym {
+  font-size: 0.82em;
+  font-weight: 700;
+  margin-inline-start: 2px;
+}
