@@ -298,7 +298,11 @@
   .rv-dist-star { width: 12px; flex-shrink: 0; }
   .rv-dist-n { width: 20px; flex-shrink: 0; text-align: end; }
 
+  /* block لا الافتراضيّ: العنصر span والسطريّ لا يقبل
+     height ولا يحتوي ابنه، فكان الشريط الأصفر بلا
+     ارتفاع فلا يُرى — ويبدو المسار رماديّاً دائماً. */
   .rv-dist-track {
+    display: block;
     flex: 1;
     height: 7px;
     background: #eef2ef;
@@ -308,6 +312,7 @@
   }
 
   .rv-dist-fill {
+    display: block;
     height: 100%;
     background: #f0a020;
     border-radius: 999px;
