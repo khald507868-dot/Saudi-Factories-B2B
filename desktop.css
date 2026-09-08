@@ -1834,8 +1834,19 @@
     border-top: 0;
   }
 
-  .product-page .pd-info > .card:last-child {
+  /* :last-child يعدّ المخفيّ أيضاً، وبطاقة التقييمات
+     تبدأ hidden لمنتج بلا معرّف — فلو اكتُفي به
+     لبقيت آخر بطاقة مرئية بلا تدوير أسفل.
+     و:not([hidden]) مع الشقيق العامّ يعطي آخر بطاقة
+     ظاهرة حقّها. */
+  .product-page .pd-info > .card:last-child,
+  .product-page .pd-info > .card:not([hidden]):has(~ .card[hidden]) {
     border-radius: 0 0 14px 14px;
+  }
+
+  /* والمخفيّة لا تأخذ تدويراً ولا حدّاً. */
+  .product-page .pd-info > .card[hidden] {
+    display: none !important;
   }
 
   /* بطاقة واحدة فقط: تدوير كامل. */

@@ -16,6 +16,7 @@
 <title data-i18n="app_title">المصانع السعودية</title>
 <script src="currency.js"></script>
 <script src="translate.js"></script>
+<script src="reviews-service.js"></script>
 <script src="i18n.js"></script>
 <script src="currency-ui.js"></script>
 <!-- زر اللغة بجانب السلة — في هذه الصفحة وحدها بطلب المالك -->
@@ -854,6 +855,40 @@
   }
 
   /* سطر: موثّق + عدد السنوات */
+  /* نجوم التقييم على البطاقة: مرسومة وسماً،
+     وترتيبها لاتينيّ دائماً فلا ينعكس في RTL. */
+  .pc-rate {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 3px;
+    font-size: 11.5px;
+    color: #6b7d70;
+  }
+
+  .pc-stars {
+    display: inline-flex;
+    gap: 1px;
+    direction: ltr;
+  }
+
+  .pc-star {
+    position: relative;
+    width: 11px;
+    height: 11px;
+    flex-shrink: 0;
+  }
+
+  .pc-star svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  .pc-star .s-bg { fill: #e2e8e4; }
+  .pc-star .s-fg { fill: #f0a020; }
+
   .product-meta {
     display: flex;
     align-items: center;
@@ -1742,6 +1777,36 @@
 
       /* 6.00 ← 6 و 6.50 يبقى، فلا تزدحم البطاقة
          بأصفار لا تعني شيئاً. */
+      /* خريطة تقييمات المنتجات: تُملأ بنداء واحد
+         للبطاقات جميعاً لا نداء لكلّ بطاقة. */
+      var RATINGS = {};
+
+      var PC_STAR = "M12 2.6l2.9 5.9 6.5.9-4.7 4.6 1.1 6.4-5.8-3-5.8 3 1.1-6.4L2.6 9.4l6.5-.9z";
+
+      function pcStars(avg) {
+        var v = Number(avg) || 0;
+        var out = '';
+        for (var i = 1; i <= 5; i++) {
+          var f = Math.max(0, Math.min(1, v - (i - 1))) * 100;
+          out += '<span class="pc-star">' +
+            '<svg viewBox="0 0 24 24" aria-hidden="true"><path class="s-bg" d="' + PC_STAR + '"></path></svg>' +
+            '<svg viewBox="0 0 24 24" aria-hidden="true" style="clip-path:inset(0 ' +
+              (100 - f).toFixed(2) + '% 0 0)"><path class="s-fg" d="' + PC_STAR + '"></path></svg>' +
+          '</span>';
+        }
+        return '<span class="pc-stars" role="img" aria-label="' + v.toFixed(1) + ' / 5">' +
+          out + '</span>';
+      }
+
+      /* بلا تقييم لا نجوم: خمس نجوم فارغة تُقرأ
+         أنّ المنتج سيئ، والحقيقة أنّه جديد. */
+      function rateHTML(productId) {
+        var m = RATINGS[String(productId)];
+        if (!m || !m.count) return '';
+        return '<div class="pc-rate">' + pcStars(m.avg) +
+          '<span>' + m.avg.toFixed(1) + ' (' + m.count + ')</span></div>';
+      }
+
       function trimNum(n) {
         return String(Number(n).toFixed(2)).replace(/[.]00$/, '');
       }
@@ -1843,6 +1908,7 @@
                 (priceHTML
                   ? priceHTML
                   : '') +
+                rateHTML(row.id) +
                 '<div class="product-meta">' +
                   /* للمعتمد وحده (بطلب المالك) */
                   (factory.status === 'approved'
@@ -2029,7 +2095,16 @@
           .limit(LIMIT);
       }).then(function (res) {
         if (!res || res.error) { showState(I18N.t('fx_failed')); return; }
-        render(res.data || []);
+        var rows = res.data || [];
+        /* التقييمات قبل الرسم لا بعده: لو رُسمت البطاقات
+           أوّلاً لقفزت النجوم فيها بعد حين. وفشلها لا
+           يمنع العرض: الخريطة تبقى فارغة فلا نجوم. */
+        if (!window.SFReviews) { render(rows); return null; }
+        var ids = rows.map(function (r) { return r.id; });
+        return SFReviews.loadRatings(ids).then(function (map) {
+          RATINGS = map || {};
+          render(rows);
+        });
       }).catch(function () {
         showState(I18N.t('fx_failed'));
       });

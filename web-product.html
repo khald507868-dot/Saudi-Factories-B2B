@@ -24,6 +24,7 @@
 <title data-i18n="product_page_title">تفاصيل المنتج - المصانع السعودية</title>
 <script src="currency.js"></script>
 <script src="translate.js"></script>
+<script src="reviews-service.js"></script>
 <script src="i18n.js"></script>
 <script src="currency-ui.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -184,6 +185,318 @@
 
   /* شارات التحقّق */
   /* ===== وصف المنتج ومواصفاته للمشتري ===== */
+  /* ===== التقييمات والمراجعات =====
+     النجوم مرسومة وسماً كبقيّة أيقونات المشروع،
+     والجزئية تُقصّ بـclip-path بنسبة المتوسّط لا
+     تُقرّب — فـ 4.3 تُرى 4.3 لا 4.5. */
+  .rv-stars {
+    display: inline-flex;
+    gap: 2px;
+    vertical-align: middle;
+    /* النجوم لاتينية الترتيب دائماً: أوّلها الممتلئة
+       فلا ينعكس ترتيبها في RTL. */
+    direction: ltr;
+  }
+
+  .rv-star {
+    position: relative;
+    width: 15px;
+    height: 15px;
+    flex-shrink: 0;
+  }
+
+  .rv-star svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  .rv-star .rv-bg { fill: #e2e8e4; }
+  .rv-star .rv-fg { fill: #f0a020; }
+
+  /* ملخّص التقييم بجوار الاسم: المشتري يرى الدرجة
+     قبل أن ينزل إلى قسم المراجعات. ويُخفى بلا
+     تقييم: خمس نجوم فارغة تُقرأ أنّ المنتج سيء،
+     والحقيقة أنّه جديد. */
+  .prod-rate {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+  }
+
+  .prod-rate[hidden] { display: none !important; }
+
+  .prod-rate-avg {
+    font-size: 13px;
+    font-weight: 800;
+    color: #04361b;
+  }
+
+  .prod-rate-link {
+    font-size: 12.5px;
+    color: #5c6b62;
+    background: none;
+    border: 0;
+    font-family: inherit;
+    cursor: pointer;
+    padding: 0;
+  }
+
+  .prod-rate-link:hover { text-decoration: underline; color: #1f6b42; }
+
+  /* توزيع النجوم: ٤٫٣ من اثني عشر أصدق من رقم
+     وحده — ويكشف إن كان المتوسّط مبنيّاً على
+     إجماع أم على طرفين متناقضين. */
+  .rv-dist {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    padding-bottom: 14px;
+    border-bottom: 1px solid #eef2ef;
+    margin-bottom: 4px;
+  }
+
+  .rv-dist-avg {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    flex-shrink: 0;
+  }
+
+  .rv-dist-num {
+    font-size: 30px;
+    font-weight: 800;
+    color: #04361b;
+    line-height: 1;
+  }
+
+  .rv-dist-count {
+    font-size: 11.5px;
+    color: #6b7d70;
+  }
+
+  .rv-dist-bars {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    min-width: 0;
+  }
+
+  .rv-dist-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11.5px;
+    color: #6b7d70;
+  }
+
+  .rv-dist-star { width: 12px; flex-shrink: 0; }
+  .rv-dist-n { width: 20px; flex-shrink: 0; text-align: end; }
+
+  .rv-dist-track {
+    flex: 1;
+    height: 7px;
+    background: #eef2ef;
+    border-radius: 999px;
+    overflow: hidden;
+    min-width: 0;
+  }
+
+  .rv-dist-fill {
+    height: 100%;
+    background: #f0a020;
+    border-radius: 999px;
+  }
+
+  .rv-summary {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+    font-size: 13px;
+    color: #5c6b62;
+  }
+
+  .rv-avg {
+    font-weight: 800;
+    color: #04361b;
+    font-size: 15px;
+  }
+
+  .rv-list { margin-top: 4px; }
+
+  .rv-item {
+    padding: 13px 0;
+    border-top: 1px solid #eef2ef;
+  }
+
+  .rv-head {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    margin-bottom: 6px;
+  }
+
+  .rv-ava {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: #e8f3ec;
+    color: #1f6b42;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 13px;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+
+  .rv-ava img { width: 100%; height: 100%; object-fit: cover; }
+
+  .rv-who { flex: 1; min-width: 0; }
+
+  .rv-name {
+    font-weight: 700;
+    font-size: 13.5px;
+    color: #12331d;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .rv-meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    font-size: 11.5px;
+    color: #6b7d70;
+  }
+
+  /* وسم المشتري المورّق: كلّ مراجعة هنا من مشترٍ
+     فعلاً — القاعدة تمنع غيره، فالوسم صادق لا دعاية. */
+  .rv-verified {
+    color: #1f6b42;
+    font-weight: 700;
+  }
+
+  .rv-body {
+    font-size: 13.5px;
+    line-height: 1.75;
+    color: #22402e;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+  .rv-del {
+    border: 0;
+    background: none;
+    color: #b3261e;
+    font: inherit;
+    font-size: 12px;
+    cursor: pointer;
+    padding: 0;
+  }
+
+  .rv-del:hover { text-decoration: underline; }
+
+  /* نموذج الكتابة */
+  .rv-form {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #eef2ef;
+  }
+
+  .rv-pick {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 9px;
+  }
+
+  .rv-pick-label {
+    font-size: 13px;
+    font-weight: 700;
+    color: #12331d;
+  }
+
+  /* أزرار لا مجرّد أيقونات: تنال التركيز بـTab
+     وتستجيب لـEnter بلا عمل إضافيّ. */
+  .rv-pick-btns {
+    display: inline-flex;
+    gap: 3px;
+    direction: ltr;
+  }
+
+  .rv-pick-btn {
+    border: 0;
+    background: none;
+    padding: 2px;
+    cursor: pointer;
+    line-height: 0;
+    border-radius: 4px;
+  }
+
+  .rv-pick-btn svg { width: 22px; height: 22px; fill: #e2e8e4; }
+  .rv-pick-btn.on svg { fill: #f0a020; }
+  .rv-pick-btn:focus-visible { outline: 2px solid #1f6b42; outline-offset: 1px; }
+
+  .rv-input {
+    width: 100%;
+    box-sizing: border-box;
+    min-height: 74px;
+    padding: 10px 12px;
+    border: 1px solid #dbe4de;
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 16px;
+    resize: vertical;
+  }
+
+  .rv-send {
+    margin-top: 9px;
+    padding: 10px 20px;
+    border: 0;
+    border-radius: 999px;
+    background: #04361b;
+    color: #fff;
+    font: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .rv-send:disabled { opacity: .5; cursor: default; }
+
+  .rv-note {
+    margin-top: 9px;
+    font-size: 12.5px;
+    color: #5c6b62;
+    line-height: 1.6;
+  }
+
+  .rv-more {
+    margin-top: 10px;
+    border: 0;
+    background: none;
+    color: #1f6b42;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    padding: 0;
+  }
+
+  .rv-more:hover { text-decoration: underline; }
+
   .prod-desc {
     font-size: 14px;
     line-height: 1.9;
@@ -316,7 +629,159 @@
   /* خلية قابلة للنقر (بطلب المالك): تُلغى
      مظاهر الزرّ الافتراضية ويُضبط المحاذاة،
      ويبقى الشكل كما كان قبل أن يصير زرّاً. */
+  /* شارة «وفّر ٪» على الشريحة الأرخص: رقمان
+     مجرّدان لا يقولان للمشتري كم يربح من الكمّية
+     الأكبر — وهو جوهر البيع بالجملة. */
+  .tier-save {
+    position: absolute;
+    top: -9px;
+    inset-inline-start: 10px;
+    background: #1f6b42;
+    color: #ffffff;
+    font-size: 10.5px;
+    font-weight: 800;
+    padding: 2px 7px;
+    border-radius: 999px;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+
+  /* الإجمالي الحيّ فوق زرّ الشراء: يتغيّر مع
+     الكمّية فلا يحسب المشتري بنفسه. */
+  /* سطرا الطمأنة أسفل الأزرار. */
+  .buy-assure {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    margin-top: 14px;
+    padding-top: 13px;
+    border-top: 1px solid #eef2ef;
+  }
+
+  .buy-assure-row {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 12px;
+    color: #5c6b62;
+  }
+
+  .buy-assure-row svg {
+    width: 15px;
+    height: 15px;
+    flex-shrink: 0;
+    fill: none;
+    stroke: #6b7d70;
+    stroke-width: 1.9;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  /* أيقونة الدرع خضراء: الحماية وعد لا تفصيل. */
+  .buy-assure-row:first-child svg { stroke: #1f6b42; }
+
+  /* ثقة المورّد: البطاقة كانت تحمل الاسم والرابط
+     وحدهما، والبيانات موجودة في القاعدة. */
+  .sup-facts {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    margin-top: 13px;
+    padding-top: 13px;
+    border-top: 1px solid #eef2ef;
+  }
+
+  .sup-facts[hidden] { display: none !important; }
+
+  .sup-fact {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 12.5px;
+    color: #46584c;
+  }
+
+  .sup-fact svg {
+    width: 15px;
+    height: 15px;
+    flex-shrink: 0;
+    fill: none;
+    stroke: #6b7d70;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .sup-fact.is-approved svg { stroke: #1f6b42; stroke-width: 2.2; }
+
+  /* مصغّرات الصور: images[] قد يحمل أكثر من صورة
+     والصفحة كانت تعرض الأولى وحدها. وتُخفى
+     لصورة واحدة: صفّ من مصغّر واحد لا يفيد. */
+  .prod-thumbs {
+    display: flex;
+    gap: 8px;
+    padding: 0 18px 14px;
+    background: #ffffff;
+    overflow-x: auto;
+  }
+
+  .prod-thumbs[hidden] { display: none !important; }
+
+  .prod-thumb {
+    width: 52px;
+    height: 52px;
+    border-radius: 8px;
+    border: 1px solid #e4eae6;
+    background: #ffffff;
+    padding: 0;
+    flex-shrink: 0;
+    cursor: pointer;
+    overflow: hidden;
+    transition: border-color .15s;
+  }
+
+  .prod-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+  }
+
+  .prod-thumb.is-active { border: 2px solid #1f6b42; }
+  .prod-thumb:hover { border-color: #9dc6ae; }
+  .prod-thumb:focus-visible { outline: 2px solid #1f6b42; outline-offset: 2px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .prod-thumb { transition: none; }
+  }
+
+  .buy-total {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 10px 12px;
+    background: #f4faf6;
+    border-radius: 10px;
+    margin-bottom: 12px;
+  }
+
+  .buy-total-label {
+    font-size: 12.5px;
+    color: #5c6b62;
+  }
+
+  .buy-total-value {
+    font-size: 20px;
+    font-weight: 800;
+    color: #04361b;
+    direction: ltr;
+  }
+
+  .buy-total[hidden] { display: none !important; }
+
   .tier-cell {
+    position: relative;
     flex: 1 1 92px;
     min-width: 92px;
     padding: 9px 10px;
@@ -718,6 +1183,8 @@
                 escapeHTML(I18N.t("product_view_store")) + '</a>' +
             '</div>' +
           '</div>' +
+          /* يُملأ من الخادم، ويبقى مخفيّاً إن تعذّر. */
+          '<div class="sup-facts" id="sup-facts" hidden></div>' +
         '</div>';
 
       wrap.innerHTML =
@@ -730,6 +1197,9 @@
           '<div class="product-hero">' +
             (sfSafeHttpUrl(image) ? '<img alt="" src="' + escapeHTML(sfSafeHttpUrl(image)) + '">' : imageIcon) +
           '</div>' +
+          /* بين الصورة وبطاقة المورّد، فيبقى العمود
+             قطعةً واحدة كما هو. */
+          '<div class="prod-thumbs" id="prod-thumbs" hidden></div>' +
           SUPPLIER_HTML +
         '</div>' +
 
@@ -737,6 +1207,9 @@
 
         '<div class="card">' +
           '<div class="prod-name" data-sf-translate>' + escapeHTML(displayName) + '</div>' +
+          /* يُملأ من الخادم بعد الرسم، ويبقى مخفيّاً
+             إن لم يكن للمنتج تقييم. */
+          '<div class="prod-rate" id="prod-rate" hidden></div>' +
           priceBlock +
           '<div class="tier-table" id="tier-table" hidden></div>' +
           /* الشارة للمعتمد وحده (بطلب المالك): إظهارها
@@ -751,6 +1224,16 @@
 
         descCardHTML(product) +
         specsCardHTML(product) +
+        /* التقييمات: تُملأ من الخادم بعد الرسم،
+           وتُخفى لمنتج بلا معرّف (لمّا يرسم من
+           localStorage قبل وصول الصفّ). */
+        '<div class="card" id="card-reviews" hidden>' +
+          '<h2>' + escapeHTML(I18N.t("reviews_title")) + '</h2>' +
+          '<div id="rv-summary"></div>' +
+          '<div id="rv-dist"></div>' +
+          '<div class="rv-list" id="rv-list"></div>' +
+          '<div id="rv-form-host"></div>' +
+        '</div>' +
 
         '</div>' +
 
@@ -768,6 +1251,13 @@
                   '<button type="button" class="qty-btn" id="qty-plus" aria-label="+">+</button>' +
                 '</div>' +
               '</div>' +
+              /* الإجمالي بين الكمّية والأزرار: موضعه في مسار
+                 العين قبل الضغط. يُملأ من renderTiers. */
+              '<div class="buy-total" id="buy-total" hidden>' +
+                '<span class="buy-total-label">' +
+                  escapeHTML(I18N.t("prod_total")) + '</span>' +
+                '<span class="buy-total-value"></span>' +
+              '</div>' +
               '<div class="act-row">' +
                 '<button type="button" class="act-btn primary add-cart-btn" data-product-id="' +
                   escapeHTML(product.id) + '">' + escapeHTML(I18N.t("product_add_to_cart")) + '</button>' +
@@ -784,6 +1274,24 @@
             escapeHTML(I18N.t("product_request_quote")) + '</a>' +
           '<a class="act-btn outline" href="' + escapeHTML(chatURL("")) + '">' +
             escapeHTML(I18N.t("product_start_chat")) + '</a>' +
+          /* طمأنة الشراء: المشتري الجديد يتردّد عند
+             الزرّ، والحماية مذكورة في السلة فعلاً فلا دعوى
+             جديدة هنا. */
+          '<div class="buy-assure">' +
+            '<div class="buy-assure-row">' +
+              '<svg viewBox="0 0 24 24" aria-hidden="true">' +
+                '<path d="M12 3l7 3v6c0 4.4-3 8.2-7 9-4-.8-7-4.6-7-9V6z"></path>' +
+              '</svg>' +
+              '<span>' + escapeHTML(I18N.t("buy_protection")) + '</span>' +
+            '</div>' +
+            '<div class="buy-assure-row">' +
+              '<svg viewBox="0 0 24 24" aria-hidden="true">' +
+                '<circle cx="12" cy="12" r="9"></circle>' +
+                '<path d="M12 7v5l3 2"></path>' +
+              '</svg>' +
+              '<span>' + escapeHTML(I18N.t("buy_reply_time")) + '</span>' +
+            '</div>' +
+          '</div>' +
         '</div>';
 
       /* ===== المفضّلة =====
@@ -945,8 +1453,22 @@
         if (!host) return;
         var list = validTiers(product.tiers);
         host.innerHTML = "";
-        if (!list.length) { host.hidden = true; return; }
+        /* منتج بلا شرائح يبقى له إجماليّ من السعر
+           الأساسيّ، فالخروج قبل رسمه يحرمه منه. */
+        if (!list.length) {
+          host.hidden = true;
+          paintBuyTotal(null);
+          return;
+        }
         host.hidden = false;
+
+        /* أرخص سعر وأغلاه لحساب نسبة التوفير: تُقاس
+           من أعلى سعر لا من المجاور، فهي ما يوفّره
+           المشتري فعلاً مقارنةً بأقلّ كمّية. */
+        var prices = list.map(function (t) { return parseFloat(t.price); })
+          .filter(function (v) { return isFinite(v) && v > 0; });
+        var hiPrice = prices.length ? Math.max.apply(null, prices) : 0;
+        var loPrice = prices.length ? Math.min.apply(null, prices) : 0;
 
         var active = activeTierIndex(list, readQty());
         /* السعر الكبير يتبع الشريحة: إبقاؤه على الأساسي
@@ -991,8 +1513,62 @@
           rg.textContent = tierRangeText(t);
           cell.appendChild(rg);
 
+          /* الشارة للأرخص وحدها، ومن عتبة ٥٪ فما فوق:
+             وضعها على فرق تافه يفقدها معناها، ووضعها
+             على كلّ شريحة يزحم البطاقة. */
+          var pv = parseFloat(t.price);
+          if (hiPrice > 0 && isFinite(pv) && pv === loPrice && pv < hiPrice) {
+            var pct = Math.round((1 - (pv / hiPrice)) * 100);
+            if (pct >= 5) {
+              var save = document.createElement("span");
+              save.className = "tier-save";
+              save.textContent = I18N.t("tier_save_pct") + " " + pct + "%";
+              cell.appendChild(save);
+            }
+          }
+
           host.appendChild(cell);
         });
+
+        paintBuyTotal(active >= 0 ? list[active].price : null);
+      }
+
+      /* الإجمالي = سعر الوحدة × الكمّية. وسعر الوحدة
+         من الشريحة المطبّقة، وإلّا فمن الأساسيّ.
+         وبلا سعر يُخفى الصندوق: صفر لا يقول شيئاً. */
+      function paintBuyTotal(unitPrice) {
+        var box = document.getElementById("buy-total");
+        if (!box) return;
+
+        var unit = parseFloat(unitPrice);
+        if (!isFinite(unit) || unit <= 0) unit = parseFloat(basePriceText);
+        if (!isFinite(unit) || unit <= 0) { box.hidden = true; return; }
+
+        var val = box.querySelector(".buy-total-value");
+        if (!val) { box.hidden = true; return; }
+        box.hidden = false;
+        val.innerHTML = I18N.money((unit * readQty()).toFixed(2));
+      }
+
+      /* يُبنى بـDOM لا بسلسلة نصّية، ليُنادى من
+         المسارين: رسمة الخادم الأولى، وإعادة البناء
+         حين يصل معرّف المنتج متأخّراً. */
+      function buildBuyTotal() {
+        var box = document.createElement("div");
+        box.className = "buy-total";
+        box.id = "buy-total";
+        box.hidden = true;
+
+        var lbl = document.createElement("span");
+        lbl.className = "buy-total-label";
+        lbl.textContent = I18N.t("prod_total");
+        box.appendChild(lbl);
+
+        var val = document.createElement("span");
+        val.className = "buy-total-value";
+        box.appendChild(val);
+
+        return box;
       }
 
       function buildQtyPicker() {
@@ -1097,6 +1673,375 @@
          فيُترجمان إلى لغة الزائر إن دعم متصفّحه ذلك. */
       if (window.SFTranslate) SFTranslate.translateAll(wrap);
 
+      /* مصغّرات الصور: تُبنى من روابط Storage وحدها،
+         وتُخفى لصورة واحدة. النقر يبدّل الصورة
+         الكبيرة ولا يفتح نافذة: الأبسط يكفي هنا. */
+      function paintThumbs(list) {
+        var host = document.getElementById("prod-thumbs");
+        if (!host) return;
+
+        var urls = (list || [])
+          .map(function (u) { return sfSafeHttpUrl(u); })
+          .filter(function (u) { return !!u; });
+
+        if (urls.length < 2) { host.hidden = true; host.innerHTML = ""; return; }
+        host.hidden = false;
+
+        var hero = wrap.querySelector(".product-hero");
+        host.innerHTML = "";
+
+        urls.forEach(function (u, i) {
+          var b = document.createElement("button");
+          b.type = "button";
+          b.className = "prod-thumb" + (i === 0 ? " is-active" : "");
+          b.setAttribute("aria-label", String(i + 1));
+          b.innerHTML = '<img alt="" src="' + escapeHTML(u) + '">';
+
+          b.addEventListener("click", function () {
+            if (hero) hero.innerHTML = '<img alt="" src="' + escapeHTML(u) + '">';
+            var all = host.querySelectorAll(".prod-thumb");
+            for (var k = 0; k < all.length; k++) {
+              all[k].classList.toggle("is-active", all[k] === b);
+            }
+          });
+
+          host.appendChild(b);
+        });
+      }
+
+      /* حقائق المورّد. الاعتماد وحده للمعتمد،
+         والمدينة تُحذف إن لم تُسجّل — ولا يُخترع
+         شيء. */
+      function paintSupplierFacts(info) {
+        var host = document.getElementById("sup-facts");
+        if (!host || !info) return;
+
+        var rows = "";
+
+        if (info.approved) {
+          rows += '<div class="sup-fact is-approved">' +
+            '<svg viewBox="0 0 24 24" aria-hidden="true">' +
+              '<path d="M4 12.5l5.2 5.2L20 7"></path>' +
+            '</svg>' +
+            '<span>' + escapeHTML(I18N.t("sup_approved")) + '</span>' +
+          '</div>';
+        }
+
+        if (info.products > 0) {
+          rows += '<div class="sup-fact">' +
+            '<svg viewBox="0 0 24 24" aria-hidden="true">' +
+              '<rect x="3" y="7" width="18" height="13" rx="2"></rect>' +
+              '<path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>' +
+            '</svg>' +
+            '<span>' + info.products + ' ' +
+              escapeHTML(I18N.t("sup_products_count")) + '</span>' +
+          '</div>';
+        }
+
+        if (info.city) {
+          rows += '<div class="sup-fact">' +
+            '<svg viewBox="0 0 24 24" aria-hidden="true">' +
+              '<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"></path>' +
+              '<circle cx="12" cy="10" r="3"></circle>' +
+            '</svg>' +
+            '<span>' + escapeHTML(info.city) + '</span>' +
+          '</div>';
+        }
+
+        if (!rows) { host.hidden = true; return; }
+        host.hidden = false;
+        host.innerHTML = rows;
+      }
+
+      /* ===== التقييمات والمراجعات ===== */
+      var RV_PAGE = 10;
+      var rvShown = 0;
+      var rvPick = 0;
+
+      var STAR_PATH = "M12 2.6l2.9 5.9 6.5.9-4.7 4.6 1.1 6.4-5.8-3-5.8 3 1.1-6.4L2.6 9.4l6.5-.9z";
+
+      /* نجمة واحدة: خلفية رمادية ومقدّمة ذهبية تُقصّ
+         بنسبة الملء — فتظهر الجزئية صادقة لا مقرّبة. */
+      function starHTML(fill) {
+        var pct = Math.max(0, Math.min(1, Number(fill) || 0)) * 100;
+        return '<span class="rv-star">' +
+          '<svg viewBox="0 0 24 24" aria-hidden="true"><path class="rv-bg" d="' + STAR_PATH + '"></path></svg>' +
+          '<svg viewBox="0 0 24 24" aria-hidden="true" style="clip-path:inset(0 ' +
+            (100 - pct).toFixed(2) + '% 0 0)"><path class="rv-fg" d="' + STAR_PATH + '"></path></svg>' +
+        '</span>';
+      }
+
+      function starsHTML(avg) {
+        var v = Number(avg) || 0;
+        var out = '';
+        for (var i = 1; i <= 5; i++) {
+          out += starHTML(Math.max(0, Math.min(1, v - (i - 1))));
+        }
+        return '<span class="rv-stars" role="img" aria-label="' +
+          v.toFixed(1) + ' / 5">' + out + '</span>';
+      }
+
+      function rvDate(iso) {
+        try {
+          return new Date(iso).toLocaleDateString(I18N.getLang() === "ar" ? "ar" : undefined,
+            { year: "numeric", month: "short", day: "numeric" });
+        } catch (e) { return ""; }
+      }
+
+      function rvInitial(name) {
+        var n = String(name || "").trim();
+        return n ? n.charAt(0).toUpperCase() : "?";
+      }
+
+      /* ملخّص التقييم بجوار الاسم. النقر ينزل إلى
+         بطاقة المراجعات بدل أن يبحث عنها. */
+      function paintProdRate(avg, count) {
+        var box = document.getElementById("prod-rate");
+        if (!box) return;
+        if (!count) { box.hidden = true; return; }
+        box.hidden = false;
+
+        var label = count === 1
+          ? I18N.t("reviews_count_one")
+          : count + " " + I18N.t("reviews_count_many");
+
+        box.innerHTML = starsHTML(avg) +
+          '<span class="prod-rate-avg">' + Number(avg).toFixed(1) + '</span>' +
+          '<button type="button" class="prod-rate-link">(' +
+            escapeHTML(label) + ')</button>';
+
+        var link = box.querySelector(".prod-rate-link");
+        if (link) {
+          link.addEventListener("click", function () {
+            var card = document.getElementById("card-reviews");
+            if (card && card.scrollIntoView) {
+              card.scrollIntoView({ behavior: "smooth", block: "start" });
+            }
+          });
+        }
+      }
+
+      /* توزيع النجوم. العرض نسبةٌ من أكثر درجة تكراراً
+         لا من المجموع: القسمة على المجموع تجعل كلّ
+         الأشرطة قصيرة حين تتوزّع المراجعات. */
+      function paintDist(map, avg, count) {
+        var host = document.getElementById("rv-dist");
+        if (!host) return;
+        if (!map || !count) { host.innerHTML = ""; return; }
+
+        var peak = 0;
+        for (var k = 1; k <= 5; k++) {
+          if ((map[k] || 0) > peak) peak = map[k];
+        }
+        if (!peak) { host.innerHTML = ""; return; }
+
+        var rows = "";
+        for (var n = 5; n >= 1; n--) {
+          var c = map[n] || 0;
+          var pct = Math.round((c / peak) * 100);
+          rows += '<div class="rv-dist-row">' +
+            '<span class="rv-dist-star">' + n + '</span>' +
+            '<span class="rv-dist-track">' +
+              '<span class="rv-dist-fill" style="width: ' + pct + '%"></span>' +
+            '</span>' +
+            '<span class="rv-dist-n">' + c + '</span>' +
+          '</div>';
+        }
+
+        var label = count === 1
+          ? I18N.t("reviews_count_one")
+          : count + " " + I18N.t("reviews_count_many");
+
+        host.innerHTML = '<div class="rv-dist">' +
+          '<div class="rv-dist-avg">' +
+            '<span class="rv-dist-num">' + Number(avg).toFixed(1) + '</span>' +
+            '<span class="rv-dist-count">' + escapeHTML(label) + '</span>' +
+          '</div>' +
+          '<div class="rv-dist-bars">' + rows + '</div>' +
+        '</div>';
+      }
+
+      function paintSummary(avg, count) {
+        var host = document.getElementById("rv-summary");
+        if (!host) return;
+        if (!count) {
+          host.innerHTML = '<div class="rv-summary">' + starsHTML(0) +
+            '<span>' + escapeHTML(I18N.t("reviews_none")) + '</span></div>';
+          return;
+        }
+        var label = count === 1
+          ? I18N.t("reviews_count_one")
+          : count + " " + I18N.t("reviews_count_many");
+        host.innerHTML = '<div class="rv-summary">' +
+          '<span class="rv-avg">' + Number(avg).toFixed(1) + '</span>' +
+          starsHTML(avg) +
+          '<span>' + escapeHTML(label) + '</span>' +
+        '</div>';
+      }
+
+      function reviewItemHTML(r) {
+        var img = String(r.author_image || "");
+        var ava = (img.indexOf("http") === 0)
+          ? '<img alt="" src="' + escapeHTML(img) + '">'
+          : escapeHTML(rvInitial(r.author_name));
+        return '<div class="rv-item">' +
+          '<div class="rv-head">' +
+            '<div class="rv-ava">' + ava + '</div>' +
+            '<div class="rv-who">' +
+              '<div class="rv-name">' + escapeHTML(r.author_name || "") + '</div>' +
+              '<div class="rv-meta">' +
+                starsHTML(r.rating) +
+                '<span class="rv-verified">' + escapeHTML(I18N.t("review_verified_buyer")) + '</span>' +
+                '<span>' + escapeHTML(rvDate(r.created_at)) + '</span>' +
+              '</div>' +
+            '</div>' +
+            (r.is_mine
+              ? '<button type="button" class="rv-del" data-rv="' + escapeHTML(r.id) + '">' +
+                  escapeHTML(I18N.t("review_delete")) + '</button>'
+              : '') +
+          '</div>' +
+          /* نصّ المراجعة يُترجم كاسم المنتج ووصفه. */
+          (String(r.body || "").trim()
+            ? '<div class="rv-body" data-sf-translate>' + escapeHTML(r.body) + '</div>'
+            : '') +
+        '</div>';
+      }
+
+      function bindDeletes(host) {
+        var btns = host.querySelectorAll(".rv-del");
+        for (var i = 0; i < btns.length; i++) {
+          btns[i].addEventListener("click", function () {
+            var id = this.getAttribute("data-rv");
+            if (!confirm(I18N.t("review_delete_confirm"))) return;
+            SFReviews.deleteReview(id).then(function (done) {
+              if (done) { rvShown = 0; loadReviewsBlock(); }
+            }).catch(function (err) {
+              alert(err && err.message ? err.message : "");
+            });
+          });
+        }
+      }
+
+      /* نموذج الكتابة لمن اشترى وحده: الخادم يرفض
+         سواه ، وإظهار النموذج لمن لا يحقّ له يجعله
+         يكتب ثمّ يُرفض — وهو أسوأ من ألّا يراه. */
+      function paintForm(status) {
+        var host = document.getElementById("rv-form-host");
+        if (!host) return;
+
+        if (!window.SF_USER) {
+          host.innerHTML = '<div class="rv-note">' +
+            escapeHTML(I18N.t("review_login_first")) + '</div>';
+          return;
+        }
+        if (!status.canReview) {
+          host.innerHTML = '<div class="rv-note">' +
+            escapeHTML(I18N.t("review_need_purchase")) + '</div>';
+          return;
+        }
+
+        var title = status.hasReview ? I18N.t("review_edit") : I18N.t("review_write");
+        var picks = '';
+        for (var i = 1; i <= 5; i++) {
+          picks += '<button type="button" class="rv-pick-btn" data-star="' + i +
+            '" aria-label="' + i + '">' +
+            '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="' + STAR_PATH + '"></path></svg>' +
+          '</button>';
+        }
+
+        host.innerHTML = '<div class="rv-form">' +
+          '<div class="rv-pick">' +
+            '<span class="rv-pick-label">' + escapeHTML(title) + '</span>' +
+            '<span class="rv-pick-btns" id="rv-pick">' + picks + '</span>' +
+          '</div>' +
+          '<textarea class="rv-input" id="rv-text" maxlength="2000" placeholder="' +
+            escapeHTML(I18N.t("review_placeholder")) + '"></textarea>' +
+          '<button type="button" class="rv-send" id="rv-send">' +
+            escapeHTML(I18N.t("review_submit")) + '</button>' +
+        '</div>';
+
+        var picker = document.getElementById("rv-pick");
+        function paintPick() {
+          var all = picker.querySelectorAll(".rv-pick-btn");
+          for (var k = 0; k < all.length; k++) {
+            var n = parseInt(all[k].getAttribute("data-star"), 10);
+            all[k].classList.toggle("on", n <= rvPick);
+          }
+        }
+        picker.addEventListener("click", function (e) {
+          var btn = e.target.closest ? e.target.closest(".rv-pick-btn") : null;
+          if (!btn) return;
+          rvPick = parseInt(btn.getAttribute("data-star"), 10) || 0;
+          paintPick();
+        });
+        paintPick();
+
+        var send = document.getElementById("rv-send");
+        send.addEventListener("click", function () {
+          if (!rvPick) { alert(I18N.t("review_pick_stars")); return; }
+          var box = document.getElementById("rv-text");
+          send.disabled = true;
+          send.textContent = I18N.t("review_sending");
+          SFReviews.submitReview(product.id, rvPick, box ? box.value : "")
+            .then(function () {
+              rvShown = 0;
+              rvPick = 0;
+              loadReviewsBlock();
+            })
+            .catch(function (err) {
+              alert(err && err.message ? err.message : "");
+              send.disabled = false;
+              send.textContent = I18N.t("review_submit");
+            });
+        });
+      }
+
+      /* يُنادى بعد وصول معرّف المنتج من الخادم. */
+      function loadReviewsBlock() {
+        if (!product || !product.id || !window.SFReviews) return;
+        var card = document.getElementById("card-reviews");
+        var list = document.getElementById("rv-list");
+        if (!card || !list) return;
+        card.hidden = false;
+
+        var want = rvShown + RV_PAGE;
+        SFReviews.loadRatings([product.id]).then(function (map) {
+          var m = map[String(product.id)] || { avg: 0, count: 0 };
+          /* مع وجود تقييمات يحلّ التوزيع محلّ سطر
+             الملخّص، فهو يحمل المتوسّط والعدد وزيادةً
+             — فلا يُكرّران في بطاقة واحدة. */
+          paintProdRate(m.avg, m.count);
+          if (m.count) {
+            var sumHost = document.getElementById("rv-summary");
+            if (sumHost) sumHost.innerHTML = "";
+            SFReviews.loadBreakdown(product.id).then(function (dist) {
+              if (dist) paintDist(dist, m.avg, m.count);
+              else paintSummary(m.avg, m.count);
+            });
+          } else {
+            paintSummary(m.avg, m.count);
+          }
+          return SFReviews.loadReviews(product.id, want, 0).then(function (rows) {
+            rvShown = rows.length;
+            var html = rows.map(reviewItemHTML).join("");
+            if (m.count > rows.length) {
+              html += '<button type="button" class="rv-more" id="rv-more">' +
+                escapeHTML(I18N.t("review_show_more")) + '</button>';
+            }
+            list.innerHTML = html;
+            bindDeletes(list);
+            var more = document.getElementById("rv-more");
+            if (more) more.addEventListener("click", loadReviewsBlock);
+            if (window.SFTranslate) SFTranslate.translateAll(list);
+          });
+        }).then(function () {
+          if (!window.SF_USER) { paintForm({ canReview: false, hasReview: false }); return null; }
+          return SFReviews.myStatus(product.id).then(paintForm);
+        }).catch(function (err) {
+          if (window.console) console.warn("reviews:", err && err.message);
+        });
+      }
+
       function bindCartButton() {
         var cartButton = wrap.querySelector(".add-cart-btn");
         if (!cartButton) return;
@@ -1193,6 +2138,16 @@
 
         /* بعد كلّ كتابة: تُعاد الترجمة لما تغيّر. */
         if (global_SFTranslate()) SFTranslate.translateAll(wrap);
+        /* التقييمات تحتاج معرّف المنتج من الخادم. */
+        loadReviewsBlock();
+
+        /* المصغّرات من صفّ الخادم: الرسمة الأولى من
+           localStorage لا تحمل images[] كاملة. */
+        paintThumbs(row.images || []);
+
+        if (window.SFReviews && factoryId) {
+          SFReviews.loadFactorySummary(factoryId).then(paintSupplierFacts);
+        }
 
         var priceEl = wrap.querySelector(".prod-price");
         if (priceEl) {
@@ -1227,8 +2182,15 @@
           if (infoCol) {
             var holder = document.createElement("div");
             holder.innerHTML = extraHTML;
+            /* قبل بطاقة التقييمات لا في آخر العمود
+               (بطلب المالك): الوصف يسبق المراجعات.
+               وappendChild وحده كان يضعه بعدها لأنّ
+               التقييمات مرسومة من أوّل بناء والوصف
+               يُعاد بناؤه من صفّ الخادم. */
+            var rvCard = infoCol.querySelector("#card-reviews");
             while (holder.firstChild) {
-              infoCol.appendChild(holder.firstChild);
+              if (rvCard) infoCol.insertBefore(holder.firstChild, rvCard);
+              else infoCol.appendChild(holder.firstChild);
             }
           }
         }
@@ -1253,6 +2215,11 @@
                لا بسلاسل نصّية متصلة. */
             if (!wrap.querySelector(".qty-picker")) {
               actionBox.insertBefore(buildQtyPicker(), rowBox);
+              /* والإجمالي بينهما، فهو جزء من المنتقي لا
+                 زينة مستقلّة. */
+              if (!wrap.querySelector(".buy-total")) {
+                actionBox.insertBefore(buildBuyTotal(), rowBox);
+              }
               bindQtyPicker();
               renderTiers();
             }
