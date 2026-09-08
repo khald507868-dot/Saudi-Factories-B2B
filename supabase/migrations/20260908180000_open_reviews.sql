@@ -32,6 +32,12 @@ create policy product_reviews_insert
 -- 2) الوسم يُحسب من الطلبات، لا من كون الكاتب مقيّماً --------
 -- is_verified عمود محسوب لا مخزّن: لو خُزّن لصار قابلاً
 -- للتزوير عند الكتابة، ولتقادم إن أُلغي الطلب لاحقاً.
+--
+-- ويُحذف التوقيع القديم أوّلاً: create or replace لا
+-- يغيّر أعمدة دالّة قائمة — وإضافة is_verified تغييرٌ
+-- لها، فيرفض بـ 42P13 cannot change return type.
+drop function if exists public.get_product_reviews(bigint, integer, integer);
+
 create or replace function public.get_product_reviews(
   p_product_id bigint,
   p_limit      integer default 20,

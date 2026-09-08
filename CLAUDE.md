@@ -390,7 +390,12 @@ function does not exist; `42501` means it exists and refused you, which is a **p
 arguments — calling a one-argument function with `{}` also returns `PGRST202` and looks identical to
 "not applied".
 
-The ~20 loose `.sql` files still in the repo root are the older one-offs and check scripts described
+The 9 loose `.sql` files still in the repo root are `schema.sql`, the applied `add-*` / `fix-*`
+column migrations, `make-admin.sql` and `check-migrations.sql`. **Thirteen finished one-offs were
+deleted on 2026-09-08** (approve/fix-my-factory, the five `check-*` probes, the four
+cleanup/delete scripts, `check-security.sql`) — every one had served its purpose, nothing in the
+codebase referenced them, and three carried an unguarded `delete from public.orders;` that would
+wipe real sales after launch. They remain in git history. The surviving files are described
 further down; they are not part of the migration sequence.
 
 Verifying what is actually applied, without `psql`: query the live REST API with the publishable key
@@ -453,11 +458,11 @@ Project `yhofxryhlrrwzztfowpa`. Loaded as plain script tags:
 - **`add-factory-profile.sql`** — **applied** (2026-08-24). Until it ran, `web-factory.html`'s 12-column `select` failed whole with `42703`, so the ownership check after it never ran and the owner silently got a read-only page. **A missing column anywhere in a select list disables every feature that select feeds.**
 - **`add-media-columns.sql`** — **applied** (2026-08-24; verified: `products.images` and `posts.video` both answer instead of `42703`).
 - **`fix-privileges.sql`** — **applied.** The section-8.5 guard triggers, as a standalone file. See *RLS is the real enforcement* below.
-- **`make-admin.sql`** / **`check-admin.sql`** — grant and verify `is_admin`. `make-admin.sql` disables `profiles_guard` inside one transaction, because the guard silently reverts `is_admin` for anyone not already an admin — so editing the checkbox in Table Editor appears to work and does nothing. **Applied**; `khald507868@gmail.com` is admin.
-- **`cleanup-test-data.sql`** — deletes `%@example.com` accounts left from attack-testing, and resets any stray `approved` / `is_admin` rows.
+- **`make-admin.sql`** — grants `is_admin`. It disables `profiles_guard` inside one transaction, because the guard silently reverts `is_admin` for anyone not already an admin — so editing the checkbox in Table Editor appears to work and does nothing. **Applied**; `khald507868@gmail.com` is admin. (`check-admin.sql` / `check-admin-now.sql` verified this and were deleted once it held.)
+- **`cleanup-test-data.sql`** — **deleted 2026-09-08.** It removed `%@example.com` attack-test accounts; that data is long gone, and the file's unguarded deletes were a standing hazard.
 - **`add-posts-prices.sql`** — a **second applied migration**, not merged. Adds `posts` and `custom_prices` plus a `custom_price_id` column on `messages`. Already run and verified by attack. **Both tables are schema-only — no page reads them.** "Re-run `schema.sql`" does **not** restore them; a rebuild needs both files.
-- **One-off operational scripts from 2026-08-24**, all Arabic-commented with click-by-click steps for the owner: `approve-my-factory.sql` (approve the owner's factory), `check-guard.sql` (is `factories_guard` still enabled?), `check-admin-now.sql` (is this account really an admin?), `fix-my-factory.sql`, `cleanup-test-account.sql` (removes the `sec.test.factory@gmail.com` security-test account). **`cleanup-test-account.sql` has not been run yet** — that account's "Test Attacker" factory still appears in the factories list.
-- **Any script that writes a guarded column must disable the trigger inside a transaction.** `approve-my-factory.sql` and `make-admin.sql` both do this, and the reason is subtle: guards call `is_admin()`, which reads `auth.uid()` — and **in the SQL Editor there is no logged-in user, so `auth.uid()` is null and `is_admin()` returns false.** The guard then silently reverts the write and the editor reports success with no rows changed. **A plain `update ... set status='approved'` in the SQL Editor does nothing at all.** Always re-enable the trigger in the same transaction.
+- **The one-off operational scripts from 2026-08-24 are gone** (deleted 2026-09-08): `approve-my-factory.sql`, `check-guard.sql`, `check-admin-now.sql`, `fix-my-factory.sql`, `cleanup-test-account.sql`. Each fixed or probed a condition that no longer exists — the owner's factory is approved, the guard holds, the test accounts are gone. **Don't recreate them from this description**; write a fresh guarded script if the same question comes up.
+- **Any script that writes a guarded column must disable the trigger inside a transaction.** `make-admin.sql` does this (as did the deleted `approve-my-factory.sql`), and the reason is subtle: guards call `is_admin()`, which reads `auth.uid()` — and **in the SQL Editor there is no logged-in user, so `auth.uid()` is null and `is_admin()` returns false.** The guard then silently reverts the write and the editor reports success with no rows changed. **A plain `update ... set status='approved'` in the SQL Editor does nothing at all.** Always re-enable the trigger in the same transaction.
 - **Only the *last* statement's result is shown** in the Supabase SQL Editor — which is why the check scripts here contain exactly one `select`. Adding a second hides the first.
 - Postgres functions are dollar-quoted with **`$fn$`**, not bare `$$`, which collides with shell expansion.
 
