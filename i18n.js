@@ -11628,6 +11628,11 @@
      الطلب والفاتورة يبقيان بالريال. ورمز الريال
      مرسوم صورةً (class="sar")، وبقيّة العملات رموزها
      حروف موجودة في الخطوط فتُكتب نصّاً. */
+  function esc(v) {
+    return String(v == null ? "" : v)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+
   function money(value) {
     var cur = global.SFCurrency;
 
@@ -11656,9 +11661,47 @@
     return shown + ' <span class="cur-sym">' + sym + '</span>';
   }
 
+  /* مدى سعريّ («2 - 5 رمز»): الرقمان يُحوّلان
+     والرمز واحد في الطرف، فـmoney وحدها لا تكفي
+     لأنّها تلحق الرمز بكلّ رقم. */
+  function moneyRange(lo, hi) {
+    var cur = global.SFCurrency;
+    if (!cur || !cur.isForeign()) {
+      return esc(lo) + ' - ' + esc(hi)
+        + ' <span class="sar">' + t("currency_sar") + '</span>';
+    }
+    var a = parseFloat(String(lo).replace(/,/g, ""));
+    var b = parseFloat(String(hi).replace(/,/g, ""));
+    if (!isFinite(a) || !isFinite(b)) return esc(lo) + ' - ' + esc(hi);
+    var meta = cur.info(cur.getCode());
+    return esc(cur.formatNumber(cur.convert(a))) + ' - '
+      + esc(cur.formatNumber(cur.convert(b)))
+      + ' <span class="cur-sym">' + esc(meta.sym) + '</span>';
+  }
+
+  /* الرقم محوّلاً بلا رمز — لمن يضع الرمز بنفسه. */
+  function convertNum(value) {
+    var cur = global.SFCurrency;
+    var n = parseFloat(String(value == null ? "" : value).replace(/,/g, ""));
+    if (!cur || !cur.isForeign() || !isFinite(n)) return String(value == null ? "" : value);
+    return cur.formatNumber(cur.convert(n));
+  }
+
+  /* رمز العملة الحالية ترميزاً جاهزاً. */
+  function currencyTag() {
+    var cur = global.SFCurrency;
+    if (!cur || !cur.isForeign()) {
+      return '<span class="sar">' + t("currency_sar") + '</span>';
+    }
+    return '<span class="cur-sym">' + esc(cur.info(cur.getCode()).sym) + '</span>';
+  }
+
   global.I18N = {
     getLang: getLang,
     money: money,
+    moneyRange: moneyRange,
+    convertNum: convertNum,
+    currencyTag: currencyTag,
     setLang: setLang,
     t: t,
     regionName: regionName,

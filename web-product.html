@@ -656,9 +656,10 @@
          تخرج الكمّية من كلّ الشرائح. */
       var basePriceText = price;
 
+      /* عبر I18N.money لا برمز مكتوب باليد، وإلّا بقي
+         السعر بالريال مهما اختار الزائر. */
       var priceBlock = price
-        ? '<div class="prod-price">' + escapeHTML(price) +
-          ' <span class="currency">' + escapeHTML(I18N.t("currency_sar")) + '</span></div>'
+        ? '<div class="prod-price">' + I18N.money(price) + '</div>'
         : '<div class="prod-price on-request">' +
           escapeHTML(I18N.t("product_price_on_request")) + '</div>';
 
@@ -931,11 +932,9 @@
         var shown = basePriceText;
         if (shown === "") { el.hidden = true; return; }
 
-        el.textContent = shown + " ";
-        var cur = document.createElement("span");
-        cur.className = "currency";
-        cur.textContent = I18N.t("currency_sar");
-        el.appendChild(cur);
+        /* innerHTML لا textContent: الرمز ترميز، وmoney
+           تتولّى التحويل والتنقية معاً. */
+        el.innerHTML = I18N.money(shown);
       }
 
       /* يُعاد رسمه عند كلّ تغيير كمّية ليتتبّع
@@ -982,11 +981,8 @@
 
           var pr = document.createElement("div");
           pr.className = "tier-cell-price";
-          pr.textContent = parseFloat(t.price).toFixed(2);
-          var cur = document.createElement("span");
-          cur.className = "currency";
-          cur.textContent = I18N.t("currency_sar");
-          pr.appendChild(cur);
+          /* سعر الشريحة يُحوّل كبقيّة الأسعار. */
+          pr.innerHTML = I18N.money(parseFloat(t.price).toFixed(2));
           cell.appendChild(pr);
 
           var rg = document.createElement("div");
@@ -1177,7 +1173,7 @@
         if (priceEl) {
           priceEl.className = row.price ? "prod-price" : "prod-price on-request";
           priceEl.innerHTML = row.price
-            ? escapeHTML(row.price) + ' <span class="currency">' + escapeHTML(I18N.t("currency_sar")) + '</span>'
+            ? I18N.money(row.price)
             : escapeHTML(I18N.t("product_price_on_request"));
         }
 

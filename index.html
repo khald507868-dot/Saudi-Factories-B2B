@@ -1743,7 +1743,6 @@
         return String(Number(n).toFixed(2)).replace(/[.]00$/, '');
       }
 
-      var riyal = I18N.t('currency_sar');
       var verified = I18N.t('product_verified');
 
       function showState(msg) {
@@ -1792,19 +1791,19 @@
               if (lo === null || pr < lo) lo = pr;
               if (hi === null || pr > hi) hi = pr;
             });
-            var cur = ' <span class="product-currency">' + escapeHTML(riyal) + '</span>';
-            /* مدىً حقيقيّ فقط حين تختلف الأطراف؛
-               وشريحة واحدة أو متساوية تُعرض رقماً واحداً. */
+            /* عبر I18N لا برمز مكتوب باليد: وإلّا بقي
+               السعر بالريال مهما اختار الزائر — وهو ما
+               وقع فعلاً. ومدىً حقيقيّ حين تختلف الأطراف
+               فحسب؛ وشريحة واحدة تُعرض رقماً واحداً. */
             if (lo !== null && hi !== null && hi > lo) {
               priceHTML = '<div class="product-price">' +
-                escapeHTML(trimNum(lo)) + ' - ' + escapeHTML(trimNum(hi)) + cur +
-                '</div>';
+                I18N.moneyRange(trimNum(lo), trimNum(hi)) + '</div>';
             } else if (lo !== null) {
               priceHTML = '<div class="product-price">' +
-                escapeHTML(trimNum(lo)) + cur + '</div>';
+                I18N.money(trimNum(lo)) + '</div>';
             } else {
               priceHTML = '<div class="product-price">' +
-                escapeHTML(price) + cur + '</div>';
+                I18N.money(price) + '</div>';
             }
           }
 
