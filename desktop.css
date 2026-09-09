@@ -1548,7 +1548,41 @@
     inset: auto !important;
   }
 
-  /* .chat-peer يتحكم به السكربت عند فتح محادثة — لا يُجبر هنا */
+  /* ===== ترويسة المحادثة =====
+     السكربت يخفي عنوان الصفحة ويُظهر المحادَث
+     مكانه عند فتح محادثة — وهو صحيح في الجوّال
+     حيث تتبادل القائمة والمحادثة مكانًا.
+
+     أمّا هنا فالعمودان معاً دائماً، فبقيت الترويسة
+     بلا عنوان وفيها المحادَث وحده متوسطاً فوق
+     العمودين (رصده المالك).
+
+     و!important يلزم لأنّ السكربت يكتب display
+     في النمط المباشر، وهو أقوى من أيّ مُحدّد. */
+  .chat-page .top-bar #list-title { display: block !important; }
+
+  /* المحادَث يلازم العنوان ويفصله خطّ رفيع.
+     ولا يُنقل إلى بطاقة المحادثة ولو كان أولى:
+     ترميزه داخل header، وorder لا ينقل عنصراً
+     بين أبوين مختلفين — ونقله في الترميز
+     يمسّ الجوّال معه. */
+  .chat-page .chat-peer {
+    flex: 0 0 auto !important;
+    padding-inline-start: 14px;
+    border-inline-start: 1px solid #dfe7e2;
+  }
+
+  /* محتوى الترويسة يلزم طرف القراءة لا وسطها. */
+  .chat-page .top-bar { justify-content: flex-start !important; }
+
+  /* زرّ المحادثة الجديدة في الطرف المقابل،
+     فلا يلاصق العنوان. وبـmargin-inline ليمرّ
+     مع dir بلا نظير ltr. */
+  .chat-page .new-chat-btn { margin-inline-start: auto !important; }
+
+  /* العنوان لا يُزاح: الإزاحة كانت لترويسة
+     يختفي فيها العنوان، وقد عاد. */
+  .chat-page .top-bar h1 { transform: none !important; }
 
   /* العلامة المائية للخريطة تشوّش التخطيط العريض */
   .chat-page .map-watermark { display: none !important; }
