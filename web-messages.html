@@ -286,6 +286,100 @@
     margin-top: 1px;
   }
 
+  /* ===== بطاقة منتج في المحادثة (بطلب المالك) =====
+     كان الاستفسار يُرسل نصّاً، فلا يعرف المصنع أيّ
+     منتجاته يُسأل عنه. فصارت بطاقة كما في عليّ بابا:
+     صورة واسم وسعر وحدّ أدنى وزرّ. */
+  .card-msg {
+    width: 232px;
+    max-width: 100%;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #ffffff;
+    border: 1px solid #dfe7e2;
+    /* البطاقة داخل فقّاعة، فتُلغى حشوتها ولونها. */
+    text-decoration: none;
+    color: inherit;
+    display: block;
+  }
+
+  .card-msg-img {
+    display: block;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+    background: #f2f5f3;
+  }
+
+  /* منتج بلا صورة: مربّع رماديّ بأيقونة،
+     ولا يُستعار غلاف المصنع: مشهد عامّ يُضلّل. */
+  .card-msg-noimg {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    background: #f2f5f3;
+  }
+
+  .card-msg-noimg svg {
+    width: 36px;
+    height: 36px;
+    stroke: #b3c4ba;
+    fill: none;
+    stroke-width: 1.6;
+  }
+
+  .card-msg-body { padding: 10px 11px 11px; }
+
+  .card-msg-name {
+    font-size: 12.5px;
+    font-weight: 700;
+    color: #12331d;
+    line-height: 1.45;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .card-msg-price {
+    margin-top: 6px;
+    font-size: 14.5px;
+    font-weight: 800;
+    color: #04361b;
+    direction: ltr;
+    text-align: start;
+  }
+
+  .card-msg-moq {
+    margin-top: 3px;
+    font-size: 11px;
+    color: #6b7d70;
+  }
+
+  .card-msg-btn {
+    display: block;
+    margin-top: 9px;
+    padding: 7px 10px;
+    border-radius: 999px;
+    background: #1f6b42;
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 700;
+    text-align: center;
+  }
+
+  /* فقّاعة تحمل بطاقة: لا حشو ولا خلفيّة،
+     فالبطاقة ترسم نفسها — كما تفعل فقّاعة الوسائط. */
+  .bubble.bubble-card {
+    padding: 4px;
+    background: rgba(255, 255, 255, 0.14);
+  }
+
+  .bubble.bubble-card.theirs { background: #eef2ef; }
+
   /* مساحة الرسائل: تُترك لها مسافة سفلية بقدر شريط الكتابة */
   .messages-area {
     padding: 12px 12px calc(74px + env(safe-area-inset-bottom));
@@ -1141,6 +1235,97 @@
         messagesArea.innerHTML = '<div class="messages-loading"><span class="loading-spinner"></span><span>جارٍ تحميل المحادثة…</span></div>';
       }
 
+      /* معرّف منتج ينتظر أوّل إرسال.
+         «طلب السعر» يُرسل تلقائيّاً، أمّا «الاستفسار»
+         فيملأ المُنشئ وينتظر المشتري ليراجع ويرسل —
+         فلو لم يُحفظ المعرّف لضاعت البطاقة عند الضغط. */
+      var pendingCardId = "";
+
+      /* بيانات منتجات البطاقات، مفتاحها معرّف المنتج.
+         تُحمّل مرّةً لكلّ محادثة لا مرّةً لكلّ بطاقة. */
+      var cardProducts = {};
+
+      var CARD_NO_IMG =
+        '<span class="card-msg-noimg">' +
+          '<svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">' +
+            '<rect x="3" y="3" width="18" height="18" rx="2"></rect>' +
+            '<circle cx="8.5" cy="8.5" r="1.5"></circle>' +
+            '<path d="M21 15l-5-5L5 21"></path>' +
+          '</svg>' +
+        '</span>';
+
+      /* مدى السعر من الشرائح كما في بطاقات الرئيسية:
+         أرخص شريحة إلى أغلاها، ورقم واحد إن تساويا. */
+      function cardPriceHTML(p) {
+        var lo = null, hi = null;
+        (p.tiers || []).forEach(function (tier) {
+          if (!tier) return;
+          var pr = parseFloat(tier.price);
+          var mn = parseInt(tier.min, 10);
+          if (isNaN(pr) || pr <= 0 || isNaN(mn) || mn < 1) return;
+          if (lo === null || pr < lo) lo = pr;
+          if (hi === null || pr > hi) hi = pr;
+        });
+
+        function trim(n) {
+          return String(Number(n).toFixed(2)).replace(/[.]00$/, "");
+        }
+
+        if (lo !== null && hi !== null && hi > lo) {
+          return I18N.moneyRange(trim(lo), trim(hi));
+        }
+        if (lo !== null) return I18N.money(trim(lo));
+        var base = parseFloat(p.price);
+        if (isFinite(base) && base > 0) return I18N.money(trim(base));
+        return escapeHTML(I18N.t("product_price_on_request"));
+      }
+
+      /* أقلّ حدّ للطلب: من moq أو من أدنى شريحة،
+         ويُترك السطر إن غابا معاً. */
+      function cardMoq(p) {
+        var n = parseInt(p.moq, 10);
+        if (isFinite(n) && n > 0) return n;
+        var lo = null;
+        (p.tiers || []).forEach(function (tier) {
+          var mn = parseInt(tier && tier.min, 10);
+          if (isFinite(mn) && mn > 0 && (lo === null || mn < lo)) lo = mn;
+        });
+        return lo;
+      }
+
+      /* رابط البطاقة يحمل معرّف المنتج، ويحتاج معه
+         معرّف المصنع لأنّ الصفحة تقرأه لبطاقة المورّد. */
+      function cardHTML(productId, side) {
+        var p = cardProducts[String(productId)];
+        if (!p) return "";
+
+        var t = threads[activeId];
+        var fid = t ? t.factory_id : "";
+
+        var href = "web-product.html?factory=" + encodeURIComponent(fid) +
+                   "&p=0&product=" + encodeURIComponent(p.id);
+
+        var moq = cardMoq(p);
+
+        return '<a class="card-msg" href="' + escapeHTML(href) + '">' +
+          (p.image
+            ? '<img class="card-msg-img" alt="" src="' + escapeHTML(p.image) + '">'
+            : CARD_NO_IMG) +
+          '<span class="card-msg-body">' +
+            '<span class="card-msg-name">' + escapeHTML(p.name) + '</span>' +
+            '<span class="card-msg-price">' + cardPriceHTML(p) + '</span>' +
+            (moq
+              ? '<span class="card-msg-moq">' +
+                  escapeHTML(I18N.t("product_moq") + ":") + ' ' + moq +
+                '</span>'
+              : '') +
+            '<span class="card-msg-btn">' +
+              escapeHTML(I18N.t("product_view_details")) +
+            '</span>' +
+          '</span>' +
+        '</a>';
+      }
+
       function renderMessages() {
         var t = threads[activeId];
         if (!t) return;
@@ -1171,17 +1356,27 @@
           /* رسائل الخادم تستخدم mine/theirs، والنسخ القديمة استخدمت اسم الدور. */
           var side = (m.from === "mine" || m.from === myRole) ? "mine" : "theirs";
           var isMedia = m.type === "image" || m.type === "video";
+          /* بطاقة منتج، ومنتجها معروف: ولو غاب (منتج
+             محذوف أو تعذّرت قراءته) فالفقّاعة نصّية وحدها
+             ولا تُرسم بطاقة جوفاء. */
+          var cardMarkup = (m.type === "product" && m.productId)
+            ? cardHTML(m.productId, side) : "";
+          var isCard = !!cardMarkup;
 
-          html += '<div class="bubble ' + side + (isMedia ? ' bubble-media' : '') + '">';
+          html += '<div class="bubble ' + side +
+            (isMedia ? ' bubble-media' : '') +
+            (isCard ? ' bubble-card' : '') + '">';
 
           if (m.type === "image") {
             html += '<img alt="" src="' + escapeHTML(m.src || "") + '">';
           } else if (m.type === "video") {
             html += '<video src="' + escapeHTML(m.src || "") + '" controls playsinline></video>';
+          } else if (isCard) {
+            html += cardMarkup;
           }
 
           if (m.text) {
-            html += isMedia
+            html += (isMedia || isCard)
               ? '<div class="bubble-caption">' + escapeHTML(m.text) + '</div>'
               : escapeHTML(m.text);
           }
@@ -1224,6 +1419,29 @@
           }
           renderThreadList();
           renderMessages();
+
+          /* بيانات البطاقات بعد الرسم لا قبله: الرسائل
+             تظهر فوراً، والبطاقات تُملأ حين تصل — ولا
+             تنتظر المحادثة نداءً إضافيّاً.
+
+             ولا يُنادى إلا إن وجدت بطاقة فعلاً: أكثر
+             المحادثات نصّ محض، فلا تحتمل نداءً لا طائل منه. */
+          var needsCards = current.messages.some(function (m) {
+            return m.type === "product" && m.productId &&
+                   !cardProducts[String(m.productId)];
+          });
+
+          if (needsCards && SFMessages.loadCardProducts) {
+            SFMessages.loadCardProducts(Number(id)).then(function (map) {
+              /* المشتري قد ينتقل إلى محادثة أخرى أثناء
+                 الانتطار، فلا تُرسم بطاقات محادثة غادرها. */
+              if (token !== loadToken || activeId !== id) return;
+              Object.keys(map).forEach(function (key) {
+                cardProducts[key] = map[key];
+              });
+              renderMessages();
+            }).catch(function () {});
+          }
         }).catch(function (err) {
           if (token !== loadToken || activeId !== id || !threads[id]) return;
           threads[id].unread = previousUnread;
@@ -1354,6 +1572,79 @@
         });
       }
 
+      /* إرسال مع بطاقة منتج (بطلب المالك): يُنادى من
+         زرّي الاستفسار وطلب السعر في صفحة المنتج،
+         فيرى المصنع المنتج بصورته لا اسماً في نصّ.
+
+         وبلا معرّف يرجع إلى sendText: الروابط القديمة
+         المحفوزة لا تحمل card، ولا يصحّ أن تفقد
+         الرسالة أصلاً. */
+      function sendWithCard(productId) {
+        if (!productId || !SFMessages.sendProductCard) { sendText(); return; }
+
+        var text = msgInput.value.trim();
+        if (!activeId) return;
+
+        if (!window.SFMessages || !window.SF_USER || !/^\d+$/.test(String(activeId))) {
+          showNote("تعذّر الاتصال بخدمة الرسائل. أعد تحميل الصفحة.", true);
+          return;
+        }
+
+        var inputText = text;
+        msgInput.value = "";
+        msgInput.style.height = "auto";
+        updateSendState();
+
+        /* البطاقة تُرسم فوراً بمعرّف مؤقّت، ومنتجها
+           قد لا يكون في cardProducts بعد — فتُحمّل بياناته
+           بعد الإرسال وتُعاد الرسمة. */
+        var tempId = "tmp-" + Date.now();
+        pushMessage({
+          id: tempId,
+          from: "mine",
+          type: "product",
+          productId: Number(productId),
+          text: inputText,
+          at: Date.now()
+        });
+
+        SFMessages.sendProductCard(Number(activeId), Number(productId), inputText)
+          .then(function (saved) {
+            sentIds[String(saved.id)] = true;
+            var t = threads[activeId];
+            if (t && t.messages) {
+              for (var i = 0; i < t.messages.length; i++) {
+                if (String(t.messages[i].id) === tempId) {
+                  t.messages[i].id = saved.id;
+                  t.messages[i].at = new Date(saved.created_at).getTime();
+                  break;
+                }
+              }
+            }
+            /* بيانات المنتج لتمتلئ البطاقة التي رُسمت
+               فارغةً لحظةً. */
+            if (!cardProducts[String(productId)] && SFMessages.loadCardProducts) {
+              return SFMessages.loadCardProducts(Number(activeId)).then(function (map) {
+                Object.keys(map).forEach(function (k) { cardProducts[k] = map[k]; });
+                renderMessages();
+              });
+            }
+            renderMessages();
+          })
+          .catch(function (err) {
+            var t2 = threads[activeId];
+            if (t2 && t2.messages) {
+              t2.messages = t2.messages.filter(function (m) {
+                return String(m.id) !== tempId;
+              });
+              renderMessages();
+            }
+            msgInput.value = inputText;
+            showNote((err && err.message) || "تعذّر إرسال الرسالة.", true);
+            updateSendState();
+          });
+      }
+
       function updateSendState() {
         sendBtn.disabled = !msgInput.value.trim();
       }
@@ -1473,7 +1764,17 @@
 
       backBtn.addEventListener("click", closeChat);
 
-      sendBtn.addEventListener("click", sendText);
+      /* البطاقة تلحق أوّل رسالة ثمّ تُستهلك: ما بعدها
+         حديث عاديّ لا يُعاد فيه إرسال المنتج مع كلّ سطر. */
+      sendBtn.addEventListener("click", function () {
+        if (pendingCardId) {
+          var id = pendingCardId;
+          pendingCardId = "";
+          sendWithCard(id);
+          return;
+        }
+        sendText();
+      });
 
       msgInput.addEventListener("input", function () {
         updateSendState();
@@ -1584,6 +1885,10 @@
       function openFromQuery() {
         var params = new URLSearchParams(window.location.search);
         var shouldAutoSend = params.get("send") === "1";
+        /* معرّف منتج البطاقة القادم من صفحة المنتج. */
+        var cardId = params.get("card") || "";
+        /* يُحفظ للإرسال اليدويّ أيضاً، لا للتلقائيّ وحده. */
+        if (cardId) pendingCardId = cardId;
 
         function applyDraft() {
           var draft = params.get("draft");
@@ -1599,9 +1904,13 @@
             /* إزالة الأمر من العنوان تمنع تكرار الطلب إن أُعيد تحميل الصفحة. */
             params.delete("send");
             params.delete("draft");
+            params.delete("card");
             var query = params.toString();
             window.history.replaceState(null, "", window.location.pathname + (query ? "?" + query : ""));
-            window.setTimeout(sendText, 0);
+            /* يُستهلك المعلّق هنا: وإلّا ألحقته رسالة
+               المشتري التالية أيضاً فتكرّرت البطاقة. */
+            pendingCardId = "";
+            window.setTimeout(function () { sendWithCard(cardId); }, 0);
           }
         }
 

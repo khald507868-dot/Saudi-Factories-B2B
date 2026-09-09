@@ -1235,16 +1235,66 @@
 
       /* ===== نصوص الرسائل الجاهزة =====
          الاستفسار يبقى مسودة للمراجعة، أمّا طلب عرض السعر فيُرسل
-         تلقائيًا بعد إنشاء المحادثة. */
-      var subject      = name || factoryName;
-      var inquiryDraft = I18N.t("product_draft_inquiry") + " " + subject;
-      var quoteDraft   = I18N.t("product_draft_quote") + " " + subject +
-                         "\n" + I18N.t("product_draft_qty") + " ";
+         تلقائيًا بعد إنشاء المحادثة.
 
-      function chatURL(draft, autoSend) {
+         وتُبنى عند النقر لا عند رسم الصفحة (رصده المالك):
+         الرسمة الأولى من localStorage وهو غالباً فارغ،
+         فكان subject يسقط إلى اسم المصنع وتُجمّد الروابط
+         عليه ولا تُحدّث حين يردّ الخادم — فوصلت المصنع
+         رسالة «استفسار عن: اسم المصنع» ولا يعرف أيّ
+         منتجاته يُسأل عنه. */
+
+      /* اسم المنتج من الصفحة نفسها: هو المعروض فعلاً
+         بعد وصول صفّ الخادم، ومترجماً إن عملت الترجمة. */
+      function currentProductName() {
+        var el = wrap.querySelector(".prod-name");
+        var txt = el && !el.classList.contains("sk-line")
+          ? String(el.textContent || "").trim() : "";
+        return txt || name || "";
+      }
+
+      /* مسودة تُعرّف المنتج تعريفاً يكفي المصنع:
+         اسمه، وسعر الوحدة عند الكمّية المطلوبة،
+         ورابط الصفحة ليفتحها فيرى الصورة والمواصفات.
+
+         والرابط يحمل معرّف المنتج لا رقم موقعه:
+         المواقع تتغيّر بحذف منتج أو إضافته، والمعرّف لا. */
+      function buildDraft(kind) {
+        var lines = [];
+        var pname = currentProductName();
+
+        /* البطاقة تُعرّف المنتج بصورته واسمه وسعره،
+           فالنصّ يحمل الطلب وحده لا يكرّرها. والاسم
+           يبقى في السطر الأوّل لمن يقرأ المحادثة ملخّصةً
+           في قائمة المحادثات، وهي لا ترسم بطاقة. */
+        lines.push(I18N.t(kind === "quote"
+          ? "product_draft_quote" : "product_draft_inquiry") + " " +
+          (pname || factoryName));
+
+        /* المواصفات المميّزة تُذكر إن وجدت، وتُترك
+           إن غابت: سطر بلا قيمة أسوأ من غيابه. */
+        var qty = readQty();
+        if (qty > 0) {
+          lines.push(I18N.t("product_draft_qty") + " " + qty);
+        }
+
+        /* ولا يُكتب السعر ولا الرابط نصّاً: البطاقة
+           تحملهما — سعرها ومداها وزرٌّ يفتح المنتج.
+           فإعادتهما تزحم الرسالة بما هو أمامه فيها.
+
+           والكمّية تبقى: هي طلب المشتري لا بيان المنتج،
+           فلا تحملها البطاقة. */
+
+        return lines.join("\n");
+      }
+
+      function chatURL(draft, autoSend, cardId) {
         var url = "web-messages.html?factory=" + encodeURIComponent(factoryId);
         if (draft) url += "&draft=" + encodeURIComponent(draft);
         if (autoSend) url += "&send=1";
+        /* معرّف المنتج: المحادثة ترسل به بطاقة
+           لا نصّاً، فيرى المصنع المنتج بصورته. */
+        if (cardId) url += "&card=" + encodeURIComponent(cardId);
         return url;
       }
 
@@ -1410,9 +1460,13 @@
                 '</button>' +
               '</div>'
             : '') +
-          '<a class="act-btn primary" href="' + escapeHTML(chatURL(inquiryDraft)) + '">' +
+          /* بلا مسودة في الترميز: تُبنى عند النقر لتحمل
+             الاسم والكمّية والسعر وقته لا وقت الرسم. */
+          '<a class="act-btn primary" data-draft="inquiry" href="' +
+            escapeHTML(chatURL("")) + '">' +
             escapeHTML(I18N.t("product_send_inquiry")) + '</a>' +
-          '<a class="act-btn outline" href="' + escapeHTML(chatURL(quoteDraft, true)) + '">' +
+          '<a class="act-btn outline" data-draft="quote" href="' +
+            escapeHTML(chatURL("")) + '">' +
             escapeHTML(I18N.t("product_request_quote")) + '</a>' +
           '<a class="act-btn outline" href="' + escapeHTML(chatURL("")) + '">' +
             escapeHTML(I18N.t("product_start_chat")) + '</a>' +
@@ -2706,6 +2760,24 @@
         actions.addEventListener("click", function (ev) {
           var link = ev.target.closest ? ev.target.closest("a.act-btn") : null;
           if (!link) return;
+
+          /* المسودة تُكتب لحطة النقر لا وقت الرسم:
+             فتحمل اسم المنتج الوارد من الخادم، والكمّية
+             والسعر اللذين اختارهما المشتري توّاً — وكلّها
+             مجهولة وقت الرسم. وقبل sfRequireLogin لا بعده:
+             الحارس يقرأ href ليعيد الزائر إليه بعد الدخول،
+             فلو كُتبت بعده لعاد إلى محادثة بلا نصّ. */
+          var kind = link.getAttribute("data-draft");
+          if (kind) {
+            link.setAttribute("href",
+              /* المعرّف من product.id إن وصل صفّ الخادم، وإلّا
+                 من العنوان: النسخة المحلّية غالباً فارغة فيبقى
+                 product.id خالياً، فلا يُمرّر card وتصل رسالة
+                 نصّية بلا بطاقة — وهو ما رصده المالك. */
+              chatURL(buildDraft(kind), kind === "quote",
+                product.id || productId || ""));
+          }
+
           if (typeof sfRequireLogin !== "function") return;
 
           /* نمرّر وجهة الزرّ نفسه لا الصفحة الحالية،

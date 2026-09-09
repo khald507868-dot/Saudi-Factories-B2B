@@ -8,8 +8,8 @@
   var LEGACY_CONVERSATION_SELECT =
     CONVERSATION_SELECT + ", factories(name, logo), " +
     "profiles!conversations_individual_id_fkey(full_name, company_image), " +
-    "messages(id, sender_id, body, attachment_url, attachment_type, created_at)";
-  var MESSAGE_SELECT = "id, sender_id, body, attachment_url, attachment_type, created_at";
+    "messages(id, sender_id, body, attachment_url, attachment_type, product_id, created_at)";
+  var MESSAGE_SELECT = "id, sender_id, body, attachment_url, attachment_type, product_id, created_at";
   var ATTACHMENT_LIMITS = {
     image: { max: 5 * 1024 * 1024, types: ["image/jpeg", "image/png", "image/webp", "image/gif"] },
     video: { max: 50 * 1024 * 1024, types: ["video/mp4", "video/webm", "video/quicktime"] }
@@ -42,6 +42,9 @@
       type: message.attachment_type || "text",
       text: message.body || "",
       src: message.signed_url || "",
+      /* معرّف المنتج لبطاقة المحادثة: الرسم يقرأ به
+         من خريطة المنتجات، فلا يُحمّل منتجاً لكلّ رسالة. */
+      productId: message.product_id || null,
       at: messageTime(message)
     };
   }
@@ -339,6 +342,62 @@
       }).then(function (res) {
         if (res.error) throw res.error;
         return res.data;
+      });
+    },
+
+    /* بطاقة منتج لا نصّاً (بطلب المالك): المصنع يرى
+       المنتج بصورته واسمه وسعره فيعرف ما يُسأل عنه.
+
+       والنصّ يُرسل معها اختياراً: البطاقة تُعرّف المنتج،
+       والنصّ يحمل الطلب — استفساراً أو طلب سعر. */
+    sendProductCard: function (conversationId, productId, text) {
+      return ready().then(function () {
+        var pid = Number(productId);
+        if (!(pid > 0)) {
+          throw new Error("منتج غير صالح.");
+        }
+        return root.sb.from("messages").insert({
+          conversation_id: Number(conversationId),
+          sender_id: root.SF_USER.id,
+          body: String(text || "").slice(0, 10000),
+          attachment_url: "",
+          attachment_type: "product",
+          product_id: pid
+        }).select(MESSAGE_SELECT).single();
+      }).then(function (res) {
+        if (res.error) throw res.error;
+        return res.data;
+      });
+    },
+
+    /* بيانات منتجات المحادثة في نداء واحد، خريطةً
+       { <id>: {...} }. وعبر RPC لا قراءةً مباشرة لـproducts:
+       المشتري يراسل مصنعاً لا يملكه، وRLS تحرمه من
+       منتجات مصنع لم يُعتمد — فتأتي البطاقة جوفاء. */
+    loadCardProducts: function (conversationId) {
+      return ready().then(function () {
+        return root.sb.rpc("get_message_products", {
+          p_conversation_id: Number(conversationId)
+        });
+      }).then(function (res) {
+        if (res.error) throw res.error;
+        var map = {};
+        (res.data || []).forEach(function (row) {
+          map[String(row.product_id)] = {
+            id: row.product_id,
+            name: row.name || "",
+            image: row.image || "",
+            price: row.price,
+            tiers: Array.isArray(row.tiers) ? row.tiers : [],
+            moq: row.moq || null
+          };
+        });
+        return map;
+      }).catch(function (err) {
+        /* غياب البيانات لا يُسقط المحادثة: تُرسم
+           الرسائل وتُخفى البطاقات. */
+        if (root.console) console.warn("card products:", err && err.message);
+        return {};
       });
     },
 
