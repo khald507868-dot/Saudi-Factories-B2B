@@ -998,45 +998,102 @@
   .act-btn.outline:active { background: #f0f4f1; }
 
 
-/* شريط المشتريات السفليّ — يظهر بعد الإضافة للسلة.
-   مركّز بـ translateX(-50%) لا بـ right/left: لا يحتاج نظيرًا لـ dir=ltr.
-   والحشو السفليّ يحترم شريط الهاتف السفليّ (52px) والـ safe-area. */
+/* لوحة الإضافة للسلة — تنسدل تحت أيقونة السلة
+   (بطلب المالك) وتحمل المنتج والكمّية والسعر،
+   ثمّ تختفي بعد خمس ثوانٍ. وكانت شريطاً أسفل
+   الصفحة يحجب المحتوى.
+
+   الموضع يُحسب بالجافا من موضع الأيقونة فعلاً:
+   الأيقونة يبنيها top-bar.js وليست أباً للوحة،
+   فلا يكفي position: absolute منها. */
 .cart-toast {
   position: fixed;
-  left: 50%;
-  transform: translateX(-50%) translateY(140%);
-  bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+  top: 0;
+  inset-inline-start: 0;
   z-index: 60;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  max-width: calc(100% - 28px);
-  padding: 12px 18px;
-  border-radius: 14px;
-  background: #0f3d21;
-  color: #ffffff;
-  box-shadow: 0 6px 22px rgba(4, 54, 27, .28);
-  font-size: 14px;
+  width: 250px;
+  max-width: calc(100vw - 24px);
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #ffffff;
+  border: 1px solid #c7dfce;
+  box-shadow: 0 8px 24px rgba(4, 54, 27, .16);
+  font-size: 13px;
+  color: #12331d;
   opacity: 0;
   pointer-events: none;
-  transition: transform .28s ease, opacity .28s ease;
+  transform: translateY(-8px);
+  transition: transform .2s ease, opacity .2s ease;
 }
 .cart-toast.is-open {
-  transform: translateX(-50%) translateY(0);
   opacity: 1;
   pointer-events: auto;
+  transform: translateY(0);
 }
-.cart-toast-count { font-weight: 700; white-space: nowrap; }
+
+/* سطر «أُضيف للسلة» */
+.cart-toast-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 800;
+  font-size: 12.5px;
+  color: #1f6b42;
+  margin-bottom: 9px;
+}
+.cart-toast-head svg {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  stroke: #1f6b42;
+  stroke-width: 2.4;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* اسم المنتج: سطران ثمّ قصّ */
+.cart-toast-name {
+  font-weight: 700;
+  line-height: 1.45;
+  margin-bottom: 6px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.cart-toast-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12.5px;
+  color: #6b7d70;
+  margin-bottom: 4px;
+}
+.cart-toast-row b {
+  color: #04361b;
+  font-weight: 800;
+  /* الأرقام لاتينيّة دائماً فلا ينعكس ترتيبها. */
+  direction: ltr;
+}
+
 .cart-toast-link {
+  display: block;
+  margin-top: 10px;
+  padding: 8px 12px;
+  border-radius: 9px;
+  background: #1f6b42;
   color: #ffffff;
   text-decoration: none;
   font-weight: 700;
-  white-space: nowrap;
-  padding: 7px 15px;
-  border-radius: 9px;
-  background: rgba(255, 255, 255, .17);
+  font-size: 12.5px;
+  text-align: center;
 }
-.cart-toast-link:hover { background: rgba(255, 255, 255, .27); }
+.cart-toast-link:hover { background: #185735; }
+
 @media (prefers-reduced-motion: reduce) {
   .cart-toast { transition: none; }
 }
@@ -1401,29 +1458,133 @@
 
       wireFavorite(document.getElementById("fav-btn"));
 
-      /* شريط سفليّ يظهر بعد الإضافة: يعدّ ما في السلة ويفتحها.
-         مركّز أفقيًا لا ملصقًا بحافة، فيستقيم في اتجاهي القراءة معًا. */
+      /* لوحة تنسدل تحت أيقونة السلة بعد الإضافة
+         (بطلب المالك): المنتج والكمّية والسعر،
+         ثمّ تختفي بعد خمس ثوانٍ. */
       var cartBar = null;
-      function showCartBar() {
+      var cartBarTimer = null;
+
+      /* الموضع يُحسب من موضع الأيقونة فعلاً: هي
+         داخل شريط يبنيه top-bar.js وليست أباً للوحة،
+         فلا يكفي absolute منها. وإن غابت الأيقونة
+         (عرض الجوّال يخفي شريط سطح المكتب) تقع اللوحة
+         في أعلى الطرف الموافق للقراءة. */
+      function placeCartBar() {
+        if (!cartBar) return;
+        var icon = document.querySelector('.dt-icon[href="web-cart.html"]');
+        var pad = 12;
+
+        if (!icon || !icon.offsetParent) {
+          cartBar.style.top = (pad + 60) + "px";
+          cartBar.style.insetInlineStart = pad + "px";
+          cartBar.style.insetInlineEnd = "auto";
+          return;
+        }
+
+        var r = icon.getBoundingClientRect();
+        var w = cartBar.offsetWidth || 250;
+        var rtl = document.documentElement.getAttribute("dir") === "rtl";
+
+        cartBar.style.top = (r.bottom + 8) + "px";
+
+        /* تمركز تحت الأيقونة، مقيّدةً بحدّي النافذة
+           لئلّا تخرج عنها — والأيقونة قريبة من الحافة
+           في الاتجاهين. ويُكتب left صراحةً لا منطقيّاً:
+           القيمة محسوبة من getBoundingClientRect وهي
+           فيزيائية دائماً، فإسنادها إلى خاصّة تنعكس
+           يقلبها في العربية. */
+        var left = r.left + (r.width / 2) - (w / 2);
+        var maxLeft = window.innerWidth - w - pad;
+        if (left > maxLeft) left = maxLeft;
+        if (left < pad) left = pad;
+
+        cartBar.style.insetInlineStart = "auto";
+        cartBar.style.insetInlineEnd = "auto";
+        cartBar.style.left = left + "px";
+        /* rtl يُقرأ لكي يبقى المتغيّر مستعملاً
+           إن احتيج لاحقاً؛ والحساب أعلاه يكفي للاتجاهين. */
+        void rtl;
+      }
+
+      function hideCartBar() {
+        if (cartBar) cartBar.classList.remove("is-open");
+      }
+
+      function showCartBar(qty, unit) {
         if (!cartBar) {
           cartBar = document.createElement("div");
           cartBar.className = "cart-toast";
+          cartBar.setAttribute("role", "status");
           cartBar.innerHTML =
-            '<span class="cart-toast-count"></span>' +
+            '<div class="cart-toast-head">' +
+              '<svg viewBox="0 0 24 24" aria-hidden="true">' +
+                '<polyline points="20 6 9 17 4 12"></polyline>' +
+              '</svg>' +
+              '<span class="cart-toast-title"></span>' +
+            '</div>' +
+            '<div class="cart-toast-name"></div>' +
+            '<div class="cart-toast-row cart-toast-qty"></div>' +
+            '<div class="cart-toast-row cart-toast-price"></div>' +
             '<a class="cart-toast-link" href="web-cart.html"></a>';
           document.body.appendChild(cartBar);
+          /* اللوحة معلّقة بموضع الأيقونة، فتتبعها
+             عند تغيّر المقاس والتمرير. */
+          window.addEventListener("resize", placeCartBar);
+          window.addEventListener("scroll", placeCartBar, { passive: true });
         }
-        cartBar.querySelector(".cart-toast-link").textContent = I18N.t("cart_view_cart");
-        var countEl = cartBar.querySelector(".cart-toast-count");
-        countEl.textContent = I18N.t("product_added_to_cart");
+
+        cartBar.querySelector(".cart-toast-title").textContent =
+          I18N.t("product_added_to_cart");
+        cartBar.querySelector(".cart-toast-link").textContent =
+          I18N.t("cart_view_cart");
+
+        /* اسم المنتج من الصفحة نفسها: هو المعروض
+           فعلاً بعد وصول صفّ الخادم، ومترجماً إن
+           كانت الترجمة عاملة. */
+        var titleEl = wrap.querySelector(".prod-name");
+        cartBar.querySelector(".cart-toast-name").textContent =
+          (titleEl && titleEl.textContent) || "";
+
+        var q = Number(qty) || 0;
+        cartBar.querySelector(".cart-toast-qty").innerHTML =
+          '<span>' + escapeHTML(I18N.t("prod_quantity")) + '</span>' +
+          '<b>' + escapeHTML(String(q)) + '</b>';
+
+        /* السعر بنفس قاعدة الإجمالي: الوحدة
+           مقرّبة ثمّ تُضرب، فلا تخالف ما في
+           الصندوق ولا ما في السلة. */
+        var priceRow = cartBar.querySelector(".cart-toast-price");
+        var u = parseFloat(unit);
+        if (isFinite(u) && u > 0 && q > 0) {
+          var cur = window.SFCurrency;
+          var amountHTML;
+          if (cur && cur.isForeign()) {
+            var dec = cur.info(cur.getCode()).dec;
+            var shownUnit = Number(cur.convert(u).toFixed(dec));
+            amountHTML = cur.formatNumber(shownUnit * q) +
+              ' <span class="cur-sym">' +
+              escapeHTML(cur.info(cur.getCode()).sym) + '</span>';
+          } else {
+            amountHTML = I18N.money((u * q).toFixed(2));
+          }
+          priceRow.innerHTML =
+            '<span>' + escapeHTML(I18N.t("prod_total")) + '</span>' +
+            '<b>' + amountHTML + '</b>';
+          priceRow.hidden = false;
+        } else {
+          priceRow.hidden = true;
+        }
+
         cartBar.classList.add("is-open");
-        if (window.SFCommerce && window.SFCommerce.loadCart) {
-          SFCommerce.loadCart().then(function (items) {
-            var n = 0;
-            (items || []).forEach(function (it) { n += Number(it.quantity || 0); });
-            if (n > 0) countEl.textContent = n + " " + I18N.t("cart_items_count");
-          }).catch(function () {});
-        }
+        /* بعد إضافة is-open: العرض يُقاس من عنصر
+           مرسوم، والمخفي عرضه قد يقرأ صفراً. */
+        placeCartBar();
+
+        /* خمس ثوانٍ، والموقّت القديم يُلغى: إضافة
+           ثانية قبل انقضائه كانت ستغلق اللوحة بعد
+           لحظة من فتحها الجديد. */
+        if (cartBarTimer) clearTimeout(cartBarTimer);
+        cartBarTimer = setTimeout(hideCartBar, 5000);
       }
 
       /* الكمّية تُقرأ عند النقر لا عند البناء:
@@ -1457,6 +1618,16 @@
       /* أعلى شريحة يشملها العدد — نفس منطق
          tier_unit_price في القاعدة، واختلافهما يُري
          المشتري سعراً غير الذي يُحاسَب عليه. */
+      /* سعر الوحدة لكمّية معينة: من الشريحة
+         المطبّقة، وإلّا فمن الأساسيّ. تناديها لوحة
+         الإضافة لتعرض مبلغاً يطابق ما في الصندوق. */
+      function unitForQty(qty) {
+        var list = validTiers(product.tiers);
+        var i = activeTierIndex(list, Number(qty) || 0);
+        var v = i >= 0 ? parseFloat(list[i].price) : parseFloat(basePriceText);
+        return isFinite(v) && v > 0 ? v : 0;
+      }
+
       function activeTierIndex(list, qty) {
         var found = -1;
         list.forEach(function (t, i) {
@@ -2140,7 +2311,11 @@
           if (typeof sfRequireLogin === "function" && !sfRequireLogin("web-cart.html")) return;
           if (!window.SFCommerce || !product.id) return;
           cartButton.disabled = true;
-          SFCommerce.addToCart(product.id, readQty()).then(function () {
+          /* تُقرأ مرّةً واحدةً قبل الإرسال: لو قُرئت
+             ثانيةً في الردّ لأمكن أن يغيّرها المشتري
+             في الأثناء فتعرض اللوحة غير ما أُرسل. */
+          var sentQty = readQty();
+          SFCommerce.addToCart(product.id, sentQty).then(function () {
             cartButton.textContent = I18N.t("product_added_to_cart");
             /* لا نقل قسري للسلة (طلب المالك): يبقى المشتري ليواصل
                التسوّق، وشريط سفليّ يبيّن عدد المشتريات ويفتح السلة. */
@@ -2148,7 +2323,8 @@
               cartButton.disabled = false;
               cartButton.textContent = I18N.t("product_add_to_cart");
             }, 1600);
-            showCartBar();
+            /* السعر من الشريحة المطبّقة لا من الأساسيّ. */
+            showCartBar(sentQty, unitForQty(sentQty));
           }).catch(function (err) {
             cartButton.disabled = false;
             cartButton.textContent = err && err.message ? err.message : I18N.t("fx_failed");
