@@ -1910,11 +1910,23 @@
     padding: 18px;
   }
 
+  /* البطاقات موصولة في عمود واحد، فالحدّ بين
+     كلّ بطاقتين فاصل داخليّ لا إطار، فيكون
+     رماديّاً (بطلب المالك). والأخضر للإطار
+     المحيط بالعمود من خارجه.
+
+     ويلزم !important لأنّ green-frames.css يُحمّل
+     بعد هذا الملفّ ويفرض أخضره على .card
+     في الجهات الأربع بـ!important أيضاً. */
   .product-page .pd-info > .card {
     margin: 0 !important;
     padding: 18px !important;
     border-radius: 0;
-    border-top: 1px solid #eef2ef;
+    /* الأعلى والأسفل داخليّان بين البطاقات،
+       والجانبيّان من إطار العمود فيبقيان
+       أخضرين. */
+    border-top: 1px solid #eef2ef !important;
+    border-bottom: 0 !important;
   }
 
   /* أوّل بطاقة وآخرة — ويصلح :first-child هنا لأنّ
@@ -1922,7 +1934,17 @@
      الأمّ التي تحوي الصورة وصندوق الشراء أيضاً. */
   .product-page .pd-info > .card:first-child {
     border-radius: 14px 14px 0 0;
-    border-top: 0;
+    /* أوّل بطاقة: حدّها الأعلى طرف العمود
+       لا فاصلاً، فيبقى أخضر. والصورة تعلوها
+       في عمود آخر، فلا تلامس بينهما. */
+    border-top: 1px solid var(--sf-product-frame) !important;
+  }
+
+  /* آخر بطاقة ظاهرة: حدّها الأسفل طرف العمود، فيعود
+     أخضر — والقاعدة العامّة صفّرته. */
+  .product-page .pd-info > .card:last-child,
+  .product-page .pd-info > .card:not([hidden]):has(~ .card[hidden]) {
+    border-bottom: 1px solid var(--sf-product-frame) !important;
   }
 
   /* :last-child يعدّ المخفيّ أيضاً، وبطاقة التقييمات
