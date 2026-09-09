@@ -10,6 +10,7 @@
 // ============================================================
 
 import '../core/supabase_config.dart';
+import '../core/pricing.dart';
 import 'auth_service.dart';
 
 /// حقول المصنع التي تقرأها الشاشات.
@@ -38,6 +39,7 @@ class SFFactory {
   String get industry => (raw['industry'] as String?) ?? '';
   String get regionId => (raw['region_id'] as String?) ?? '';
   String get website => (raw['website'] as String?) ?? '';
+  Uri? get websiteUri => normalizedWebsite(website);
   String get companySize => (raw['company_size'] as String?) ?? '';
   String get rejectionReason => (raw['rejection_reason'] as String?) ?? '';
   String? get updatedAt => raw['updated_at'] as String?;
@@ -57,9 +59,7 @@ class SFFactory {
 
   /// القيم القديمة قد تحمل base64 مبتوراً؛ لا نعرض إلا الروابط.
   static String _http(dynamic v) {
-    final s = v as String?;
-    if (s == null || !s.startsWith('http')) return '';
-    return s;
+    return safeMediaUrl(v);
   }
 }
 
@@ -77,19 +77,33 @@ class SFProduct {
   String get sizes => (raw['sizes'] as String?) ?? '';
   String get colors => (raw['colors'] as String?) ?? '';
   int? get moq => (raw['moq'] as num?)?.toInt();
-
-  /// يُفضّل images[] على image — انظر تعليق CartItem.
-  String get image {
-    final images = raw['images'];
-    if (images is List) {
-      for (final u in images) {
-        if (u is String && u.startsWith('http')) return u;
+  List<SFPriceTier> get tiers => SFPriceTier.parseList(raw['tiers']);
+  double unitPrice(int quantity) =>
+      SFPriceCalculation.unitPrice(price, tiers, quantity);
+  double get minPrice => tiers.isEmpty
+      ? price
+      : tiers.map((tier) => tier.price).reduce((a, b) => a < b ? a : b);
+  double get maxPrice => tiers.isEmpty
+      ? price
+      : tiers.map((tier) => tier.price).reduce((a, b) => a > b ? a : b);
+  List<String> get images {
+    final gallery = raw['images'];
+    final urls = <String>[];
+    if (gallery is List) {
+      for (final value in gallery) {
+        final url = safeMediaUrl(value);
+        if (url.isNotEmpty && !urls.contains(url)) urls.add(url);
       }
     }
-    final single = raw['image'];
-    if (single is String && single.startsWith('http')) return single;
-    return '';
+    if (urls.isEmpty) {
+      final single = safeMediaUrl(raw['image']);
+      if (single.isNotEmpty) urls.add(single);
+    }
+    return urls.take(5).toList();
   }
+
+  /// يُفضّل images[] على image — انظر تعليق CartItem.
+  String get image => images.isEmpty ? '' : images.first;
 }
 
 class SFPost {
@@ -99,10 +113,8 @@ class SFPost {
 
   int get id => (raw['id'] as num?)?.toInt() ?? 0;
   String get body => (raw['body'] as String?) ?? '';
-  String get image {
-    final s = raw['image'] as String?;
-    return (s != null && s.startsWith('http')) ? s : '';
-  }
+  String get image => safeMediaUrl(raw['image']);
+  String get video => safeMediaUrl(raw['video']);
 
   DateTime get createdAt =>
       DateTime.tryParse('${raw['created_at']}')?.toLocal() ?? DateTime.now();
@@ -114,10 +126,12 @@ class FactoryService {
   /// قائمة المصانع — مع بحث اختياري وتصفية بالفئة.
   static Future<List<SFFactory>> list({
     String? category,
+    String? region,
     String? search,
     int limit = 60,
   }) async {
     var q = sb.from('factories').select(kFactorySelect);
+    if (region != null && region.isNotEmpty) q = q.eq('region_id', region);
 
     if (category != null && category.isNotEmpty) {
       // مفتاح الربط هو الاسم الإنجليزي للفئة — كما يخزّنه عمود industry.
@@ -128,12 +142,16 @@ class FactoryService {
     }
 
     final rows = await q.order('created_at', ascending: false).limit(limit);
+    // المدير قد يقرأ كل المصانع عبر RLS، لكن الدليل العام يعرض
+    // المعتمد ومصنع المستخدم نفسه فقط، مثل صفحة الويب.
     return rows
         .map((e) => SFFactory(Map<String, dynamic>.from(e as Map)))
+        .where((factory) => factory.isApproved || factory.isMine)
         .toList();
   }
 
   static Future<SFFactory?> byId(int id) async {
+    if (id <= 0) return null;
     final row = await sb
         .from('factories')
         .select(kFactorySelect)
@@ -161,7 +179,7 @@ class FactoryService {
     final rows = await sb
         .from('products')
         .select(
-          'id, factory_id, name, price, image, images, sort_order, description, material, sizes, colors, moq',
+          'id, client_key, factory_id, name, price, tiers, image, images, sort_order, description, material, sizes, colors, moq',
         )
         .eq('factory_id', factoryId)
         .order('sort_order')
@@ -171,12 +189,24 @@ class FactoryService {
         .toList();
   }
 
+  static Future<SFProduct?> productById(int id) async {
+    if (id <= 0) return null;
+    final row = await sb
+        .from('products')
+        .select(
+          'id, client_key, factory_id, name, price, tiers, image, images, description, material, sizes, colors, moq, factories(name, status)',
+        )
+        .eq('id', id)
+        .maybeSingle();
+    return row == null ? null : SFProduct(Map<String, dynamic>.from(row));
+  }
+
   /// منتجات للواجهة الرئيسية — أحدث ما نُشر.
   static Future<List<SFProduct>> latestProducts({int limit = 24}) async {
     final rows = await sb
         .from('products')
         .select(
-          'id, factory_id, name, price, image, images, description, material, sizes, colors, moq, factories(name)',
+          'id, factory_id, name, price, tiers, image, images, description, material, sizes, colors, moq, factories(name, status)',
         )
         .order('created_at', ascending: false)
         .limit(limit);
@@ -186,19 +216,15 @@ class FactoryService {
   }
 
   static Future<List<SFPost>> posts(int factoryId, {int limit = 50}) async {
-    try {
-      final rows = await sb
-          .from('posts')
-          .select('id, factory_id, body, image, created_at')
-          .eq('factory_id', factoryId)
-          .order('created_at', ascending: false)
-          .limit(limit);
-      return rows
-          .map((e) => SFPost(Map<String, dynamic>.from(e as Map)))
-          .toList();
-    } catch (_) {
-      return [];
-    }
+    final rows = await sb
+        .from('posts')
+        .select('id, client_key, factory_id, body, image, video, created_at')
+        .eq('factory_id', factoryId)
+        .order('created_at', ascending: false)
+        .limit(limit);
+    return rows
+        .map((e) => SFPost(Map<String, dynamic>.from(e as Map)))
+        .toList();
   }
 
   /// حفظ بيانات المصنع. [expectedUpdatedAt] يمنع الكتابة فوق
@@ -227,17 +253,38 @@ class FactoryService {
   /// القيم المسموحة في القاعدة: pending / approved / rejected.
   /// إرسال "approve" (بلا d) يُرفض بقيد factories_status_check —
   /// وهي علّة شحنت مرة وعطّلت الاعتماد كلياً.
-  static Future<void> setStatus(int factoryId, String status) async {
+  static Future<void> setStatus(
+    int factoryId,
+    String status, {
+    String reason = '',
+  }) async {
     const allowed = {'pending', 'approved', 'rejected'};
     final value = status == 'approve' ? 'approved' : status;
     if (!allowed.contains(value)) {
       throw Exception('حالة غير صالحة: $status');
     }
-    await sb
+    final updated = await sb
         .from('factories')
-        .update({'status': value})
+        .update({
+          'status': value,
+          'rejection_reason': value == 'rejected' ? reason.trim() : '',
+        })
         .eq('id', factoryId)
         .select();
+    if (updated.isEmpty) {
+      throw StateError('لم يُحدّث المصنع؛ تحقّق من الصلاحيات.');
+    }
+  }
+
+  static Future<List<SFFactory>> adminList() async {
+    if (AuthService.instance.profile?.isAdmin != true) return [];
+    final rows = await sb
+        .from('factories')
+        .select(kFactorySelect)
+        .order('created_at', ascending: false);
+    return rows
+        .map((row) => SFFactory(Map<String, dynamic>.from(row)))
+        .toList();
   }
 
   /// المصانع المعلّقة — لصفحة الإدارة.
@@ -251,4 +298,31 @@ class FactoryService {
         .map((e) => SFFactory(Map<String, dynamic>.from(e as Map)))
         .toList();
   }
+}
+
+/// روابط الوسائط لا تقبل مخططات التنفيذ أو البيانات المضمّنة.
+String safeMediaUrl(dynamic value) {
+  if (value is! String) return '';
+  final uri = Uri.tryParse(value.trim());
+  return uri != null &&
+          (uri.scheme == 'http' || uri.scheme == 'https') &&
+          uri.host.isNotEmpty
+      ? uri.toString()
+      : '';
+}
+
+/// يكمّل أسماء المواقع المكتوبة بلا https كما في محرّر الويب.
+Uri? normalizedWebsite(String raw) {
+  final value = raw.trim();
+  if (value.isEmpty || RegExp(r'\s').hasMatch(value)) return null;
+  final hasScheme = RegExp(
+    r'^[a-z][a-z0-9+.-]*:',
+    caseSensitive: false,
+  ).hasMatch(value);
+  final candidate = hasScheme ? value : 'https://$value';
+  final safe = safeMediaUrl(candidate);
+  if (safe.isEmpty) return null;
+  final uri = Uri.parse(safe);
+  if (!hasScheme && !uri.host.contains('.')) return null;
+  return uri;
 }

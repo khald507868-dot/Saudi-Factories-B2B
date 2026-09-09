@@ -1,9 +1,5 @@
 // ============================================================
-//  الشريط السفلي — ستة عناصر بنفس ترتيب نسخة الويب
-//
-//  في الويب كان هذا الشريط مكرّراً في عشرة ملفات وارتفاعه
-//  (52 بكسل) مكرّراً في ثلاثة عشر موضعاً. هنا هو widget واحد،
-//  فتعديله مرّة واحدة يكفي.
+//  تنقّل الجوال بألوان الويب: أبيض، ومؤشر أخضر واضح للقسم الحالي.
 //
 //  شارة الرسائل غير المقروءة تُقرأ من get_unread_message_total
 //  وتتحدّث مع كل تغيّر في جدول الرسائل.
@@ -48,14 +44,8 @@ class SFBottomNav extends StatelessWidget {
       height: SFMetrics.bottomNavHeight + bottomInset,
       padding: EdgeInsets.only(bottom: bottomInset),
       decoration: const BoxDecoration(
-        color: SFColors.darkGreen,
-        boxShadow: [
-          BoxShadow(
-            color: Color(0x26000000),
-            blurRadius: 8,
-            offset: Offset(0, -2),
-          ),
-        ],
+        color: SFColors.white,
+        border: Border(top: BorderSide(color: SFColors.divider)),
       ),
       child: Row(
         children: _items.map((item) {
@@ -68,41 +58,57 @@ class SFBottomNav extends StatelessWidget {
           };
 
           return Expanded(
-            child: InkWell(
-              onTap: () => onTap(tab),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      Icon(
-                        icon,
-                        size: 21,
-                        color: active ? SFColors.green : SFColors.white,
-                      ),
-                      if (badge > 0)
-                        PositionedDirectional(
-                          // يتبع اتجاه اللغة تلقائياً — لا حاجة لنسخة ltr.
-                          start: -8,
-                          top: -5,
-                          child: _Badge(count: badge),
+            child: Semantics(
+              selected: active,
+              button: true,
+              label: context.t(key),
+              child: InkWell(
+                onTap: () => onTap(tab),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        AnimatedContainer(
+                          duration: const Duration(milliseconds: 160),
+                          width: 42,
+                          height: 30,
+                          decoration: BoxDecoration(
+                            color: active
+                                ? SFColors.selected
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Icon(
+                            icon,
+                            size: 22,
+                            color: active ? SFColors.midGreen : SFColors.muted2,
+                          ),
                         ),
-                    ],
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    context.t(key),
-                    style: TextStyle(
-                      fontSize: 10,
-                      height: 1.1,
-                      fontWeight: active ? FontWeight.w700 : FontWeight.w500,
-                      color: active ? SFColors.green : SFColors.white,
+                        if (badge > 0)
+                          PositionedDirectional(
+                            // يتبع اتجاه اللغة تلقائياً — لا حاجة لنسخة ltr.
+                            start: 0,
+                            top: -3,
+                            child: _Badge(count: badge),
+                          ),
+                      ],
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
+                    const SizedBox(height: 2),
+                    Text(
+                      context.t(tab == SFTab.cart ? 'nav_cart_short' : key),
+                      style: TextStyle(
+                        fontSize: 10,
+                        height: 1.1,
+                        fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+                        color: active ? SFColors.midGreen : SFColors.muted2,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
               ),
             ),
           );
@@ -131,6 +137,7 @@ class _Badge extends StatelessWidget {
       alignment: Alignment.center,
       child: Text(
         label,
+        textDirection: TextDirection.ltr,
         style: const TextStyle(
           color: SFColors.white,
           fontSize: 9,

@@ -10,6 +10,7 @@
 // ============================================================
 
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../core/i18n.dart';
 import '../core/supabase_config.dart';
@@ -28,6 +29,10 @@ class ProfilePage extends StatefulWidget {
 class _ProfilePageState extends State<ProfilePage> {
   final _name = TextEditingController();
   final _phone = TextEditingController();
+  final _email = TextEditingController();
+  final _countryCode = TextEditingController();
+  String _gender = '';
+  DateTime? _birthdate;
 
   String _image = '';
   bool _saving = false;
@@ -39,6 +44,10 @@ class _ProfilePageState extends State<ProfilePage> {
     final p = AuthService.instance.profile;
     _name.text = p?.fullName ?? '';
     _phone.text = p?.phone ?? '';
+    _email.text = AuthService.instance.user?.email ?? p?.email ?? '';
+    _countryCode.text = p?.countryCode ?? '+966';
+    _gender = p?.gender ?? '';
+    _birthdate = p?.birthdate;
     _image = p?.companyImage ?? '';
   }
 
@@ -46,6 +55,8 @@ class _ProfilePageState extends State<ProfilePage> {
   void dispose() {
     _name.dispose();
     _phone.dispose();
+    _email.dispose();
+    _countryCode.dispose();
     super.dispose();
   }
 
@@ -71,18 +82,41 @@ class _ProfilePageState extends State<ProfilePage> {
   Future<void> _save() async {
     final uid = AuthService.instance.user?.id;
     if (uid == null) return;
+    if (_name.text.trim().isEmpty ||
+        !RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(_email.text.trim()) ||
+        !RegExp(r'^\+\d{1,4}$').hasMatch(_countryCode.text.trim())) {
+      showSFError(context, Exception(context.t('profile_invalid_fields')));
+      return;
+    }
 
     setState(() => _saving = true);
     try {
-      await sb.from('profiles').update({
-        'full_name': _name.text.trim(),
-        'phone': _phone.text.trim(),
-        'company_image': _image,
-      }).eq('id', uid);
+      await sb
+          .from('profiles')
+          .update({
+            'full_name': _name.text.trim(),
+            'phone': _phone.text.trim(),
+            'company_image': _image,
+            'gender': _gender,
+            'country_code': _countryCode.text.trim(),
+            'birthdate': _birthdate == null
+                ? null
+                : '${_birthdate!.year.toString().padLeft(4, '0')}-${_birthdate!.month.toString().padLeft(2, '0')}-${_birthdate!.day.toString().padLeft(2, '0')}',
+          })
+          .eq('id', uid);
+
+      final changedEmail =
+          _email.text.trim() != AuthService.instance.user?.email;
+      if (changedEmail) {
+        await sb.auth.updateUser(UserAttributes(email: _email.text.trim()));
+      }
 
       await AuthService.instance.refreshProfile();
       if (!mounted) return;
-      showSFMessage(context, context.t('saved_msg'));
+      showSFMessage(
+        context,
+        context.t(changedEmail ? 'profile_email_confirmation' : 'saved_msg'),
+      );
     } catch (e) {
       if (!mounted) return;
       showSFError(context, e);
@@ -100,50 +134,89 @@ class _ProfilePageState extends State<ProfilePage> {
       backgroundColor: SFColors.pageBg,
       appBar: AppBar(title: Text(i18n.t('row_profile'))),
       body: ListView(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(16),
         children: [
-          Center(
-            child: Stack(
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: SFColors.white,
+              border: Border.all(color: SFColors.border),
+              borderRadius: BorderRadius.circular(SFMetrics.radius),
+            ),
+            child: Row(
               children: [
-                SFImage(
-                  url: _image,
-                  width: 96,
-                  height: 96,
-                  radius: 999,
-                  placeholderIcon: Icons.person_outline,
-                ),
-                PositionedDirectional(
-                  bottom: 0,
-                  end: 0,
-                  child: InkWell(
-                    onTap: _uploading ? null : _pickImage,
-                    child: Container(
-                      padding: const EdgeInsets.all(7),
-                      decoration: const BoxDecoration(
-                        color: SFColors.darkGreen,
-                        shape: BoxShape.circle,
-                      ),
-                      child: _uploading
-                          ? const SizedBox(
-                              width: 14,
-                              height: 14,
-                              child: CircularProgressIndicator(
-                                color: SFColors.white,
-                                strokeWidth: 2,
-                              ),
-                            )
-                          : const Icon(
-                              Icons.camera_alt_outlined,
-                              size: 15,
-                              color: SFColors.white,
-                            ),
+                Stack(
+                  children: [
+                    SFImage(
+                      url: _image,
+                      width: 72,
+                      height: 72,
+                      radius: 999,
+                      placeholderIcon: Icons.person_outline,
                     ),
+                    PositionedDirectional(
+                      bottom: 0,
+                      end: 0,
+                      child: InkWell(
+                        onTap: _uploading ? null : _pickImage,
+                        child: Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: const BoxDecoration(
+                            color: SFColors.midGreen,
+                            shape: BoxShape.circle,
+                          ),
+                          child: _uploading
+                              ? const SizedBox(
+                                  width: 14,
+                                  height: 14,
+                                  child: CircularProgressIndicator(
+                                    color: SFColors.white,
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Icon(
+                                  Icons.camera_alt_outlined,
+                                  size: 15,
+                                  color: SFColors.white,
+                                ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        profile?.fullName ?? i18n.t('row_profile'),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        i18n.t(
+                          profile?.isFactory == true
+                              ? 'dash_account_factory'
+                              : 'dash_account_individual',
+                        ),
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: SFColors.muted2,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 26),
+          const SizedBox(height: 20),
 
           _Labelled(
             label: i18n.t('field_name'),
@@ -160,17 +233,77 @@ class _ProfilePageState extends State<ProfilePage> {
               style: const TextStyle(fontSize: 16),
             ),
           ),
-          // البريد ونوع الحساب للعرض فقط — لا يُعدَّلان من هنا.
+          _Labelled(
+            label: i18n.t('profile_country_code'),
+            child: TextField(
+              controller: _countryCode,
+              textDirection: TextDirection.ltr,
+              keyboardType: TextInputType.phone,
+            ),
+          ),
+          if (profile?.isFactory != true) ...[
+            _Labelled(
+              label: i18n.t('field_gender'),
+              child: DropdownButtonFormField<String>(
+                initialValue: ['male', 'female'].contains(_gender)
+                    ? _gender
+                    : null,
+                items: [
+                  for (final gender in ['male', 'female'])
+                    DropdownMenuItem(
+                      value: gender,
+                      child: Text(i18n.t('gender_$gender')),
+                    ),
+                ],
+                onChanged: (value) => setState(() => _gender = value ?? ''),
+              ),
+            ),
+            ListTile(
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 14,
+                vertical: 4,
+              ),
+              tileColor: SFColors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(SFMetrics.radius),
+                side: const BorderSide(color: SFColors.border),
+              ),
+              title: Text(i18n.t('field_birthdate')),
+              subtitle: Text(
+                _birthdate == null
+                    ? '—'
+                    : '${_birthdate!.day}/${_birthdate!.month}/${_birthdate!.year}',
+              ),
+              trailing: const Icon(Icons.calendar_month_outlined),
+              onTap: () async {
+                final date = await showDatePicker(
+                  context: context,
+                  firstDate: DateTime(1900),
+                  lastDate: DateTime.now(),
+                  initialDate: _birthdate ?? DateTime(2000),
+                );
+                if (date != null && mounted) setState(() => _birthdate = date);
+              },
+            ),
+            const SizedBox(height: 16),
+          ],
+          // تغيير البريد يمرّ عبر تأكيد Supabase؛ نوع الحساب ثابت.
           _Labelled(
             label: i18n.t('field_email'),
-            child: _ReadOnly(text: profile?.email ?? ''),
+            child: TextField(
+              controller: _email,
+              keyboardType: TextInputType.emailAddress,
+              textDirection: TextDirection.ltr,
+            ),
           ),
           _Labelled(
             label: i18n.t('dash_account_factory'),
             child: _ReadOnly(
-              text: i18n.t(profile?.isFactory == true
-                  ? 'dash_account_factory'
-                  : 'dash_account_individual'),
+              text: i18n.t(
+                profile?.isFactory == true
+                    ? 'dash_account_factory'
+                    : 'dash_account_individual',
+              ),
             ),
           ),
 

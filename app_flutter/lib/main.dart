@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'core/i18n.dart';
+import 'core/currency.dart';
 import 'core/supabase_config.dart';
 import 'core/theme.dart';
 import 'pages/splash_page.dart';
@@ -21,6 +22,9 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initSupabase();
   final i18n = await I18n.load();
+  await SFCurrency.instance.load();
+  // إبلاغ الصفحات التي تعتمد على I18nScope بتغيّر عملة العرض أيضاً.
+  SFCurrency.instance.addListener(i18n.refreshDisplay);
   // لا ننتظر اكتمال قراءة الملف الشخصي — شاشة البداية تنتظرها.
   AuthService.instance.start();
   runApp(SaudiFactoriesApp(i18n: i18n));
@@ -50,11 +54,9 @@ class SaudiFactoriesApp extends StatelessWidget {
             ],
             // كل اللغات الثلاثين مدعومة نصّياً؛ ما لا تعرفه Flutter
             // من ترجمات النظام يعود للإنجليزية، والنصوص كلها من عندنا.
-            supportedLocales: const [
-              Locale('ar'),
-              Locale('en'),
-            ],
-            localeResolutionCallback: (_, _) => i18n.locale,
+            supportedLocales: const [Locale('ar'), Locale('en')],
+            localeResolutionCallback: (_, _) =>
+                Locale(i18n.lang == 'ar' ? 'ar' : 'en'),
             builder: (context, child) {
               // اتجاه الكتابة يتبع اللغة المختارة، لا لغة الجهاز.
               return Directionality(
@@ -92,8 +94,8 @@ class _PhoneColumn extends StatelessWidget {
     if (width <= maxWidth) return child;
 
     return ColoredBox(
-      // خلفية داكنة حول العمود تُبرز حدود "الجهاز".
-      color: const Color(0xFF11241A),
+      // خلفية المعاينة من صفحة الويب نفسها دون مساحات خضراء داكنة.
+      color: SFColors.pageBg,
       child: Center(
         child: ClipRect(
           child: SizedBox(
@@ -103,10 +105,7 @@ class _PhoneColumn extends StatelessWidget {
               // الشاشات تحسب تخطيطها على عرض النافذة الكامل
               // (مثل شبكة المنتجات) وهي داخل عمود ضيّق.
               data: MediaQuery.of(context).copyWith(
-                size: Size(
-                  maxWidth,
-                  MediaQuery.sizeOf(context).height,
-                ),
+                size: Size(maxWidth, MediaQuery.sizeOf(context).height),
               ),
               child: child,
             ),

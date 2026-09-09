@@ -9,11 +9,19 @@ import 'package:flutter/material.dart';
 
 import '../core/i18n.dart';
 import '../core/theme.dart';
+import '../services/catalog_service.dart';
 import '../widgets/common.dart';
 import 'factories_page.dart';
 
-class CategoriesPage extends StatelessWidget {
+class CategoriesPage extends StatefulWidget {
   const CategoriesPage({super.key});
+
+  @override
+  State<CategoriesPage> createState() => _CategoriesPageState();
+}
+
+class _CategoriesPageState extends State<CategoriesPage> {
+  late Future<Map<String, String>> _images = CatalogService.categoryImages();
 
   @override
   Widget build(BuildContext context) {
@@ -23,56 +31,78 @@ class CategoriesPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: SFColors.pageBg,
       appBar: SFTopBar(title: i18n.t('drawer_categories_title')),
-      body: ListView.separated(
-        padding: const EdgeInsets.all(16),
-        itemCount: cats.length,
-        separatorBuilder: (_, _) => const SizedBox(height: 10),
-        itemBuilder: (context, i) {
-          final cat = cats[i];
-          return InkWell(
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => FactoriesPage(
-                  // الاسم الإنجليزي هو مفتاح الربط مع عمود industry.
-                  initialCategory: i18n.categoryKey(cat),
-                  categoryLabel: i18n.categoryName(cat),
-                ),
+      body: FutureBuilder<Map<String, String>>(
+        future: _images,
+        builder: (context, snapshot) => RefreshIndicator(
+          onRefresh: () async {
+            setState(() => _images = CatalogService.categoryImages());
+            await _images;
+          },
+          child: LayoutBuilder(
+            builder: (context, constraints) => GridView.builder(
+              padding: const EdgeInsets.all(16),
+              physics: const AlwaysScrollableScrollPhysics(),
+              itemCount: cats.length,
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: constraints.maxWidth >= 400 ? 3 : 2,
+                mainAxisSpacing: 12,
+                crossAxisSpacing: 12,
+                mainAxisExtent: 148,
               ),
-            ),
-            borderRadius: BorderRadius.circular(SFMetrics.radius),
-            child: Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 14,
-                vertical: 16,
-              ),
-              decoration: BoxDecoration(
-                color: SFColors.white,
-                border: Border.all(color: SFColors.border),
-                borderRadius: BorderRadius.circular(SFMetrics.radius),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      i18n.categoryName(cat),
-                      style: const TextStyle(
-                        fontSize: 14.5,
-                        fontWeight: FontWeight.w600,
-                        height: 1.5,
+              itemBuilder: (context, i) {
+                final cat = cats[i];
+                return Material(
+                  color: SFColors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(SFMetrics.radius),
+                    side: const BorderSide(color: SFColors.border),
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: InkWell(
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => FactoriesPage(
+                          // الاسم الإنجليزي هو مفتاح الربط مع عمود industry.
+                          initialCategory: i18n.categoryKey(cat),
+                          categoryLabel: i18n.categoryName(cat),
+                        ),
+                      ),
+                    ),
+                    borderRadius: BorderRadius.circular(SFMetrics.radius),
+                    child: Padding(
+                      padding: const EdgeInsets.all(10),
+                      child: Column(
+                        children: [
+                          SFImage(
+                            url: snapshot.data?[i18n.categoryKey(cat)] ?? '',
+                            width: 62,
+                            height: 62,
+                            radius: 12,
+                            placeholderIcon: Icons.category_outlined,
+                          ),
+                          const SizedBox(height: 8),
+                          Expanded(
+                            child: Text(
+                              i18n.categoryName(cat),
+                              textAlign: TextAlign.center,
+                              maxLines: 3,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                height: 1.4,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
-                  Icon(
-                    Directionality.of(context) == TextDirection.rtl
-                        ? Icons.chevron_left
-                        : Icons.chevron_right,
-                    color: SFColors.muted,
-                  ),
-                ],
-              ),
+                );
+              },
             ),
-          );
-        },
+          ),
+        ),
       ),
     );
   }

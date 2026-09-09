@@ -13,6 +13,8 @@ import 'package:flutter/material.dart';
 import '../core/i18n.dart';
 import '../core/i18n_data.dart';
 import '../core/theme.dart';
+import '../core/currency.dart';
+import '../widgets/currency_picker.dart';
 
 /// اللغة ← (الاسم بلغتها، رمز الدولة للعلم).
 /// لا تُدرِج رمزاً لا يوجد في jدول الترجمة — سيظهر بالإنجليزية
@@ -83,39 +85,54 @@ class SettingsPage extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 10),
-          InkWell(
-            onTap: () => _pickLanguage(context),
-            borderRadius: BorderRadius.circular(SFMetrics.radius),
-            child: Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 14, vertical: 15),
-              decoration: BoxDecoration(
-                color: SFColors.white,
-                border: Border.all(color: SFColors.border),
-                borderRadius: BorderRadius.circular(SFMetrics.radius),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.language, color: SFColors.darkGreen),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Text(
-                      i18n.t('row_language'),
-                      style: const TextStyle(
-                        fontSize: 14.5,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+          Material(
+            clipBehavior: Clip.antiAlias,
+            color: SFColors.white,
+            shape: RoundedRectangleBorder(
+              side: const BorderSide(color: SFColors.border),
+              borderRadius: BorderRadius.circular(SFMetrics.radius),
+            ),
+            child: Column(
+              children: [
+                ListTile(
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 6,
                   ),
-                  if (current != null)
-                    Text(
-                      '${flagEmoji(current[1])}  ${current[0]}',
-                      style: const TextStyle(
-                        fontSize: 13.5,
-                        color: SFColors.muted2,
-                      ),
-                    ),
-                ],
+                  leading: const Icon(Icons.language, color: SFColors.midGreen),
+                  title: Text(i18n.t('row_language')),
+                  subtitle: current == null
+                      ? null
+                      : Text('${flagEmoji(current[1])}  ${current[0]}'),
+                  trailing: const Icon(Icons.unfold_more, size: 20),
+                  onTap: () => _pickLanguage(context),
+                ),
+                const Divider(indent: 16, endIndent: 16),
+                ListTile(
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 6,
+                  ),
+                  leading: const Icon(
+                    Icons.currency_exchange,
+                    color: SFColors.midGreen,
+                  ),
+                  title: Text(i18n.t('currency_pick')),
+                  subtitle: Text(SFCurrency.instance.code),
+                  trailing: const Icon(Icons.unfold_more, size: 20),
+                  onTap: () => showSFCurrencyPicker(context),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(4, 10, 4, 0),
+            child: Text(
+              i18n.t('currency_note'),
+              style: const TextStyle(
+                fontSize: 12,
+                height: 1.6,
+                color: SFColors.muted2,
               ),
             ),
           ),
@@ -162,6 +179,7 @@ class SettingsPage extends StatelessWidget {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       backgroundColor: SFColors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
@@ -190,8 +208,7 @@ class _LanguageSheetState extends State<_LanguageSheet> {
     final entries = kLanguagePicker.entries.where((e) {
       if (_query.isEmpty) return true;
       final q = _query.toLowerCase();
-      return e.value[0].toLowerCase().contains(q) ||
-          e.key.contains(q);
+      return e.value[0].toLowerCase().contains(q) || e.key.contains(q);
     }).toList();
 
     return DraggableScrollableSheet(
@@ -234,9 +251,9 @@ class _LanguageSheetState extends State<_LanguageSheet> {
             child: TextField(
               onChanged: (v) => setState(() => _query = v),
               style: const TextStyle(fontSize: 16),
-              decoration: const InputDecoration(
-                prefixIcon: Icon(Icons.search, size: 20),
-                hintText: '...',
+              decoration: InputDecoration(
+                prefixIcon: const Icon(Icons.search, size: 20),
+                hintText: i18n.t('row_language'),
                 isDense: true,
               ),
             ),
@@ -250,6 +267,8 @@ class _LanguageSheetState extends State<_LanguageSheet> {
                 final e = entries[i];
                 final selected = e.key == widget.current;
                 return ListTile(
+                  selected: selected,
+                  selectedTileColor: SFColors.surfaceAlt,
                   leading: Text(
                     flagEmoji(e.value[1]),
                     style: const TextStyle(fontSize: 22),
@@ -258,12 +277,11 @@ class _LanguageSheetState extends State<_LanguageSheet> {
                     e.value[0],
                     style: TextStyle(
                       fontSize: 15,
-                      fontWeight:
-                          selected ? FontWeight.w800 : FontWeight.w500,
+                      fontWeight: selected ? FontWeight.w800 : FontWeight.w500,
                     ),
                   ),
                   trailing: selected
-                      ? const Icon(Icons.check, color: SFColors.green)
+                      ? const Icon(Icons.check, color: SFColors.midGreen)
                       : null,
                   onTap: () async {
                     await i18n.setLang(e.key);

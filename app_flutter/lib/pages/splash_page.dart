@@ -61,12 +61,12 @@ class _SplashPageState extends State<SplashPage> {
     final i18n = context.i18n;
 
     return Scaffold(
-      backgroundColor: SFColors.darkGreen,
+      backgroundColor: SFColors.white,
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Wordmark(fontSize: 26, width: 260),
+            const Wordmark(fontSize: 24, width: 250, onDark: false),
             const SizedBox(height: 22),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 32),
@@ -74,7 +74,7 @@ class _SplashPageState extends State<SplashPage> {
                 i18n.t('splash_tagline'),
                 textAlign: TextAlign.center,
                 style: const TextStyle(
-                  color: SFColors.white,
+                  color: SFColors.muted2,
                   fontSize: 14,
                   height: 1.7,
                 ),
@@ -85,7 +85,7 @@ class _SplashPageState extends State<SplashPage> {
               width: 26,
               height: 26,
               child: CircularProgressIndicator(
-                color: SFColors.green,
+                color: SFColors.midGreen,
                 strokeWidth: 2.5,
               ),
             ),

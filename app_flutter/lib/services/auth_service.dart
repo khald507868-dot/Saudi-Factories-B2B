@@ -26,6 +26,10 @@ class SFProfile {
     this.email,
     this.isAdmin = false,
     this.companyImage,
+    this.gender = '',
+    this.countryCode = '+966',
+    this.countryFlag = '🇸🇦',
+    this.birthdate,
   });
 
   final String id;
@@ -35,6 +39,10 @@ class SFProfile {
   final String? email;
   final bool isAdmin;
   final String? companyImage;
+  final String gender;
+  final String countryCode;
+  final String countryFlag;
+  final DateTime? birthdate;
 
   bool get isFactory => accountType == 'factory';
 
@@ -47,6 +55,10 @@ class SFProfile {
       email: m['email'] as String?,
       isAdmin: m['is_admin'] == true,
       companyImage: m['company_image'] as String?,
+      gender: m['gender'] as String? ?? '',
+      countryCode: m['country_code'] as String? ?? '+966',
+      countryFlag: m['country_flag'] as String? ?? '🇸🇦',
+      birthdate: DateTime.tryParse('${m['birthdate'] ?? ''}'),
     );
   }
 }
@@ -98,11 +110,11 @@ class AuthService extends ChangeNotifier {
       final row = await sb
           .from('profiles')
           .select(
-            'account_type, full_name, phone, email, is_admin, company_image',
+            'account_type, full_name, phone, email, is_admin, company_image, gender, country_code, country_flag, birthdate',
           )
           .eq('id', id)
           .maybeSingle();
-      if (row != null) {
+      if (row != null && _user?.id == id) {
         _profile = SFProfile.fromMap(id, row);
       }
     } catch (_) {

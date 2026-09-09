@@ -13,6 +13,7 @@ import '../core/theme.dart';
 import '../services/auth_service.dart';
 import '../services/messages_service.dart';
 import '../widgets/common.dart';
+import 'auth_page.dart';
 import 'chat_page.dart';
 
 class MessagesPage extends StatefulWidget {
@@ -65,8 +66,14 @@ class _MessagesPageState extends State<MessagesPage> {
         backgroundColor: SFColors.pageBg,
         appBar: SFTopBar(title: i18n.t('nav_messages')),
         body: SFStateView(
-          message: 'يجب تسجيل الدخول للرسائل',
+          message: i18n.t('login_required_action'),
           icon: Icons.lock_outline,
+          retryLabel: context.t('splash_login_btn'),
+          onRetry: () => Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => const AuthPage(accountType: 'individual'),
+            ),
+          ),
         ),
       );
     }
@@ -102,11 +109,16 @@ class _MessagesPageState extends State<MessagesPage> {
                 ],
               );
             }
-            return ListView.separated(
+            return ListView.builder(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.all(16),
               itemCount: threads.length,
-              separatorBuilder: (_, _) => const Divider(height: 1),
-              itemBuilder: (context, i) =>
-                  _ThreadTile(thread: threads[i], onReturn: _reload),
+              itemBuilder: (context, i) => _ThreadTile(
+                thread: threads[i],
+                onReturn: _reload,
+                first: i == 0,
+                last: i == threads.length - 1,
+              ),
             );
           },
         ),
@@ -116,80 +128,136 @@ class _MessagesPageState extends State<MessagesPage> {
 }
 
 class _ThreadTile extends StatelessWidget {
-  const _ThreadTile({required this.thread, required this.onReturn});
+  const _ThreadTile({
+    required this.thread,
+    required this.onReturn,
+    required this.first,
+    required this.last,
+  });
 
   final SFThread thread;
   final Future<void> Function() onReturn;
+  final bool first;
+  final bool last;
 
   @override
   Widget build(BuildContext context) {
-    final last = thread.lastMessage;
-    final preview = last == null
+    final message = thread.lastMessage;
+    final preview = message == null
         ? ''
-        : (last.isText ? last.text : (last.type == 'video' ? '🎬' : '📷'));
+        : (message.type == 'product'
+              ? '📦 ${message.text.isNotEmpty ? message.text : message.product?.name ?? ''}'
+              : message.isText
+              ? message.text
+              : (message.type == 'video'
+                    ? '🎬 ${context.t('msg_video')}'
+                    : '📷 ${context.t('msg_photo')}'));
+    final radius = BorderRadius.vertical(
+      top: first ? const Radius.circular(SFMetrics.radius) : Radius.zero,
+      bottom: last ? const Radius.circular(SFMetrics.radius) : Radius.zero,
+    );
 
-    return ListTile(
-      tileColor: SFColors.white,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      leading: SFImage(
-        url: thread.avatar,
-        width: 46,
-        height: 46,
-        radius: 999,
-        placeholderIcon: Icons.person_outline,
+    return Material(
+      color: SFColors.white,
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(
+        borderRadius: radius,
+        side: const BorderSide(color: SFColors.border),
       ),
-      title: Text(
-        thread.name.isEmpty ? '—' : thread.name,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
-      ),
-      subtitle: preview.isEmpty
-          ? null
-          : Text(
-              preview,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 13, color: SFColors.muted2),
-            ),
-      trailing: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          Text(
-            _shortTime(thread.updated),
-            style: const TextStyle(fontSize: 11, color: SFColors.muted),
-          ),
-          const SizedBox(height: 6),
-          if (thread.unread > 0)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: SFColors.danger,
-                borderRadius: BorderRadius.circular(999),
+      child: InkWell(
+        onTap: () async {
+          await Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => ChatPage(
+                conversationId: thread.conversationId,
+                title: thread.name,
               ),
-              child: Text(
-                thread.unread > 99 ? '99+' : '${thread.unread}',
-                style: const TextStyle(
-                  color: SFColors.white,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
+            ),
+          );
+          await onReturn();
+        },
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+          child: Row(
+            children: [
+              SFImage(
+                url: thread.avatar,
+                width: 44,
+                height: 44,
+                radius: 999,
+                placeholderIcon: Icons.person_outline,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            thread.name.isEmpty ? '—' : thread.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          _shortTime(thread.updated),
+                          textDirection: TextDirection.ltr,
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: thread.unread > 0
+                                ? SFColors.midGreen
+                                : SFColors.muted2,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            preview,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: thread.unread > 0
+                                  ? SFColors.darkGreen
+                                  : SFColors.muted2,
+                              fontWeight: thread.unread > 0
+                                  ? FontWeight.w600
+                                  : FontWeight.w400,
+                            ),
+                          ),
+                        ),
+                        if (thread.unread > 0) ...[
+                          const SizedBox(width: 8),
+                          Semantics(
+                            label: context.t('dash_stat_unread'),
+                            child: Badge(
+                              backgroundColor: SFColors.midGreen,
+                              label: Text(
+                                thread.unread > 99 ? '99+' : '${thread.unread}',
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ],
                 ),
               ),
-            ),
-        ],
-      ),
-      onTap: () async {
-        await Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => ChatPage(
-              conversationId: thread.conversationId,
-              title: thread.name,
-            ),
+            ],
           ),
-        );
-        await onReturn();
-      },
+        ),
+      ),
     );
   }
 

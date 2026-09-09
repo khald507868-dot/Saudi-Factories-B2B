@@ -13,6 +13,7 @@ import '../core/i18n.dart';
 import '../core/theme.dart';
 import '../widgets/wordmark.dart';
 import 'auth_page.dart';
+import 'shell.dart';
 
 class UserTypePage extends StatelessWidget {
   const UserTypePage({super.key});
@@ -22,48 +23,64 @@ class UserTypePage extends StatelessWidget {
     final i18n = context.i18n;
 
     return Scaffold(
-      backgroundColor: SFColors.darkGreen,
+      backgroundColor: SFColors.pageBg,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Column(
-            children: [
-              const Spacer(flex: 2),
-              const Wordmark(fontSize: 22, width: 220),
-              const SizedBox(height: 36),
-              Text(
-                i18n.t('usertype_title'),
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: SFColors.white,
-                  fontSize: 21,
-                  fontWeight: FontWeight.w800,
-                ),
+        child: LayoutBuilder(
+          builder: (context, constraints) => SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                minHeight: (constraints.maxHeight - 48)
+                    .clamp(0.0, double.infinity)
+                    .toDouble(),
               ),
-              const SizedBox(height: 10),
-              Text(
-                i18n.t('usertype_subtitle'),
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: SFColors.muted,
-                  fontSize: 14,
-                  height: 1.7,
-                ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Wordmark(fontSize: 22, width: 230, onDark: false),
+                  const SizedBox(height: 36),
+                  Text(
+                    i18n.t('usertype_title'),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: SFColors.darkGreen,
+                      fontSize: 21,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    i18n.t('usertype_subtitle'),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: SFColors.muted2,
+                      fontSize: 14,
+                      height: 1.7,
+                    ),
+                  ),
+                  const SizedBox(height: 34),
+                  _TypeCard(
+                    icon: Icons.person_outline,
+                    label: i18n.t('usertype_individual'),
+                    onTap: () => _go(context, 'individual'),
+                  ),
+                  const SizedBox(height: 14),
+                  _TypeCard(
+                    icon: Icons.factory_outlined,
+                    label: i18n.t('usertype_factory'),
+                    onTap: () => _go(context, 'factory'),
+                  ),
+                  const SizedBox(height: 18),
+                  TextButton.icon(
+                    onPressed: () => Navigator.of(context).pushReplacement(
+                      MaterialPageRoute(builder: (_) => const AppShell()),
+                    ),
+                    icon: const Icon(Icons.storefront_outlined, size: 20),
+                    label: Text(i18n.t('prod_browse_all')),
+                  ),
+                ],
               ),
-              const SizedBox(height: 34),
-              _TypeCard(
-                icon: Icons.person_outline,
-                label: i18n.t('usertype_individual'),
-                onTap: () => _go(context, 'individual'),
-              ),
-              const SizedBox(height: 14),
-              _TypeCard(
-                icon: Icons.factory_outlined,
-                label: i18n.t('usertype_factory'),
-                onTap: () => _go(context, 'factory'),
-              ),
-              const Spacer(flex: 3),
-            ],
+            ),
           ),
         ),
       ),
@@ -72,9 +89,7 @@ class UserTypePage extends StatelessWidget {
 
   void _go(BuildContext context, String accountType) {
     Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => AuthPage(accountType: accountType),
-      ),
+      MaterialPageRoute(builder: (_) => AuthPage(accountType: accountType)),
     );
   }
 }
@@ -97,22 +112,29 @@ class _TypeCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(SFMetrics.radius),
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 22, horizontal: 20),
+        padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
         decoration: BoxDecoration(
-          color: SFColors.white.withValues(alpha: 0.06),
-          border: Border.all(color: SFColors.green, width: 1.4),
+          color: SFColors.white,
+          border: Border.all(color: SFColors.border),
           borderRadius: BorderRadius.circular(SFMetrics.radius),
         ),
         child: Row(
           children: [
-            Icon(icon, color: SFColors.green, size: 28),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: SFColors.surfaceAlt,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: SFColors.midGreen, size: 26),
+            ),
             const SizedBox(width: 16),
             Expanded(
               child: Text(
                 label,
                 style: const TextStyle(
-                  color: SFColors.white,
-                  fontSize: 17,
+                  color: SFColors.darkGreen,
+                  fontSize: 16,
                   fontWeight: FontWeight.w700,
                 ),
               ),

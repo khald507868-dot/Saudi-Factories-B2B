@@ -8,6 +8,7 @@
 // ============================================================
 
 import '../core/supabase_config.dart';
+import '../core/pricing.dart';
 import '../core/uuid.dart';
 import 'auth_service.dart';
 
@@ -22,6 +23,7 @@ class CartItem {
     required this.image,
     required this.factoryId,
     required this.factoryName,
+    this.tiers = const [],
   });
 
   final int id;
@@ -32,8 +34,10 @@ class CartItem {
   final String image;
   final int? factoryId;
   final String factoryName;
+  final List<SFPriceTier> tiers;
 
-  double get lineTotal => price * quantity;
+  double get unitPrice => SFPriceCalculation.unitPrice(price, tiers, quantity);
+  double get lineTotal => unitPrice * quantity;
 
   CartItem copyWith({int? quantity}) => CartItem(
     id: id,
@@ -44,6 +48,7 @@ class CartItem {
     image: image,
     factoryId: factoryId,
     factoryName: factoryName,
+    tiers: tiers,
   );
 
   factory CartItem.fromRow(Map<String, dynamic> m) {
@@ -76,6 +81,7 @@ class CartItem {
       image: img,
       factoryId: (p['factory_id'] as num?)?.toInt(),
       factoryName: (f['name'] as String?) ?? '',
+      tiers: SFPriceTier.parseList(p['tiers']),
     );
   }
 }
@@ -98,7 +104,7 @@ class SFCommerce {
     final rows = await sb
         .from('cart_items')
         .select(
-          'id, product_id, quantity, products(id, factory_id, name, price, image, images, factories(name))',
+          'id, product_id, quantity, products(id, factory_id, name, price, tiers, image, images, factories(name))',
         )
         .eq('cart_id', cartId)
         .order('created_at');
@@ -110,6 +116,7 @@ class SFCommerce {
 
   static Future<void> addToCart(int productId, int quantity) async {
     _ready();
+    if (quantity > 100000) throw Exception('الكمية كبيرة جداً');
     await sb.rpc(
       'add_to_cart',
       params: {
@@ -123,11 +130,14 @@ class SFCommerce {
     _ready();
     if (quantity <= 0) return removeItem(itemId);
     if (quantity > 100000) throw Exception('الكمية كبيرة جداً');
-    await sb
+    final rows = await sb
         .from('cart_items')
         .update({'quantity': quantity})
         .eq('id', itemId)
         .select();
+    if (rows.isEmpty) {
+      throw Exception('تعذّر تعديل الكمية. حدّث السلة وحاول مرة أخرى.');
+    }
   }
 
   static Future<void> removeItem(int itemId) async {

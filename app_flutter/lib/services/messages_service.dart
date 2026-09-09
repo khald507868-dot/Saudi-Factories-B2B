@@ -15,11 +15,35 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/supabase_config.dart';
 import '../core/uuid.dart';
 import 'auth_service.dart';
+import 'chat_upload_service.dart';
+import 'factory_service.dart';
 
 const String _conversationSelect =
     'id, factory_id, individual_id, last_message_at, created_at';
 const String _messageSelect =
-    'id, sender_id, body, attachment_url, attachment_type, client_key, created_at';
+    'id, sender_id, body, attachment_url, attachment_type, product_id, client_key, created_at';
+
+/// بيانات البطاقة تأتي من RPC المحادثة لتبقى متاحة للطرفين.
+class SFProductAttachment {
+  const SFProductAttachment({
+    required this.id,
+    this.name = '',
+    this.image = '',
+    this.price = 0,
+  });
+  final int id;
+  final String name;
+  final String image;
+  final double price;
+
+  factory SFProductAttachment.fromRow(Map<String, dynamic> row) =>
+      SFProductAttachment(
+        id: (row['product_id'] as num).toInt(),
+        name: row['name'] as String? ?? '',
+        image: row['image'] as String? ?? '',
+        price: SFProduct({...row, 'id': row['product_id']}).minPrice,
+      );
+}
 
 /// رسالة واحدة بعد التطبيع — نفس شكل mapMessage في الويب.
 class SFMessage {
@@ -33,6 +57,8 @@ class SFMessage {
     this.pending = false,
     this.failed = false,
     this.clientKey = '',
+    this.product,
+    this.productId,
   });
 
   final String id;
@@ -52,6 +78,8 @@ class SFMessage {
   final bool pending;
   final bool failed;
   final String clientKey;
+  final SFProductAttachment? product;
+  final int? productId;
 
   bool get isText => type == 'text' || type.isEmpty;
 
@@ -65,12 +93,15 @@ class SFMessage {
     pending: pending ?? this.pending,
     failed: failed ?? this.failed,
     clientKey: clientKey,
+    product: product,
+    productId: productId,
   );
 
   static SFMessage fromRow(
     Map<String, dynamic> m,
     String currentId, {
     String signedUrl = '',
+    SFProductAttachment? product,
   }) {
     return SFMessage(
       id: '${m['id']}',
@@ -80,6 +111,8 @@ class SFMessage {
           : 'text',
       text: (m['body'] as String?) ?? '',
       src: signedUrl,
+      product: product,
+      productId: (m['product_id'] as num?)?.toInt(),
       clientKey: (m['client_key'] as String?) ?? '',
       at:
           DateTime.tryParse('${m['created_at']}')?.toLocal() ??
@@ -200,6 +233,23 @@ class SFMessages {
         .order('created_at', ascending: true)
         .order('id', ascending: true);
 
+    final products = <int, SFProductAttachment>{};
+    if (rows.any((row) => row['product_id'] != null)) {
+      try {
+        final cards = await sb.rpc(
+          'get_message_products',
+          params: {'p_conversation_id': conversationId},
+        );
+        for (final row in cards as List) {
+          final product = SFProductAttachment.fromRow(
+            Map<String, dynamic>.from(row as Map),
+          );
+          products[product.id] = product;
+        }
+      } catch (_) {
+        // فشل البطاقة لا يُخفي نصوص المحادثة.
+      }
+    }
     final out = <SFMessage>[];
     for (final r in rows) {
       final m = Map<String, dynamic>.from(r as Map);
@@ -214,7 +264,14 @@ class SFMessages {
           // تبقى الرسالة ظاهرة حتى لو تعذّر توقيع المرفق.
         }
       }
-      out.add(SFMessage.fromRow(m, _uid, signedUrl: signed));
+      out.add(
+        SFMessage.fromRow(
+          m,
+          _uid,
+          signedUrl: signed,
+          product: products[(m['product_id'] as num?)?.toInt()],
+        ),
+      );
     }
     return out;
   }
@@ -326,8 +383,12 @@ class SFMessages {
     int conversationId,
     String text, {
     String? clientKey,
+    SFProductAttachment? product,
   }) async {
     _ready();
+    if (text.trim().isEmpty && product == null) {
+      throw Exception('اكتب رسالة أولاً');
+    }
     final key = clientKey ?? newUuidV4();
     final row = await sb
         .from('messages')
@@ -336,12 +397,46 @@ class SFMessages {
           'sender_id': _uid,
           'body': text.length > 10000 ? text.substring(0, 10000) : text,
           'attachment_url': '',
-          'attachment_type': '',
+          'attachment_type': product == null ? '' : 'product',
+          if (product != null) 'product_id': product.id,
           'client_key': key,
         })
         .select(_messageSelect)
         .single();
-    return SFMessage.fromRow(Map<String, dynamic>.from(row), _uid);
+    return SFMessage.fromRow(
+      Map<String, dynamic>.from(row),
+      _uid,
+      product: product,
+    );
+  }
+
+  static Future<SFMessage> sendMedia(
+    int conversationId,
+    SFChatUpload upload, {
+    required String clientKey,
+  }) async {
+    _ready();
+    if (!upload.path.startsWith('$_uid/') ||
+        !['image', 'video'].contains(upload.type)) {
+      throw StateError('مرفق غير صالح');
+    }
+    final row = await sb
+        .from('messages')
+        .insert({
+          'conversation_id': conversationId,
+          'sender_id': _uid,
+          'body': '',
+          'attachment_url': upload.path,
+          'attachment_type': upload.type,
+          'client_key': clientKey,
+        })
+        .select(_messageSelect)
+        .single();
+    return SFMessage.fromRow(
+      Map<String, dynamic>.from(row),
+      _uid,
+      signedUrl: upload.url,
+    );
   }
 
   /// يشترك في تغيّرات جدول الرسائل — البديل عن realtime في الويب.

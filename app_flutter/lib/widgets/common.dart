@@ -5,12 +5,15 @@
 import 'package:flutter/material.dart';
 
 import '../core/theme.dart';
+import '../core/i18n.dart';
+import 'currency_picker.dart';
 
-/// شريط علوي بالأخضر الداكن مع مربّع بحث — مقابل .top-bar.
+/// شريط أبيض مثل الويب؛ البحث في سطر مستقل كي لا يزاحم الشعار.
 class SFTopBar extends StatelessWidget implements PreferredSizeWidget {
   const SFTopBar({
     super.key,
     this.title,
+    this.titleWidget,
     this.searchHint,
     this.onSearchChanged,
     this.onSearchSubmitted,
@@ -20,6 +23,7 @@ class SFTopBar extends StatelessWidget implements PreferredSizeWidget {
   });
 
   final String? title;
+  final Widget? titleWidget;
   final String? searchHint;
   final ValueChanged<String>? onSearchChanged;
   final ValueChanged<String>? onSearchSubmitted;
@@ -30,39 +34,51 @@ class SFTopBar extends StatelessWidget implements PreferredSizeWidget {
   final bool showBack;
 
   @override
-  Size get preferredSize => const Size.fromHeight(SFMetrics.topBarHeight);
+  Size get preferredSize =>
+      Size.fromHeight(SFMetrics.topBarHeight + (searchHint == null ? 0 : 60));
 
   @override
   Widget build(BuildContext context) {
     return AppBar(
       automaticallyImplyLeading: showBack,
       leading: leading,
-      titleSpacing: 12,
-      title: searchHint != null
-          ? _SearchField(
-              hint: searchHint!,
-              onChanged: onSearchChanged,
-              onSubmitted: onSearchSubmitted,
-            )
-          : Text(
-              title ?? '',
-              style: const TextStyle(
-                fontSize: 17,
-                fontWeight: FontWeight.w700,
-                color: SFColors.white,
+      titleSpacing: 16,
+      title:
+          titleWidget ??
+          Text(
+            title ?? context.t('app_title'),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.w700,
+              color: SFColors.darkGreen,
+            ),
+          ),
+      actions: [
+        ...?actions,
+        const SFCurrencyButton(),
+        const SizedBox(width: 12),
+      ],
+      bottom: searchHint == null
+          ? null
+          : PreferredSize(
+              preferredSize: const Size.fromHeight(60),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                child: _SearchField(
+                  hint: searchHint!,
+                  onChanged: onSearchChanged,
+                  onSubmitted: onSearchSubmitted,
+                ),
               ),
             ),
-      actions: actions,
     );
   }
 }
 
 class _SearchField extends StatelessWidget {
-  const _SearchField({
-    required this.hint,
-    this.onChanged,
-    this.onSubmitted,
-  });
+  const _SearchField({required this.hint, this.onChanged, this.onSubmitted});
 
   final String hint;
   final ValueChanged<String>? onChanged;
@@ -71,10 +87,11 @@ class _SearchField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 38,
+      height: 44,
       decoration: BoxDecoration(
-        color: SFColors.white,
-        borderRadius: BorderRadius.circular(999),
+        color: SFColors.surfaceAlt,
+        border: Border.all(color: SFColors.border),
+        borderRadius: BorderRadius.circular(12),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 14),
       child: Row(
@@ -101,8 +118,8 @@ class _SearchField extends StatelessWidget {
                 contentPadding: EdgeInsets.zero,
                 hintText: hint,
                 hintStyle: const TextStyle(
-                  fontSize: 15,
-                  color: SFColors.muted,
+                  fontSize: 14,
+                  color: SFColors.muted2,
                 ),
               ),
             ),
@@ -141,8 +158,11 @@ class SFStateView extends StatelessWidget {
             if (loading)
               const CircularProgressIndicator(color: SFColors.green)
             else
-              Icon(icon ?? Icons.inbox_outlined,
-                  size: 48, color: SFColors.muted),
+              Icon(
+                icon ?? Icons.inbox_outlined,
+                size: 48,
+                color: SFColors.muted,
+              ),
             const SizedBox(height: 14),
             Text(
               message,
@@ -242,11 +262,7 @@ class SFStatusChip extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w700,
-          color: fg,
-        ),
+        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: fg),
       ),
     );
   }

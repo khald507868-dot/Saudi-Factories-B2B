@@ -14,13 +14,19 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../core/i18n.dart';
+import '../core/currency.dart';
 import '../core/theme.dart';
 import '../core/uuid.dart';
 import '../services/auth_service.dart';
 import '../services/messages_service.dart';
+import '../services/chat_upload_service.dart';
+import '../services/factory_service.dart';
 import '../widgets/common.dart';
+import '../widgets/price_text.dart';
+import 'product_page.dart';
 
 class ChatPage extends StatefulWidget {
   const ChatPage({
@@ -28,6 +34,7 @@ class ChatPage extends StatefulWidget {
     required this.conversationId,
     this.title = '',
     this.draft = '',
+    this.product,
   });
 
   final int conversationId;
@@ -35,6 +42,7 @@ class ChatPage extends StatefulWidget {
 
   /// نص مبدئي يُوضع في المحرّر — يأتي من صفحة المنتج.
   final String draft;
+  final SFProductAttachment? product;
 
   @override
   State<ChatPage> createState() => _ChatPageState();
@@ -47,6 +55,8 @@ class _ChatPageState extends State<ChatPage> {
   List<SFMessage> _messages = [];
   bool _loading = true;
   Object? _error;
+  SFProductAttachment? _draftProduct;
+  bool _uploading = false;
   RealtimeChannel? _channel;
 
   /// مفاتيح الرسائل التي أرسلناها — يُسقَط صدى الاشتراك لها.
@@ -56,6 +66,7 @@ class _ChatPageState extends State<ChatPage> {
   void initState() {
     super.initState();
     _composer.text = widget.draft;
+    _draftProduct = widget.product;
     _load();
     _channel = SFMessages.subscribe(_onRealtime);
   }
@@ -96,7 +107,15 @@ class _ChatPageState extends State<ChatPage> {
       final rows = await SFMessages.loadMessages(widget.conversationId);
       if (!mounted) return;
       setState(() {
-        _messages = rows;
+        // لا يُسقط وصول رسالة من الطرف الآخر رسائلنا التي ما زالت تُرسل.
+        final pending = _messages
+            .where(
+              (message) =>
+                  message.pending &&
+                  !rows.any((row) => row.clientKey == message.clientKey),
+            )
+            .toList();
+        _messages = [...rows, ...pending];
         _loading = false;
         _error = null;
       });
@@ -120,23 +139,28 @@ class _ChatPageState extends State<ChatPage> {
 
   Future<void> _send() async {
     final text = _composer.text.trim();
-    if (text.isEmpty) return;
+    final product = _draftProduct;
+    if (text.isEmpty && product == null) return;
 
     final tempId = 'tmp-${DateTime.now().millisecondsSinceEpoch}';
     final clientKey = newUuidV4();
     final optimistic = SFMessage(
       id: tempId,
       mine: true,
-      type: 'text',
+      type: product == null ? 'text' : 'product',
       text: text,
       src: '',
       at: DateTime.now(),
       pending: true,
+      clientKey: clientKey,
+      product: product,
+      productId: product?.id,
     );
 
     setState(() {
       _messages = [..._messages, optimistic];
       _composer.clear();
+      _draftProduct = null;
     });
     _jumpToEnd();
     _sentClientKeys.add(clientKey);
@@ -146,6 +170,7 @@ class _ChatPageState extends State<ChatPage> {
         widget.conversationId,
         text,
         clientKey: clientKey,
+        product: product,
       );
       if (!mounted) return;
       setState(() {
@@ -157,9 +182,74 @@ class _ChatPageState extends State<ChatPage> {
       // الفشل ظاهر: تُزال الفقاعة ويعود النص إلى المحرّر.
       setState(() {
         _messages = _messages.where((m) => m.id != tempId).toList();
-        _composer.text = text;
+        if (_composer.text.isEmpty) _composer.text = text;
+        _draftProduct ??= product;
       });
       showSFError(context, e);
+    }
+  }
+
+  Future<void> _attach(bool video) async {
+    if (_uploading) return;
+    setState(() => _uploading = true);
+    SFChatUpload? upload;
+    final key = newUuidV4();
+    final tempId = 'tmp-$key';
+    bool saved = false;
+    try {
+      upload = await SFChatUpload.pick(video: video);
+      if (upload == null) return;
+      if (!mounted) {
+        await upload.remove();
+        return;
+      }
+      setState(
+        () => _messages = [
+          ..._messages,
+          SFMessage(
+            id: tempId,
+            mine: true,
+            type: upload!.type,
+            text: '',
+            src: upload.url,
+            at: DateTime.now(),
+            pending: true,
+            clientKey: key,
+          ),
+        ],
+      );
+      _sentClientKeys.add(key);
+      _jumpToEnd();
+      final message = await SFMessages.sendMedia(
+        widget.conversationId,
+        upload,
+        clientKey: key,
+      );
+      saved = true;
+      if (mounted) {
+        setState(
+          () => _messages = _messages
+              .map((row) => row.id == tempId ? message : row)
+              .toList(),
+        );
+      }
+    } catch (error) {
+      _sentClientKeys.remove(key);
+      if (upload != null && !saved && error is PostgrestException) {
+        try {
+          await upload.remove();
+        } catch (_) {
+          /* يمكن إعادة تنظيف الملف لاحقاً. */
+        }
+      }
+      if (mounted) {
+        setState(
+          () => _messages = _messages.where((row) => row.id != tempId).toList(),
+        );
+        showSFError(context, error);
+      }
+    } finally {
+      if (mounted) setState(() => _uploading = false);
     }
   }
 
@@ -178,10 +268,26 @@ class _ChatPageState extends State<ChatPage> {
       body: Column(
         children: [
           Expanded(child: _buildBody(i18n)),
+          if (_uploading) const LinearProgressIndicator(),
+          if (_draftProduct != null)
+            Container(
+              color: SFColors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Row(
+                children: [
+                  Expanded(child: _ProductCard(product: _draftProduct!)),
+                  IconButton(
+                    onPressed: () => setState(() => _draftProduct = null),
+                    icon: const Icon(Icons.close),
+                  ),
+                ],
+              ),
+            ),
           _Composer(
             controller: _composer,
             hint: i18n.t('msg_input_placeholder'),
             onSend: _send,
+            onAttach: _uploading ? null : _attach,
           ),
         ],
       ),
@@ -235,17 +341,31 @@ class _Bubble extends StatelessWidget {
           maxWidth: MediaQuery.of(context).size.width * 0.76,
         ),
         decoration: BoxDecoration(
-          color: mine ? SFColors.darkGreen : SFColors.white,
-          border: Border.all(
-            color: mine ? SFColors.darkGreen : SFColors.border,
-          ),
+          color: mine ? SFColors.selected : SFColors.white,
+          border: Border.all(color: SFColors.border),
           borderRadius: BorderRadius.circular(14),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (!message.isText && message.src.isNotEmpty)
+            if (message.product != null)
+              _ProductCard(product: message.product!)
+            else if (message.type == 'product')
+              Text(
+                context.t('prod_not_found'),
+                style: TextStyle(color: SFColors.muted2),
+              ),
+            if (message.type == 'video' && message.src.isNotEmpty)
+              TextButton.icon(
+                onPressed: () => launchUrl(
+                  Uri.parse(message.src),
+                  mode: LaunchMode.externalApplication,
+                ),
+                icon: const Icon(Icons.play_circle_outline),
+                label: Text(context.t('factory_watch_video')),
+              ),
+            if (message.type == 'image' && message.src.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.only(bottom: 6),
                 child: SFImage(url: message.src, height: 160),
@@ -256,7 +376,7 @@ class _Bubble extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 14.5,
                   height: 1.7,
-                  color: mine ? SFColors.white : SFColors.darkGreen,
+                  color: SFColors.darkGreen,
                 ),
               ),
             const SizedBox(height: 3),
@@ -265,10 +385,7 @@ class _Bubble extends StatelessWidget {
               children: [
                 Text(
                   _time(message.at),
-                  style: TextStyle(
-                    fontSize: 10,
-                    color: mine ? SFColors.muted : SFColors.muted,
-                  ),
+                  style: TextStyle(fontSize: 10, color: SFColors.muted2),
                 ),
                 if (message.pending) ...[
                   const SizedBox(width: 4),
@@ -301,11 +418,13 @@ class _Composer extends StatelessWidget {
     required this.controller,
     required this.hint,
     required this.onSend,
+    required this.onAttach,
   });
 
   final TextEditingController controller;
   final String hint;
   final VoidCallback onSend;
+  final void Function(bool video)? onAttach;
 
   @override
   Widget build(BuildContext context) {
@@ -319,12 +438,28 @@ class _Composer extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
+            PopupMenuButton<bool>(
+              enabled: onAttach != null,
+              icon: const Icon(Icons.attach_file),
+              onSelected: onAttach,
+              itemBuilder: (_) => [
+                PopupMenuItem(
+                  value: false,
+                  child: Text(context.t('post_add_image')),
+                ),
+                PopupMenuItem(
+                  value: true,
+                  child: Text(context.t('post_add_video')),
+                ),
+              ],
+            ),
             Expanded(
               child: TextField(
                 controller: controller,
                 minLines: 1,
                 maxLines: 5,
-                textInputAction: TextInputAction.newline,
+                textInputAction: TextInputAction.send,
+                onSubmitted: (_) => onSend(),
                 style: const TextStyle(fontSize: 16),
                 decoration: InputDecoration(
                   hintText: hint,
@@ -347,4 +482,62 @@ class _Composer extends StatelessWidget {
       ),
     );
   }
+}
+
+class _ProductCard extends StatelessWidget {
+  const _ProductCard({required this.product});
+  final SFProductAttachment product;
+
+  @override
+  Widget build(BuildContext context) => Material(
+    color: SFColors.white,
+    borderRadius: BorderRadius.circular(8),
+    child: InkWell(
+      borderRadius: BorderRadius.circular(8),
+      onTap: () async {
+        try {
+          final item = await FactoryService.productById(product.id);
+          if (!context.mounted) return;
+          if (item == null) {
+            showSFError(context, Exception(context.t('prod_not_found')));
+            return;
+          }
+          await Navigator.of(context).push(
+            MaterialPageRoute<void>(builder: (_) => ProductPage(product: item)),
+          );
+        } catch (error) {
+          if (context.mounted) showSFError(context, error);
+        }
+      },
+      child: Padding(
+        padding: const EdgeInsets.all(8),
+        child: Row(
+          children: [
+            SFImage(url: product.image, width: 48, height: 48, radius: 4),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    product.name,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: SFColors.darkGreen,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  SFPriceText(
+                    SFCurrency.instance.format(product.price),
+                    style: const TextStyle(color: SFColors.midGreen),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
 }

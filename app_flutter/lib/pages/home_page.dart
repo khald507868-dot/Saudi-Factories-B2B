@@ -1,8 +1,8 @@
 // ============================================================
 //  الرئيسية — مقابل app-home.html
 //
-//  البيانات حقيقية من القاعدة: الفئات ثم المنتجات الأكثر
-//  مبيعاً. مولّدات البيانات الوهمية القديمة لم تُنقل عمداً.
+//  الترتيب: الفئات، أرقام المنصة، خريطة المناطق، ثم المنتجات.
+//  البيانات حقيقية من القاعدة.
 // ============================================================
 
 import 'package:flutter/material.dart';
@@ -10,10 +10,13 @@ import 'package:flutter/material.dart';
 import '../core/i18n.dart';
 import '../core/theme.dart';
 import '../services/factory_service.dart';
+import '../services/catalog_service.dart';
+import '../widgets/catalog_product_card.dart';
 import '../widgets/common.dart';
 import '../widgets/wordmark.dart';
+import '../widgets/factory_map.dart';
+import '../widgets/platform_stats.dart';
 import 'factories_page.dart';
-import 'product_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -24,16 +27,19 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   late Future<List<SFProduct>> _products;
+  late Future<Map<String, String>> _categoryImages;
 
   @override
   void initState() {
     super.initState();
     _products = FactoryService.latestProducts(limit: 24);
+    _categoryImages = CatalogService.categoryImages();
   }
 
   Future<void> _reload() async {
     setState(() {
       _products = FactoryService.latestProducts(limit: 24);
+      _categoryImages = CatalogService.categoryImages();
     });
     await _products;
   }
@@ -45,6 +51,7 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       backgroundColor: SFColors.pageBg,
       appBar: SFTopBar(
+        titleWidget: const Wordmark(),
         searchHint: i18n.t('search_placeholder'),
         onSearchSubmitted: (q) {
           if (q.trim().isEmpty) return;
@@ -54,27 +61,53 @@ class _HomePageState extends State<HomePage> {
             ),
           );
         },
-        actions: const [
-          Padding(
-            padding: EdgeInsets.only(left: 8, right: 8),
-            child: Center(child: Wordmark(fontSize: 10, width: 96)),
-          ),
-        ],
       ),
       body: RefreshIndicator(
         onRefresh: _reload,
         color: SFColors.midGreen,
         child: ListView(
-          padding: const EdgeInsets.only(bottom: 20),
+          padding: const EdgeInsets.only(top: 20, bottom: 24),
+          physics: const AlwaysScrollableScrollPhysics(),
           children: [
-            _CategoriesStrip(),
-            const SizedBox(height: 6),
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    i18n.t('splash_tagline'),
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                      height: 1.4,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    i18n.t('drawer_categories_title'),
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            FutureBuilder<Map<String, String>>(
+              future: _categoryImages,
+              builder: (_, snapshot) =>
+                  _CategoriesStrip(images: snapshot.data ?? {}),
+            ),
+            const SizedBox(height: 24),
+            const PlatformStats(),
+            const SizedBox(height: 24),
+            const FactoryMap(),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 24, 16, 12),
               child: Text(
                 i18n.t('home_bestsellers'),
                 style: const TextStyle(
-                  fontSize: 17,
+                  fontSize: 16,
                   fontWeight: FontWeight.w800,
                 ),
               ),
@@ -97,22 +130,24 @@ class _HomePageState extends State<HomePage> {
                 }
                 final items = snap.data ?? [];
                 if (items.isEmpty) {
-                  return SFStateView(message: i18n.t('fx_empty'));
+                  return SFStateView(message: i18n.t('factory_no_products'));
                 }
-                return GridView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate:
-                      const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 12,
-                    mainAxisSpacing: 12,
-                    childAspectRatio: 0.74,
+                return LayoutBuilder(
+                  builder: (context, constraints) => GridView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 12,
+                      mainAxisExtent:
+                          (constraints.maxWidth - 44) / 2 / 1.18 + 118,
+                    ),
+                    itemCount: items.length,
+                    itemBuilder: (context, i) =>
+                        CatalogProductCard(product: items[i]),
                   ),
-                  itemCount: items.length,
-                  itemBuilder: (context, i) =>
-                      _ProductCard(product: items[i]),
                 );
               },
             ),
@@ -125,16 +160,18 @@ class _HomePageState extends State<HomePage> {
 
 /// شريط الفئات الأفقي — الضغط يفتح قائمة المصانع مصفّاة.
 class _CategoriesStrip extends StatelessWidget {
+  const _CategoriesStrip({required this.images});
+  final Map<String, String> images;
   @override
   Widget build(BuildContext context) {
     final i18n = context.i18n;
     final cats = i18n.categories;
 
     return SizedBox(
-      height: 92,
+      height: 124,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
         itemCount: cats.length,
         separatorBuilder: (_, _) => const SizedBox(width: 10),
         itemBuilder: (context, i) {
@@ -154,110 +191,41 @@ class _CategoriesStrip extends StatelessWidget {
             },
             borderRadius: BorderRadius.circular(SFMetrics.radius),
             child: Container(
-              width: 104,
-              padding: const EdgeInsets.all(10),
+              width: 110,
+              padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
                 color: SFColors.white,
                 border: Border.all(color: SFColors.border),
                 borderRadius: BorderRadius.circular(SFMetrics.radius),
               ),
-              child: Center(
-                child: Text(
-                  i18n.categoryName(cat),
-                  textAlign: TextAlign.center,
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 11.5,
-                    height: 1.4,
-                    fontWeight: FontWeight.w600,
+              child: Column(
+                children: [
+                  SFImage(
+                    url: images[i18n.categoryKey(cat)] ?? '',
+                    width: 48,
+                    height: 48,
+                    radius: 12,
+                    placeholderIcon: Icons.category_outlined,
                   ),
-                ),
+                  const SizedBox(height: 8),
+                  Expanded(
+                    child: Text(
+                      i18n.categoryName(cat),
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        height: 1.4,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           );
         },
-      ),
-    );
-  }
-}
-
-class _ProductCard extends StatelessWidget {
-  const _ProductCard({required this.product});
-
-  final SFProduct product;
-
-  @override
-  Widget build(BuildContext context) {
-    final factoryName =
-        (product.raw['factories'] as Map?)?['name'] as String? ?? '';
-
-    return InkWell(
-      onTap: () {
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => ProductPage(product: product),
-          ),
-        );
-      },
-      borderRadius: BorderRadius.circular(SFMetrics.radius),
-      child: Container(
-        decoration: BoxDecoration(
-          color: SFColors.white,
-          border: Border.all(color: SFColors.border),
-          borderRadius: BorderRadius.circular(SFMetrics.radius),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Expanded(
-              child: SFImage(
-                url: product.image,
-                radius: SFMetrics.radius,
-                fit: BoxFit.cover,
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(10),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    product.name,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      height: 1.4,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  if (factoryName.isNotEmpty)
-                    Text(
-                      factoryName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: SFColors.muted2,
-                      ),
-                    ),
-                  const SizedBox(height: 6),
-                  if (product.price > 0)
-                    Text(
-                      '${product.price.toStringAsFixed(2)} ر.س',
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w800,
-                        color: SFColors.midGreen,
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

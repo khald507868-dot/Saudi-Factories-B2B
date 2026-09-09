@@ -64,13 +64,13 @@ class _AuthPageState extends State<AuthPage>
     return Scaffold(
       backgroundColor: SFColors.pageBg,
       appBar: AppBar(
-        title: const Wordmark(fontSize: 12, width: 120),
+        title: const Wordmark(),
         bottom: TabBar(
           controller: _tabs,
-          indicatorColor: SFColors.green,
+          indicatorColor: SFColors.midGreen,
           indicatorWeight: 3,
-          labelColor: SFColors.white,
-          unselectedLabelColor: SFColors.muted,
+          labelColor: SFColors.midGreen,
+          unselectedLabelColor: SFColors.muted2,
           labelStyle: const TextStyle(
             fontSize: 15,
             fontWeight: FontWeight.w700,
@@ -154,8 +154,10 @@ class _LoginFormState extends State<_LoginForm> {
       if (!mounted) return;
       // رسالة واحدة سواء وُجد الحساب أم لا — حتى لا يتمكّن أحد
       // من معرفة البُرد المسجّلة عندنا.
-      showSFMessage(context,
-          'إن كان هذا البريد مسجّلاً فستصلك رسالة لإعادة تعيين كلمة المرور.');
+      showSFMessage(
+        context,
+        'إن كان هذا البريد مسجّلاً فستصلك رسالة لإعادة تعيين كلمة المرور.',
+      );
     } catch (e) {
       if (!mounted) return;
       showSFError(context, e);
@@ -166,14 +168,16 @@ class _LoginFormState extends State<_LoginForm> {
   Widget build(BuildContext context) {
     final i18n = context.i18n;
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
+    return _AuthFormFrame(
       child: Form(
         key: _formKey,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const SizedBox(height: 10),
+            _AuthHeading(
+              title: i18n.t('splash_login_btn'),
+              accountType: widget.accountType,
+            ),
             if (_error != null) _ErrorBox(text: _error!),
             _Field(
               label: i18n.t('field_email'),
@@ -195,8 +199,7 @@ class _LoginFormState extends State<_LoginForm> {
                   _hidePassword ? Icons.visibility_off : Icons.visibility,
                   color: SFColors.muted,
                 ),
-                onPressed: () =>
-                    setState(() => _hidePassword = !_hidePassword),
+                onPressed: () => setState(() => _hidePassword = !_hidePassword),
               ),
             ),
             Align(
@@ -272,9 +275,19 @@ class _RegisterFormState extends State<_RegisterForm> {
   @override
   void dispose() {
     for (final c in [
-      _name, _email, _phone, _password, _cr, _industrialLicense,
-      _city, _district, _shortAddress, _building, _secondary,
-      _postal, _street,
+      _name,
+      _email,
+      _phone,
+      _password,
+      _cr,
+      _industrialLicense,
+      _city,
+      _district,
+      _shortAddress,
+      _building,
+      _secondary,
+      _postal,
+      _street,
     ]) {
       c.dispose();
     }
@@ -339,14 +352,16 @@ class _RegisterFormState extends State<_RegisterForm> {
   Widget build(BuildContext context) {
     final i18n = context.i18n;
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
+    return _AuthFormFrame(
       child: Form(
         key: _formKey,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const SizedBox(height: 10),
+            _AuthHeading(
+              title: i18n.t('splash_signup_btn'),
+              accountType: widget.accountType,
+            ),
             if (_error != null) _ErrorBox(text: _error!),
             if (_success != null) _SuccessBox(text: _success!),
 
@@ -381,8 +396,7 @@ class _RegisterFormState extends State<_RegisterForm> {
                   _hidePassword ? Icons.visibility_off : Icons.visibility,
                   color: SFColors.muted,
                 ),
-                onPressed: () =>
-                    setState(() => _hidePassword = !_hidePassword),
+                onPressed: () => setState(() => _hidePassword = !_hidePassword),
               ),
             ),
 
@@ -500,9 +514,11 @@ class _RegisterFormState extends State<_RegisterForm> {
                         strokeWidth: 2,
                       ),
                     )
-                  : Text(_success != null
-                      ? i18n.t('signup_confirmation_sent')
-                      : i18n.t('splash_signup_btn')),
+                  : Text(
+                      _success != null
+                          ? i18n.t('signup_confirmation_sent')
+                          : i18n.t('splash_signup_btn'),
+                    ),
             ),
             const SizedBox(height: 20),
           ],
@@ -518,6 +534,54 @@ class _RegisterFormState extends State<_RegisterForm> {
 // ------------------------------------------------------------
 //  عناصر مساعدة
 // ------------------------------------------------------------
+
+class _AuthFormFrame extends StatelessWidget {
+  const _AuthFormFrame({required this.child});
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => SingleChildScrollView(
+    padding: const EdgeInsets.all(16),
+    child: Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: SFColors.white,
+        border: Border.all(color: SFColors.border),
+        borderRadius: BorderRadius.circular(SFMetrics.radius),
+      ),
+      child: child,
+    ),
+  );
+}
+
+class _AuthHeading extends StatelessWidget {
+  const _AuthHeading({required this.title, required this.accountType});
+  final String title;
+  final String accountType;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(bottom: 24),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          context.t(
+            accountType == 'factory'
+                ? 'dash_account_factory'
+                : 'dash_account_individual',
+          ),
+          style: const TextStyle(fontSize: 14, color: SFColors.muted2),
+        ),
+      ],
+    ),
+  );
+}
 
 class _Field extends StatelessWidget {
   const _Field({
@@ -560,10 +624,7 @@ class _Field extends StatelessWidget {
             maxLength: maxLength,
             inputFormatters: inputFormatters,
             style: const TextStyle(fontSize: 16),
-            decoration: InputDecoration(
-              suffixIcon: suffix,
-              counterText: '',
-            ),
+            decoration: InputDecoration(suffixIcon: suffix, counterText: ''),
           ),
         ],
       ),
@@ -624,8 +685,7 @@ class _SuccessBox extends StatelessWidget {
 /// ترجمة رسائل Supabase إلى العربية — نفس الرسائل في نسخة الويب.
 String arabicAuthError(Object e) {
   final msg = e.toString().toLowerCase();
-  if (msg.contains('already registered') ||
-      msg.contains('user already')) {
+  if (msg.contains('already registered') || msg.contains('user already')) {
     return 'هذا البريد مسجّل مسبقاً. جرّب تسجيل الدخول.';
   }
   if (msg.contains('invalid login')) {

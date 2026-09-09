@@ -10,16 +10,22 @@
 // ============================================================
 
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../core/i18n.dart';
+import '../core/i18n_data.dart';
 import '../core/theme.dart';
 import '../services/auth_service.dart';
 import '../services/factory_service.dart';
+import '../services/catalog_service.dart';
 import '../services/messages_service.dart';
 import '../widgets/common.dart';
+import '../widgets/catalog_product_card.dart';
 import 'chat_page.dart';
 import 'factory_edit_page.dart';
-import 'product_page.dart';
+import 'factories_page.dart';
+import 'auth_page.dart';
 
 class FactoryPage extends StatefulWidget {
   const FactoryPage({super.key, required this.factoryId});
@@ -39,6 +45,8 @@ class _FactoryPageState extends State<FactoryPage>
   List<SFPost> _posts = [];
   bool _loading = true;
   Object? _error;
+  SFFollowState? _follows;
+  bool _followBusy = false;
 
   @override
   void initState() {
@@ -59,13 +67,38 @@ class _FactoryPageState extends State<FactoryPage>
     });
     try {
       final f = await FactoryService.byId(widget.factoryId);
-      final p = await FactoryService.products(widget.factoryId);
-      final posts = await FactoryService.posts(widget.factoryId);
+      if (f == null) {
+        if (mounted) {
+          setState(() {
+            _factory = null;
+            _loading = false;
+          });
+        }
+        return;
+      }
+      final results = await Future.wait([
+        FactoryService.products(widget.factoryId),
+        FactoryService.posts(widget.factoryId),
+      ]);
+      SFFollowState? follows;
+      try {
+        follows = await CatalogService.follows(f.id);
+      } catch (_) {
+        /* غياب العدّاد لا يمنع قراءة الصفحة. */
+      }
       if (!mounted) return;
       setState(() {
         _factory = f;
-        _products = p;
-        _posts = posts;
+        _products = (results[0] as List<SFProduct>)
+            .map(
+              (p) => SFProduct({
+                ...p.raw,
+                'factories': {'name': f.name, 'status': f.status},
+              }),
+            )
+            .toList();
+        _posts = results[1] as List<SFPost>;
+        _follows = follows;
         _loading = false;
       });
     } catch (e) {
@@ -74,6 +107,46 @@ class _FactoryPageState extends State<FactoryPage>
         _error = e;
         _loading = false;
       });
+    }
+  }
+
+  Future<void> _follow() async {
+    final factory = _factory;
+    if (factory == null || factory.isMine || _followBusy) return;
+    if (!AuthService.instance.isSignedIn) {
+      await Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => const AuthPage(accountType: 'individual'),
+        ),
+      );
+      if (!mounted || !AuthService.instance.isSignedIn) return;
+      await _load();
+      return;
+    }
+    setState(() => _followBusy = true);
+    try {
+      final state = await CatalogService.setFollowing(
+        factory,
+        !(_follows?.isFollowing ?? false),
+      );
+      if (mounted) setState(() => _follows = state);
+    } catch (error) {
+      if (mounted) showSFError(context, error);
+    } finally {
+      if (mounted) setState(() => _followBusy = false);
+    }
+  }
+
+  Future<void> _visitWebsite() async {
+    final uri = _factory?.websiteUri;
+    if (uri == null) return;
+    try {
+      final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!opened && mounted) {
+        showSFError(context, Exception(context.t('factory_open_link_failed')));
+      }
+    } catch (error) {
+      if (mounted) showSFError(context, error);
     }
   }
 
@@ -118,9 +191,20 @@ class _FactoryPageState extends State<FactoryPage>
       return Scaffold(
         appBar: AppBar(title: Text(i18n.t('factory_page_heading'))),
         body: SFStateView(
-          message: i18n.t('fc_load_failed'),
-          icon: Icons.cloud_off,
-          onRetry: _load,
+          message: i18n.t(
+            _error != null
+                ? 'fc_load_failed'
+                : widget.factoryId <= 0
+                ? 'fx_no_id'
+                : 'factory_not_found',
+          ),
+          icon: _error != null ? Icons.cloud_off : Icons.factory_outlined,
+          retryLabel: _error == null ? i18n.t('fx_browse_all') : null,
+          onRetry: _error != null
+              ? _load
+              : () => Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(builder: (_) => const FactoriesPage()),
+                ),
         ),
       );
     }
@@ -131,9 +215,13 @@ class _FactoryPageState extends State<FactoryPage>
         headerSliverBuilder: (context, _) => [
           SliverAppBar(
             pinned: true,
-            expandedHeight: 210,
-            backgroundColor: SFColors.darkGreen,
-            foregroundColor: SFColors.white,
+            backgroundColor: SFColors.white,
+            foregroundColor: SFColors.darkGreen,
+            title: Text(
+              i18n.t('factory_page_heading'),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
             actions: [
               if (f.isMine)
                 IconButton(
@@ -149,8 +237,111 @@ class _FactoryPageState extends State<FactoryPage>
                   },
                 ),
             ],
-            flexibleSpace: FlexibleSpaceBar(
-              background: _Cover(factory: f),
+          ),
+          if (f.cover.isNotEmpty)
+            SliverToBoxAdapter(
+              child: ColoredBox(
+                color: SFColors.white,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                  child: SizedBox(height: 116, child: _Cover(factory: f)),
+                ),
+              ),
+            ),
+          SliverToBoxAdapter(
+            child: Container(
+              color: SFColors.white,
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      SFImage(
+                        url: f.logo,
+                        width: 56,
+                        height: 56,
+                        radius: 12,
+                        placeholderIcon: Icons.factory_outlined,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          f.name.isEmpty ? i18n.t('factory_no_name') : f.name,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                      if (f.isApproved)
+                        Tooltip(
+                          message: i18n.t('factory_verified'),
+                          child: const Icon(
+                            Icons.verified,
+                            color: SFColors.midGreen,
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    [
+                      if (f.industry.isNotEmpty)
+                        _industryLabel(context, f.industry),
+                      if (f.city.isNotEmpty || f.regionId.isNotEmpty)
+                        _locationLabel(context, f),
+                      '${_products.length} ${i18n.t('sup_products_count')}',
+                      if (_follows != null)
+                        '${_follows!.followers} ${i18n.t('fx_followers')}',
+                    ].join(' · '),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: SFColors.muted2,
+                      height: 1.6,
+                    ),
+                  ),
+                  if (f.isMine && !f.isApproved) ...[
+                    const SizedBox(height: 10),
+                    SFStatusChip(
+                      status: f.status,
+                      label: i18n.t(
+                        f.status == 'rejected' ? 'fs_rejected' : 'fs_pending',
+                      ),
+                    ),
+                    if (f.rejectionReason.isNotEmpty) Text(f.rejectionReason),
+                  ],
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 10,
+                    runSpacing: 8,
+                    children: [
+                      FilledButton.icon(
+                        onPressed: f.isMine || _followBusy ? null : _follow,
+                        icon: Icon(
+                          _follows?.isFollowing == true
+                              ? Icons.check
+                              : Icons.add,
+                          size: 18,
+                        ),
+                        label: Text(
+                          i18n.t(
+                            _follows?.isFollowing == true && !f.isMine
+                                ? 'fx_following'
+                                : 'fx_follow',
+                          ),
+                        ),
+                      ),
+                      if (f.websiteUri != null)
+                        OutlinedButton.icon(
+                          onPressed: _visitWebsite,
+                          icon: const Icon(Icons.open_in_new, size: 16),
+                          label: Text(i18n.t('fx_visit_site')),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
           SliverPersistentHeader(
@@ -160,7 +351,7 @@ class _FactoryPageState extends State<FactoryPage>
                 controller: _tabs,
                 labelColor: SFColors.darkGreen,
                 unselectedLabelColor: SFColors.muted2,
-                indicatorColor: SFColors.green,
+                indicatorColor: SFColors.midGreen,
                 indicatorWeight: 3,
                 isScrollable: true,
                 tabAlignment: TabAlignment.start,
@@ -182,8 +373,12 @@ class _FactoryPageState extends State<FactoryPage>
           controller: _tabs,
           children: [
             // الرئيسية: النبذة والمنشورات معاً.
-            _HomeTab(factory: f, posts: _posts),
-            _PostsTab(posts: _posts),
+            _HomeTab(
+              factory: f,
+              posts: _posts,
+              onShowAbout: () => _tabs.animateTo(2),
+            ),
+            _PostsTab(factory: f, posts: _posts),
             _AboutTab(factory: f),
             _ProductsTab(products: _products),
           ],
@@ -191,13 +386,19 @@ class _FactoryPageState extends State<FactoryPage>
       ),
       bottomNavigationBar: f.isMine
           ? null
-          : SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: ElevatedButton.icon(
-                  onPressed: _contact,
-                  icon: const Icon(Icons.chat_bubble_outline, size: 20),
-                  label: Text(i18n.t('msg_contact_btn')),
+          : Container(
+              decoration: const BoxDecoration(
+                color: SFColors.white,
+                border: Border(top: BorderSide(color: SFColors.border)),
+              ),
+              child: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+                  child: ElevatedButton.icon(
+                    onPressed: _contact,
+                    icon: const Icon(Icons.chat_bubble_outline, size: 20),
+                    label: Text(i18n.t('msg_contact_btn')),
+                  ),
                 ),
               ),
             ),
@@ -207,94 +408,10 @@ class _FactoryPageState extends State<FactoryPage>
 
 class _Cover extends StatelessWidget {
   const _Cover({required this.factory});
-
   final SFFactory factory;
-
   @override
-  Widget build(BuildContext context) {
-    final i18n = context.i18n;
-
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        // الغلاف بارتفاع ثابت لا بنسبة أبعاد — النسبة تكبر مع
-        // عرض الحاوية وكانت تُنتج غلافاً ضخماً.
-        if (factory.cover.isNotEmpty)
-          Image.network(
-            factory.cover,
-            fit: BoxFit.cover,
-            errorBuilder: (_, _, _) =>
-                Container(color: SFColors.midGreen),
-          )
-        else
-          Container(color: SFColors.midGreen),
-        // تدرّج يضمن قراءة النص فوق أي صورة.
-        Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [Color(0x22000000), Color(0xCC04361B)],
-            ),
-          ),
-        ),
-        Positioned(
-          bottom: 14,
-          right: 16,
-          left: 16,
-          child: Row(
-            children: [
-              SFImage(
-                url: factory.logo,
-                width: 58,
-                height: 58,
-                radius: 10,
-                placeholderIcon: Icons.factory_outlined,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      factory.name.isEmpty ? '—' : factory.name,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: SFColors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    if (factory.industry.isNotEmpty)
-                      Text(
-                        factory.industry,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: SFColors.muted,
-                          fontSize: 12,
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-              if (factory.isMine && !factory.isApproved)
-                SFStatusChip(
-                  status: factory.status,
-                  label: i18n.t(switch (factory.status) {
-                    'approved' => 'fs_approved',
-                    'rejected' => 'fs_rejected',
-                    _ => 'fs_pending',
-                  }),
-                ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
+  Widget build(BuildContext context) =>
+      SFImage(url: factory.cover, radius: SFMetrics.radius);
 }
 
 class _TabBarHeader extends SliverPersistentHeaderDelegate {
@@ -310,7 +427,13 @@ class _TabBarHeader extends SliverPersistentHeaderDelegate {
 
   @override
   Widget build(BuildContext context, double shrinkOffset, bool overlaps) {
-    return Container(color: SFColors.white, child: tabBar);
+    return Container(
+      decoration: const BoxDecoration(
+        color: SFColors.white,
+        border: Border(bottom: BorderSide(color: SFColors.border)),
+      ),
+      child: tabBar,
+    );
   }
 
   @override
@@ -318,10 +441,15 @@ class _TabBarHeader extends SliverPersistentHeaderDelegate {
 }
 
 class _HomeTab extends StatelessWidget {
-  const _HomeTab({required this.factory, required this.posts});
+  const _HomeTab({
+    required this.factory,
+    required this.posts,
+    required this.onShowAbout,
+  });
 
   final SFFactory factory;
   final List<SFPost> posts;
+  final VoidCallback onShowAbout;
 
   @override
   Widget build(BuildContext context) {
@@ -329,20 +457,28 @@ class _HomeTab extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       children: [
         _AboutCard(factory: factory),
+        TextButton(
+          onPressed: onShowAbout,
+          child: Text(context.t('about_show_all')),
+        ),
         const SizedBox(height: 14),
-        ...posts.map((p) => Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: _PostCard(post: p),
-            )),
+        ...posts.map(
+          (p) => Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: _PostCard(post: p, factory: factory),
+          ),
+        ),
+        if (posts.isEmpty) SFStateView(message: context.t('factory_no_posts')),
       ],
     );
   }
 }
 
 class _PostsTab extends StatelessWidget {
-  const _PostsTab({required this.posts});
+  const _PostsTab({required this.posts, required this.factory});
 
   final List<SFPost> posts;
+  final SFFactory factory;
 
   @override
   Widget build(BuildContext context) {
@@ -353,7 +489,7 @@ class _PostsTab extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       itemCount: posts.length,
       separatorBuilder: (_, _) => const SizedBox(height: 12),
-      itemBuilder: (_, i) => _PostCard(post: posts[i]),
+      itemBuilder: (_, i) => _PostCard(post: posts[i], factory: factory),
     );
   }
 }
@@ -374,73 +510,24 @@ class _AboutTab extends StatelessWidget {
 
 class _ProductsTab extends StatelessWidget {
   const _ProductsTab({required this.products});
-
   final List<SFProduct> products;
-
   @override
   Widget build(BuildContext context) {
     if (products.isEmpty) {
       return SFStateView(message: context.t('factory_no_products'));
     }
-    return GridView.builder(
-      padding: const EdgeInsets.all(16),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-        childAspectRatio: 0.78,
+    return LayoutBuilder(
+      builder: (context, constraints) => GridView.builder(
+        padding: const EdgeInsets.all(16),
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 12,
+          mainAxisExtent: (constraints.maxWidth - 44) / 2 / 1.18 + 118,
+        ),
+        itemCount: products.length,
+        itemBuilder: (_, index) => CatalogProductCard(product: products[index]),
       ),
-      itemCount: products.length,
-      itemBuilder: (context, i) {
-        final p = products[i];
-        return InkWell(
-          onTap: () => Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => ProductPage(product: p)),
-          ),
-          borderRadius: BorderRadius.circular(SFMetrics.radius),
-          child: Container(
-            decoration: BoxDecoration(
-              color: SFColors.white,
-              border: Border.all(color: SFColors.border),
-              borderRadius: BorderRadius.circular(SFMetrics.radius),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(child: SFImage(url: p.image)),
-                Padding(
-                  padding: const EdgeInsets.all(10),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        p.name,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      if (p.price > 0) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          '${p.price.toStringAsFixed(2)} ر.س',
-                          style: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w800,
-                            color: SFColors.midGreen,
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
     );
   }
 }
@@ -471,26 +558,32 @@ class _AboutCard extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            factory.about.isEmpty ? '—' : factory.about,
+            factory.about.isEmpty ? i18n.t('factory_no_about') : factory.about,
             maxLines: expanded ? null : 6,
             overflow: expanded ? null : TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 14, height: 1.8),
+            style: const TextStyle(fontSize: 14, height: 1.65),
           ),
           if (expanded) ...[
-            const SizedBox(height: 14),
+            const SizedBox(height: 12),
             const Divider(),
             const SizedBox(height: 10),
             if (factory.industry.isNotEmpty)
-              _InfoRow(label: i18n.t('field_industry'), value: factory.industry),
-            if (factory.city.isNotEmpty)
-              _InfoRow(label: i18n.t('addr_city'), value: factory.city),
-            if (factory.district.isNotEmpty)
               _InfoRow(
-                  label: i18n.t('addr_district'), value: factory.district),
+                label: i18n.t('field_industry'),
+                value: _industryLabel(context, factory.industry),
+              ),
+            if (factory.city.isNotEmpty)
+              _InfoRow(
+                label: i18n.t('addr_city'),
+                value: _locationLabel(context, factory),
+              ),
+            if (factory.district.isNotEmpty)
+              _InfoRow(label: i18n.t('addr_district'), value: factory.district),
             if (factory.companySize.isNotEmpty)
               _InfoRow(
-                  label: i18n.t('field_company_size'),
-                  value: factory.companySize),
+                label: i18n.t('field_company_size'),
+                value: factory.companySize,
+              ),
             if (factory.website.isNotEmpty)
               _InfoRow(label: i18n.t('field_website'), value: factory.website),
           ],
@@ -514,7 +607,7 @@ class _InfoRow extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 120,
+            width: 96,
             child: Text(
               label,
               style: const TextStyle(
@@ -537,9 +630,10 @@ class _InfoRow extends StatelessWidget {
 }
 
 class _PostCard extends StatelessWidget {
-  const _PostCard({required this.post});
+  const _PostCard({required this.post, required this.factory});
 
   final SFPost post;
+  final SFFactory factory;
 
   @override
   Widget build(BuildContext context) {
@@ -553,17 +647,89 @@ class _PostCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Row(
+            children: [
+              SFImage(
+                url: factory.logo,
+                width: 38,
+                height: 38,
+                radius: 19,
+                placeholderIcon: Icons.factory_outlined,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      factory.name,
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                    Text(
+                      DateFormat.yMMMd(context.i18n.dateLocale)
+                          .format(post.createdAt),
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: SFColors.muted2,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
           if (post.body.isNotEmpty)
-            Text(
-              post.body,
-              style: const TextStyle(fontSize: 14, height: 1.8),
-            ),
+            Text(post.body, style: const TextStyle(fontSize: 14, height: 1.65)),
           if (post.image.isNotEmpty) ...[
             const SizedBox(height: 10),
             SFImage(url: post.image, height: 180, fit: BoxFit.cover),
           ],
+          if (post.video.isNotEmpty)
+            TextButton.icon(
+              onPressed: () async {
+                try {
+                  if (!await launchUrl(
+                    Uri.parse(post.video),
+                    mode: LaunchMode.externalApplication,
+                  )) {
+                    throw StateError('تعذّر فتح المقطع');
+                  }
+                } catch (error) {
+                  if (context.mounted) showSFError(context, error);
+                }
+              },
+              icon: const Icon(Icons.play_circle_outline),
+              label: Text(context.t('factory_watch_video')),
+            ),
         ],
       ),
     );
   }
+}
+
+String _industryLabel(BuildContext context, String key) {
+  for (final cat in context.i18n.categories) {
+    if (context.i18n.categoryKey(cat) == key ||
+        cat.values.any(
+          (name) => name.toLowerCase() == key.trim().toLowerCase(),
+        )) {
+      return context.i18n.categoryName(cat);
+    }
+  }
+  return key;
+}
+
+String _locationLabel(BuildContext context, SFFactory factory) {
+  final city = factory.city.trim();
+  if (city.isEmpty) return context.i18n.regionName(factory.regionId);
+  for (final region in kRegionNames.entries) {
+    if (region.key.toLowerCase() == city.toLowerCase() ||
+        region.value.values.any(
+          (name) => name.toLowerCase() == city.toLowerCase(),
+        )) {
+      return context.i18n.regionName(region.key);
+    }
+  }
+  return city;
 }

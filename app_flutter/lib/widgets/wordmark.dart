@@ -1,101 +1,79 @@
-// ============================================================
-//  الشعار الكتابي — "مصانع السعودية B2B"
-//
-//  الاسم لاتيني دائماً فيُثبَّت اتجاهه (ltr) حتى لا ينعكس
-//  ترتيب الكلمتين في العربية. و"B2B" ذهبية ومرفوعة قليلاً.
-//  لا يوجد ملف صورة في المشروع — الشعار مبني بالنص والرسم.
-// ============================================================
-
 import 'package:flutter/material.dart';
 
 import '../core/theme.dart';
+import 'wordmark_paths.dart';
 
+/// The web wordmark's Segoe UI Black lettering, preserved as vector outlines
+/// so the brand keeps its shape on every platform and in every locale.
 class Wordmark extends StatelessWidget {
   const Wordmark({
     super.key,
-    this.fontSize = 11,
-    this.width = 108,
-    this.onDark = true,
+    this.fontSize = 19,
+    this.width = 170,
+    this.onDark = false,
   });
 
   final double fontSize;
   final double width;
-
-  /// على خلفية داكنة يصير "السعودية" أبيض؛ وإلا أخضر داكن.
   final bool onDark;
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: width,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Directionality(
-            textDirection: TextDirection.ltr,
-            child: Text.rich(
-              TextSpan(
-                style: TextStyle(
-                  fontSize: fontSize,
-                  fontWeight: FontWeight.w800,
-                  height: 1.55, // يترك مجالاً لـ B2B المرفوعة
-                ),
-                children: [
-                  const TextSpan(
-                    text: 'Saudi ',
-                    style: TextStyle(color: SFColors.green),
-                  ),
-                  TextSpan(
-                    text: 'Factories',
-                    style: TextStyle(
-                      color: onDark ? SFColors.white : SFColors.darkGreen,
-                    ),
-                  ),
-                  WidgetSpan(
-                    alignment: PlaceholderAlignment.top,
-                    child: Transform.translate(
-                      offset: const Offset(1, -1),
-                      child: Text(
-                        'B2B',
-                        style: TextStyle(
-                          fontSize: fontSize * 0.62,
-                          fontWeight: FontWeight.w800,
-                          color: SFColors.gold,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.visible,
+    return Semantics(
+      label: 'Saudi Factories B2B',
+      image: true,
+      textDirection: TextDirection.ltr,
+      child: SizedBox(
+        width: width,
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: CustomPaint(
+            size: Size(
+              SFWordmarkPaths.width * fontSize / 19,
+              fontSize * 1.55 + 3.5,
             ),
+            painter: _WordmarkPainter(fontSize: fontSize, onDark: onDark),
           ),
-          const SizedBox(height: 2),
-          // الخط المتدرّج تحت الاسم — يتبع اتجاه اللغة.
-          Container(
-            height: 1.5,
-            width: width,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(2),
-              gradient: LinearGradient(
-                begin: Directionality.of(context) == TextDirection.rtl
-                    ? Alignment.centerRight
-                    : Alignment.centerLeft,
-                end: Directionality.of(context) == TextDirection.rtl
-                    ? Alignment.centerLeft
-                    : Alignment.centerRight,
-                colors: const [
-                  SFColors.midGreen,
-                  SFColors.green,
-                  SFColors.gold,
-                ],
-              ),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
+}
+
+class _WordmarkPainter extends CustomPainter {
+  const _WordmarkPainter({required this.fontSize, required this.onDark});
+
+  final double fontSize;
+  final bool onDark;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final scale = fontSize / 19;
+    final lineHeight = fontSize * 1.55;
+    canvas.save();
+    canvas.translate(0, (lineHeight - SFWordmarkPaths.height * scale) / 2);
+    canvas.scale(scale);
+    final paint = Paint();
+    canvas.drawPath(SFWordmarkPaths.saudi, paint..color = SFColors.green);
+    canvas.drawPath(
+      SFWordmarkPaths.factories,
+      paint..color = onDark ? SFColors.white : SFColors.darkGreen,
+    );
+    canvas.drawPath(SFWordmarkPaths.b2b, paint..color = SFColors.gold);
+    canvas.restore();
+
+    // The brand's underline keeps its physical green-to-gold direction in RTL.
+    final rule = Rect.fromLTWH(0, lineHeight + 2, size.width, 1.5);
+    paint.shader = const LinearGradient(
+      colors: [SFColors.midGreen, SFColors.green, SFColors.gold],
+    ).createShader(rule);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(rule, const Radius.circular(2)),
+      paint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_WordmarkPainter oldDelegate) =>
+      oldDelegate.fontSize != fontSize || oldDelegate.onDark != onDark;
 }

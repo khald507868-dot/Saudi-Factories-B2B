@@ -20,6 +20,9 @@ class I18n extends ChangeNotifier {
   String _lang;
 
   String get lang => _lang;
+  String get dateLocale => _lang == 'ar' ? 'ar' : 'en';
+
+  void refreshDisplay() => notifyListeners();
 
   /// اتجاه الكتابة للّغة الحالية.
   TextDirection get direction =>
@@ -56,10 +59,7 @@ class I18n extends ChangeNotifier {
 
   /// ترجمة مفتاح — بنفس سلسلة احتياط نسخة الويب.
   String t(String key) {
-    return kDict[_lang]?[key] ??
-        kDict['en']?[key] ??
-        kDict['ar']?[key] ??
-        key;
+    return kDict[_lang]?[key] ?? kDict['en']?[key] ?? kDict['ar']?[key] ?? key;
   }
 
   /// اسم منطقة باللغة الحالية.
@@ -84,15 +84,11 @@ class I18n extends ChangeNotifier {
 
 /// يتيح الوصول إلى [I18n] من أي widget عبر `I18nScope.of(context)`.
 class I18nScope extends InheritedNotifier<I18n> {
-  const I18nScope({
-    super.key,
-    required I18n i18n,
-    required super.child,
-  }) : super(notifier: i18n);
+  const I18nScope({super.key, required I18n i18n, required super.child})
+    : super(notifier: i18n);
 
   static I18n of(BuildContext context) {
-    final scope =
-        context.dependOnInheritedWidgetOfExactType<I18nScope>();
+    final scope = context.dependOnInheritedWidgetOfExactType<I18nScope>();
     assert(scope != null, 'I18nScope غير موجود فوق هذا الـ widget');
     return scope!.notifier!;
   }

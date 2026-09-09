@@ -47,11 +47,16 @@ class AppShellState extends State<AppShell> {
   int _unread = 0;
   int _cartCount = 0;
   RealtimeChannel? _channel;
+  GlobalKey<CartPageState> _cartKey = GlobalKey<CartPageState>();
+  String? _sessionUser;
+  int _counterRequest = 0;
 
   @override
   void initState() {
     super.initState();
     _active = this;
+    _sessionUser = AuthService.instance.user?.id;
+    AuthService.instance.addListener(_authChanged);
     _refreshCounters();
     // الشارة تتحدّث مع كل تغيّر في جدول الرسائل — مقابل
     // messages-badge.js الذي كان يُحقن في 19 صفحة.
@@ -60,6 +65,7 @@ class AppShellState extends State<AppShell> {
 
   @override
   void dispose() {
+    AuthService.instance.removeListener(_authChanged);
     if (identical(_active, this)) _active = null;
     if (_channel != null) {
       // ignore: discarded_futures
@@ -68,8 +74,25 @@ class AppShellState extends State<AppShell> {
     super.dispose();
   }
 
+  void _authChanged() {
+    final user = AuthService.instance.user?.id;
+    if (user == _sessionUser || !mounted) return;
+    _counterRequest++;
+    _sessionUser = user;
+    if (_channel != null) unawaited(_channel!.unsubscribe());
+    _channel = SFMessages.subscribe((_) => _refreshCounters());
+    setState(() {
+      _unread = 0;
+      _cartCount = 0;
+      // مفتاح جديد يمنع نقل حالة سلة الحساب السابق إلى الشجرة الجديدة.
+      _cartKey = GlobalKey<CartPageState>();
+    });
+    unawaited(_refreshCounters());
+  }
+
   /// تُستدعى من الشاشات بعد أي تغيير يمسّ العدّادات.
   Future<void> _refreshCounters() async {
+    final request = ++_counterRequest;
     if (!AuthService.instance.isSignedIn) {
       if (mounted) {
         setState(() {
@@ -87,7 +110,7 @@ class AppShellState extends State<AppShell> {
     } catch (_) {
       // السلة اختيارية هنا — لا نُفشل الشريط بسببها.
     }
-    if (!mounted) return;
+    if (!mounted || request != _counterRequest) return;
     setState(() {
       _unread = unread;
       _cartCount = count;
@@ -99,6 +122,10 @@ class AppShellState extends State<AppShell> {
   void goTo(SFTab tab) {
     if (!mounted) return;
     setState(() => _tab = tab);
+    if (tab == SFTab.cart) {
+      unawaited(_cartKey.currentState?.refresh() ?? Future<void>.value());
+    }
+    if (tab == SFTab.messages || tab == SFTab.cart) refreshCounters();
   }
 
   @override
@@ -108,26 +135,22 @@ class AppShellState extends State<AppShell> {
 
     return Scaffold(
       body: IndexedStack(
+        key: ValueKey(_sessionUser),
         index: index,
-        children: const [
-          HomePage(),
-          CategoriesPage(),
-          FactoriesPage(),
-          MessagesPage(),
-          AccountPage(),
-          CartPage(),
+        children: [
+          const HomePage(),
+          const CategoriesPage(),
+          const FactoriesPage(),
+          const MessagesPage(),
+          const AccountPage(),
+          CartPage(key: _cartKey),
         ],
       ),
       bottomNavigationBar: SFBottomNav(
         current: _tab,
         unreadMessages: _unread,
         cartCount: _cartCount,
-        onTap: (tab) {
-          setState(() => _tab = tab);
-          if (tab == SFTab.messages || tab == SFTab.cart) {
-            unawaited(_refreshCounters());
-          }
-        },
+        onTap: goTo,
       ),
     );
   }

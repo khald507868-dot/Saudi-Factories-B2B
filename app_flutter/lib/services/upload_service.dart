@@ -55,7 +55,9 @@ class SFUpload {
   static String _uuid() {
     final r = Random.secure();
     final chars = List<String>.generate(
-        32, (_) => r.nextInt(16).toRadixString(16));
+      32,
+      (_) => r.nextInt(16).toRadixString(16),
+    );
     return chars.join();
   }
 
@@ -85,7 +87,9 @@ class SFUpload {
     final uid = AuthService.instance.user!.id;
     final path = '$uid/$folder/${_uuid()}.$ext';
 
-    await sb.storage.from(bucket).upload(
+    await sb.storage
+        .from(bucket)
+        .upload(
           path,
           file,
           fileOptions: FileOptions(
@@ -114,6 +118,45 @@ class SFUpload {
       imageQuality: 85,
     );
     if (picked == null) return null;
-    return uploadFile(File(picked.path), bucket: bucket, folder: folder);
+    return _uploadPicked(picked, bucket: bucket, folder: folder);
+  }
+
+  static Future<String?> pickAndUploadVideo({
+    required String bucket,
+    String folder = 'videos',
+  }) async {
+    final picked = await ImagePicker().pickVideo(source: ImageSource.gallery);
+    if (picked == null) return null;
+    return _uploadPicked(picked, bucket: bucket, folder: folder, isVideo: true);
+  }
+
+  /// قراءة XFile تجعل المعرض يعمل في معاينة Flutter للويب وعلى الجوال معاً.
+  static Future<String> _uploadPicked(
+    XFile file, {
+    required String bucket,
+    required String folder,
+    bool isVideo = false,
+  }) async {
+    final uid = AuthService.instance.user?.id;
+    if (uid == null) throw Exception('يجب تسجيل الدخول لرفع الملفات');
+    final ext = _ext(file.name);
+    if (!(isVideo ? _videoExt : _imageExt).contains(ext)) {
+      throw Exception('نوع الملف غير مسموح');
+    }
+    if (await file.length() > (isVideo ? maxVideoBytes : maxImageBytes)) {
+      throw Exception('حجم الملف أكبر من الحد المسموح');
+    }
+    final path = '$uid/$folder/${_uuid()}.$ext';
+    await sb.storage
+        .from(bucket)
+        .uploadBinary(
+          path,
+          await file.readAsBytes(),
+          fileOptions: FileOptions(
+            cacheControl: '3600',
+            contentType: _mime(ext),
+          ),
+        );
+    return sb.storage.from(bucket).getPublicUrl(path);
   }
 }
