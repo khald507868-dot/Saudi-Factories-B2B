@@ -946,7 +946,7 @@
              عند إنشاء الطلب، فعرض الأساسي هنا يُري
              المشتري مبلغاً غير الذي سيدفعه. */
           var price = unitPrice(product, quantity);
-          total += price * quantity;
+          total += lineAmount(price, quantity);
 
           /* صورة المنتج: رابط Storage فقط — قيم base64 القديمة مقصوصة عند 2048 حرفًا. */
           var img = "";
@@ -986,7 +986,7 @@
           row.querySelector(".ci-unit").innerHTML =
             I18N.money(price.toFixed(2)) + " " + I18N.t("cart_per_unit");
           row.querySelector(".ci-price").innerHTML =
-            I18N.money((price * quantity).toFixed(2));
+            I18N.money(lineAmount(price, quantity).toFixed(2));
           row.querySelector(".ci-count").textContent = quantity;
 
           /* كلّ تغيير يمرّ بالخادم ثمّ يُعاد البناء من ردّه،
@@ -1010,12 +1010,14 @@
             row.querySelector(".ci-unit").innerHTML =
               I18N.money(unit.toFixed(2)) + " " + I18N.t("cart_per_unit");
             row.querySelector(".ci-price").innerHTML =
-              I18N.money((unit * q).toFixed(2));
+              I18N.money(lineAmount(unit, q).toFixed(2));
             var sum = 0;
             items.forEach(function (it) {
               var pp = it.products || {};
               var iq = Number(it.quantity || 0);
-              sum += unitPrice(pp, iq) * iq;
+              /* مجموع الأسطر كما تُعرض، وإلّا
+                 خالف المجموع الجزئيّ جمعَ ما فوقه. */
+              sum += lineAmount(unitPrice(pp, iq), iq);
             });
             /* عبر paintSums لا كتابةً مباشرةً، وإلا أظهرت الزيادة
                والنقصان مجموعاً بلا ضريبة ثم عاد الرقم الكامل
@@ -1122,6 +1124,26 @@
             alert((err && err.message) || "تعذّر إنشاء الطلب");
           });
         };
+      }
+
+      /* مبلغ السطر كما يحسبه المشتري: سعر الوحدة
+         محوّلاً ومقرّباً كما يراه، مضروباً في الكمّية
+         (رصده المالك).
+
+         كان السطر يُضرب بالريال ثمّ يُحوّل، وسعر
+         الوحدة يُحوّل ثمّ يُقرّب — فاختلفا: 150 × 0.53
+         تُقرأ 79.50 وكان المعروض 80.01.
+
+         وبالريال لا فرق: الدالّة تردّ الحاصل نفسه. */
+      function lineAmount(unit, qty) {
+        var cur = window.SFCurrency;
+        if (!cur || !cur.isForeign()) return unit * qty;
+        var dec = cur.info(cur.getCode()).dec;
+        /* الناتج بالعملة الأجنبية، فيُعاد إلى الريال
+           لأنّ money تحوّل مرّة أخرى عند العرض. */
+        var rate = cur.info(cur.getCode()).rate;
+        var shownUnit = Number(cur.convert(unit).toFixed(dec));
+        return (shownUnit * qty) / rate;
       }
 
       /* نفس معادلة create_order_from_cart حرفيّاً.

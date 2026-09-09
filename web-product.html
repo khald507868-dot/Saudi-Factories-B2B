@@ -1601,7 +1601,35 @@
         var val = box.querySelector(".buy-total-value");
         if (!val) { box.hidden = true; return; }
         box.hidden = false;
-        val.innerHTML = I18N.money((unit * readQty()).toFixed(2));
+
+        /* التقريب قبل الضرب لا بعده (رصده المالك):
+           كان الإجمالي يُضرب بالريال ثمّ يُحوّل، وخليّة
+           الشريحة تُحوّل ثمّ تُقرّب — فاختلفا.
+           منها رأى المشتري 1.87 × 100 = 186.69 لا 187.00.
+
+           والأوّل أدقّ حساباً، لكنّ المشتري يضرب
+           الرقم المعروض لا الخفي، فيقرأ الفرق خطأً.
+           والمتاجر تقرّب الوحدة أوّلاً، فالمعروض هو
+           المحاسب عليه.
+
+           وهذا في العرض وحده: الطلب يحسبه الخادم
+           بالريال في create_order_from_cart ولا يقبل مبلغاً
+           من المتصفّح. */
+        var qty = readQty();
+        var cur = window.SFCurrency;
+
+        if (cur && cur.isForeign()) {
+          var dec = cur.info(cur.getCode()).dec;
+          /* سعر الوحدة محوّلاً ومقرّباً — عين ما تعرضه
+             خليّة الشريحة، فالضرب فيه يطابق حساب المشتري. */
+          var shownUnit = Number(cur.convert(unit).toFixed(dec));
+          val.innerHTML = cur.formatNumber(shownUnit * qty) +
+            ' <span class="cur-sym">' + escapeHTML(cur.info(cur.getCode()).sym) +
+            '</span>';
+          return;
+        }
+
+        val.innerHTML = I18N.money((unit * qty).toFixed(2));
       }
 
       /* يُبنى بـDOM لا بسلسلة نصّية، ليُنادى من
