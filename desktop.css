@@ -1870,6 +1870,14 @@
     background: #ffffff;
     border-radius: 14px;
     box-shadow: 0 2px 10px rgba(4, 54, 27, 0.06);
+    /* إطار أخضر خفيف (بطلب المالك) من متغيّر
+       green-frames.css نفسه، لا بلون مكتوب هنا:
+       فيطابق بقيّة البطاقات ويتبعها إن تغيّرت.
+
+       ولم يُزد إلى قائمة green-frames.css لأنّ
+       .actions اسم عامّ: تحمله web-invoice.html
+       لصفّ زرّين مجرّد، فكان سيُأطّر معه. */
+    border: 1px solid var(--sf-product-frame);
   }
 
   /* أزرار أقصر وفواصل أضيق: خمسة أزرار بحشوة
