@@ -1764,9 +1764,13 @@
 
       backBtn.addEventListener("click", closeChat);
 
-      /* البطاقة تلحق أوّل رسالة ثمّ تُستهلك: ما بعدها
-         حديث عاديّ لا يُعاد فيه إرسال المنتج مع كلّ سطر. */
-      sendBtn.addEventListener("click", function () {
+      /* مدخل واحد للإرسال، يناديه الزرّ وEnter معاً:
+         البطاقة تلحق أوّل رسالة ثمّ تُستهلك — وما بعدها
+         حديث عاديّ لا يُعاد فيه إرسال المنتج مع كلّ سطر.
+
+         وكان لكلّ مسار شيفرته، فمن أرسل بـEnter فقد
+         البطاقة — عطلٌ لا يظهر إلا لمن يستعمل Enter. */
+      function submitMessage() {
         if (pendingCardId) {
           var id = pendingCardId;
           pendingCardId = "";
@@ -1774,7 +1778,9 @@
           return;
         }
         sendText();
-      });
+      }
+
+      sendBtn.addEventListener("click", submitMessage);
 
       msgInput.addEventListener("input", function () {
         updateSendState();
@@ -1786,7 +1792,10 @@
       msgInput.addEventListener("keydown", function (e) {
         if (e.key === "Enter" && !e.shiftKey) {
           e.preventDefault();
-          sendText();
+          /* عبر submitMessage لا sendText: الإرسال بـEnter كان
+             يتجاوز البطاقة المعلّقة فلا تلحق الرسالة أبداً —
+             ومسار الزرّ وحده كان يحملها. */
+          submitMessage();
         }
       });
 
