@@ -300,7 +300,11 @@
     padding: 0 24px;
     display: flex;
     align-items: center;
-    gap: 22px;
+    /* مسافة زرّ ☰ عن أوّل فئة وحدها — كانت 22px
+       فبدأت الفئات بعيدة عن الحافة (بطلب المالك).
+       والمسافة بين الفئات نفسها في .dt-catscroll لا هنا،
+       فهي باقية على 22px. */
+    gap: 10px;
     height: 28px;
     flex-direction: row-reverse;
 
