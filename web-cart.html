@@ -651,10 +651,30 @@
 .cart-row .ci-qty button:hover:not(:disabled) { background: #e6ece8; }
 .cart-row .ci-qty button:disabled { opacity: .5; cursor: default; }
 .cart-row .ci-count {
-  min-width: 34px;
+  /* حقل لا span: فيلزم تصفير إطاره وخلفيّته
+     ليبقى شكل المنتقي كما كان. والمقاس 16px
+     في mobile.css بـ!important لمنع تكبير iOS،
+     فلا يُكتب هنا مقاس يُتجاوز. */
+  width: 46px;
+  min-width: 46px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font-family: inherit;
   text-align: center;
   font-weight: 700;
   font-size: 14px;
+  /* الأرقام لاتينيّة دائماً فلا ينعكس ترتيبها. */
+  direction: ltr;
+}
+.cart-row .ci-count:focus {
+  outline: none;
+  /* دليل التركيز لا يُحذف بل يُبدل: من يتنقل
+     بـTab لابدّ أن يرى أين هو. */
+  background: #ffffff;
+  box-shadow: inset 0 0 0 2px #1f6b42;
+  border-radius: 6px;
 }
 .cart-row .ci-remove {
   border: 0;
@@ -968,7 +988,12 @@
               '<strong class="ci-price"></strong>' +
               '<div class="ci-qty">' +
                 '<button type="button" class="ci-minus" aria-label="إنقاص">−</button>' +
-                '<span class="ci-count"></span>' +
+                /* حقل يُكتب فيه لا span (بطلب المالك): من
+                   أراد 200 قطعة كان ينقر مائتي مرّة.
+                   text لا number: سهما number يزدوجان مع
+                   زرّي −/+ وشكلهما يختلف بين المتصفّحات. */
+                '<input type="text" class="ci-count" inputmode="numeric" ' +
+                  'maxlength="6" aria-label="الكمية">' +
                 '<button type="button" class="ci-plus" aria-label="زيادة">+</button>' +
               '</div>' +
               '<button type="button" class="ci-remove">' + I18N.t("cart_remove") + '</button>' +
@@ -987,7 +1012,7 @@
             I18N.money(price.toFixed(2)) + " " + I18N.t("cart_per_unit");
           row.querySelector(".ci-price").innerHTML =
             I18N.money(lineAmount(price, quantity).toFixed(2));
-          row.querySelector(".ci-count").textContent = quantity;
+          row.querySelector(".ci-count").value = quantity;
 
           /* كلّ تغيير يمرّ بالخادم ثمّ يُعاد البناء من ردّه،
              فلا ينحرف المعروض عنّ المحفوظ إن رُفضت الكتابة. */
@@ -1002,7 +1027,11 @@
              المرجع: إن رُفضت الكتابة تُعاد السلة من ردّه. */
           function paint(q) {
             item.quantity = q;
-            row.querySelector(".ci-count").textContent = q;
+            /* لا يُكتب في الحقل والمشتري يكتب فيه:
+               paint تُنادى من الكتابة نفسها، فإسناد
+               القيمة ينقل المؤشّر إلى الطرف ويقطع الكتابة. */
+            var qtyField = row.querySelector(".ci-count");
+            if (document.activeElement !== qtyField) qtyField.value = q;
             /* السعر يُعاد حسابه مع كلّ تغيير: الكمّية
                الجديدة قد تقع في شريحة أخرى، وإمساك السعر
                المحسوب عند التحميل يجمّده على شريحة قديمة. */
@@ -1067,6 +1096,58 @@
           minus.disabled = quantity <= 1;
           minus.addEventListener("click", function () { bump(-1); });
           plus.addEventListener("click", function () { bump(1); });
+
+          /* الكتابة اليدوية تمرّ بنفس مسار الأزرار:
+             paint ثمّ flush بعد سكون 400ms، فلا يتفرّق
+             المنطق ويبقى الخادم المرجع.
+
+             والحدّ الأعلى 100000 هو حدّ الخادم في
+             add_to_cart وفي create_order_from_cart، فمن كتب
+             فوقه يُردّ إليه هنا بدل أن يُرفض طلبه
+             بعد حين. */
+          var MAX_QTY = 100000;
+          var countEl = row.querySelector(".ci-count");
+
+          function readTyped() {
+            /* الأرقام وحدها: لوحات الجوّال تدخل مسافات
+               وفواصل، واللصق يدخل أيّ شيء. */
+            var digits = String(countEl.value || "").replace(/[^0-9]/g, "");
+            if (digits !== countEl.value) countEl.value = digits;
+            return digits === "" ? null : parseInt(digits, 10);
+          }
+
+          countEl.addEventListener("input", function () {
+            var q = readTyped();
+            /* الحقل الفارغ لا يُرسل ولا يُصحّح فوراً:
+               من مسح الرقم ليكتب غيره لا تُقفز تحت
+               يده إلى 1 وهو في أثناء الكتابة. */
+            if (q === null) return;
+            if (q > MAX_QTY) { q = MAX_QTY; countEl.value = String(q); }
+            if (q < 1) return;
+            paint(q);
+            if (item._timer) clearTimeout(item._timer);
+            item._timer = setTimeout(flush, 400);
+          });
+
+          /* مغادرة الحقل تصحّح ما تُرك ناقصاً: فارغاً
+             أو صفراً يعود إلى المحفوز فعلاً، فلا يبقى
+             السطر بلا كمّية ولا يُحسب الطلب على فراغ. */
+          countEl.addEventListener("blur", function () {
+            var q = readTyped();
+            if (q === null || q < 1) {
+              countEl.value = String(Number(item.quantity || 1) || 1);
+            }
+          });
+
+          /* Enter يُرسل فوراً بلا انتطار السكون،
+             ولا يُقدّم نموذجاً فليس الحقل في form. */
+          countEl.addEventListener("keydown", function (e) {
+            if (e.key !== "Enter") return;
+            e.preventDefault();
+            countEl.blur();
+            if (item._timer) { clearTimeout(item._timer); item._timer = null; }
+            flush();
+          });
           del.addEventListener("click", function () {
             if (item._timer) { clearTimeout(item._timer); item._timer = null; }
             minus.disabled = true; plus.disabled = true; del.disabled = true;
