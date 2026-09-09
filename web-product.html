@@ -810,6 +810,36 @@
 
   .buy-total[hidden] { display: none !important; }
 
+  /* بيان المبالغ كما في السلة (بطلب المالك):
+     المشتري يرى ما سيدفعه فعلاً قبل الإضافة،
+     لا مجموع المنتج وحده ثمّ يفاجئه رقم أكبر
+     في السلة. ونفس أسماء أصناف السلة لا تُستعمل:
+     الصفحة مستقلة بتنسيقها. */
+  .buy-sums {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 10px 12px 0;
+    margin-bottom: 8px;
+  }
+
+  .buy-sums[hidden] { display: none !important; }
+
+  .buy-sum-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    font-size: 12px;
+    color: #5c6b62;
+  }
+
+  /* المبالغ لاتينيّة دائماً فلا ينعكس ترتيبها. */
+  .buy-sum-row > span:last-child {
+    direction: ltr;
+    color: #12331d;
+    font-weight: 600;
+  }
+
   .tier-cell {
     position: relative;
     flex: 1 1 92px;
@@ -1364,6 +1394,7 @@
               '</div>' +
               /* الإجمالي بين الكمّية والأزرار: موضعه في مسار
                  العين قبل الضغط. يُملأ من renderTiers. */
+              '<div class="buy-sums" id="buy-sums" hidden></div>' +
               '<div class="buy-total" id="buy-total" hidden>' +
                 '<span class="buy-total-label">' +
                   escapeHTML(I18N.t("prod_total")) + '</span>' +
@@ -1758,6 +1789,25 @@
         paintBuyTotal(active >= 0 ? list[active].price : null);
       }
 
+      /* نفس معادلة create_order_from_cart حرفيّاً،
+         ونفس قيم web-cart.html — وموضعان يحملان
+         الأرقام نفسها، فتغييرها تعديل ثلاثيّ: الهجرة
+         والسلة وهنا.
+
+         وهذا عرض لا حساب ملزِم: الخادم يعيد
+         الحساب عند إنشاء الطلب ولا يقبل من
+         المتصفّح مبلغاً. */
+      var BUY_SHIPPING = 30, BUY_FEE_RATE = 0.01, BUY_VAT_RATE = 0.15;
+
+      /* مبلغ محوّلاً ومنسّقاً مع رمزه. والتقريب
+         هنا بعد الحساب لا قبله، لأنّ الرسوم
+         والضريبة نسب على أرقام بالريال، ومعادلتها
+         مطابقة للخادم — فتقريبها بالعملة يُخالف
+         ما يحسبه فعلاً. */
+      function buyMoney(sarValue) {
+        return I18N.money(Number(sarValue).toFixed(2));
+      }
+
       /* الإجمالي = سعر الوحدة × الكمّية. وسعر الوحدة
          من الشريحة المطبّقة، وإلّا فمن الأساسيّ.
          وبلا سعر يُخفى الصندوق: صفر لا يقول شيئاً. */
@@ -1765,12 +1815,20 @@
         var box = document.getElementById("buy-total");
         if (!box) return;
 
+        /* البيان يختفي مع الصندوق: رسوم وضريبة
+           بلا مبلغ لا تقول شيئاً. */
+        function hideAll() {
+          box.hidden = true;
+          var sums = document.getElementById("buy-sums");
+          if (sums) sums.hidden = true;
+        }
+
         var unit = parseFloat(unitPrice);
         if (!isFinite(unit) || unit <= 0) unit = parseFloat(basePriceText);
-        if (!isFinite(unit) || unit <= 0) { box.hidden = true; return; }
+        if (!isFinite(unit) || unit <= 0) { hideAll(); return; }
 
         var val = box.querySelector(".buy-total-value");
-        if (!val) { box.hidden = true; return; }
+        if (!val) { hideAll(); return; }
         box.hidden = false;
 
         /* التقريب قبل الضرب لا بعده (رصده المالك):
@@ -1789,24 +1847,85 @@
         var qty = readQty();
         var cur = window.SFCurrency;
 
+        /* مجموع المنتج بالريال: منه تُحسب
+           الرسوم والضريبة كما يفعل الخادم. */
+        var subtotalSar;
         if (cur && cur.isForeign()) {
+          /* سعر الوحدة محوّلاً ومقرّباً ثمّ مضروباً،
+             ثمّ يُردّ إلى الريال ليبني بقيّة البيان
+             على أرقام الخادم نفسها. */
           var dec = cur.info(cur.getCode()).dec;
-          /* سعر الوحدة محوّلاً ومقرّباً — عين ما تعرضه
-             خليّة الشريحة، فالضرب فيه يطابق حساب المشتري. */
+          var rate = cur.info(cur.getCode()).rate;
           var shownUnit = Number(cur.convert(unit).toFixed(dec));
-          val.innerHTML = cur.formatNumber(shownUnit * qty) +
-            ' <span class="cur-sym">' + escapeHTML(cur.info(cur.getCode()).sym) +
-            '</span>';
-          return;
+          subtotalSar = (shownUnit * qty) / rate;
+        } else {
+          subtotalSar = unit * qty;
         }
 
-        val.innerHTML = I18N.money((unit * qty).toFixed(2));
+        var fee = Math.round((subtotalSar + BUY_SHIPPING) * BUY_FEE_RATE * 100) / 100;
+        var taxable = subtotalSar + BUY_SHIPPING + fee;
+        var vat = Math.round(taxable * BUY_VAT_RATE * 100) / 100;
+
+        paintBuySums(subtotalSar, fee, vat);
+        val.innerHTML = buyMoney(taxable + vat);
+      }
+
+      /* صفوف البيان. وتُبنى مرّةً واحدةً ثمّ
+         تُحدّث، لا تُعاد بناءً مع كلّ ضغطة كمّية. */
+      function paintBuySums(subtotal, fee, vat) {
+        var host = document.getElementById("buy-sums");
+        if (!host) return;
+
+        if (!host.childNodes.length) {
+          [
+            ["order_subtotal",    "bs-subtotal"],
+            ["order_shipping",    "bs-shipping"],
+            ["order_payment_fee", "bs-fee"],
+            ["order_vat",         "bs-vat"]
+          ].forEach(function (pair) {
+            var row = document.createElement("div");
+            row.className = "buy-sum-row";
+
+            var lbl = document.createElement("span");
+            lbl.setAttribute("data-i18n", pair[0]);
+            lbl.textContent = I18N.t(pair[0]);
+            row.appendChild(lbl);
+
+            var v = document.createElement("span");
+            v.id = pair[1];
+            row.appendChild(v);
+
+            host.appendChild(row);
+          });
+        }
+
+        function put(id, sar) {
+          var el = document.getElementById(id);
+          if (el) el.innerHTML = buyMoney(sar);
+        }
+        put("bs-subtotal", subtotal);
+        put("bs-shipping", BUY_SHIPPING);
+        put("bs-fee", fee);
+        put("bs-vat", vat);
+
+        host.hidden = false;
       }
 
       /* يُبنى بـDOM لا بسلسلة نصّية، ليُنادى من
          المسارين: رسمة الخادم الأولى، وإعادة البناء
          حين يصل معرّف المنتج متأخّراً. */
       function buildBuyTotal() {
+        /* حاوية تجمع البيان والإجمالي: المنادي
+           يدرج عنصراً واحداً، فلو أُرجعا منفردين
+           لما دُرج البيان أبداً. */
+        var frag = document.createDocumentFragment();
+
+        var sums = document.createElement("div");
+        sums.className = "buy-sums";
+        sums.id = "buy-sums";
+        sums.hidden = true;
+        frag.appendChild(sums);
+
         var box = document.createElement("div");
         box.className = "buy-total";
         box.id = "buy-total";
@@ -1821,7 +1940,8 @@
         val.className = "buy-total-value";
         box.appendChild(val);
 
-        return box;
+        frag.appendChild(box);
+        return frag;
       }
 
       function buildQtyPicker() {
