@@ -49,23 +49,6 @@
     color: #04361b;
   }
 
-  .delivery-line {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    color: #04361b;
-    font-size: 12.5px;
-  }
-
-  .delivery-line svg {
-    width: 13px;
-    height: 13px;
-    stroke: #04361b;
-    fill: none;
-    stroke-width: 2;
-    flex-shrink: 0;
-  }
-
   /* ===== حالة العربة الفارغة ===== */
   .empty-state {
     display: flex;
@@ -680,13 +663,11 @@
 
 
   <header class="top-bar">
-    <div style="display:flex; flex-direction:column; align-items:flex-end; gap:3px;">
-      <h1 data-i18n="cart_page_heading">عربة التسوق</h1>
-      <span class="delivery-line">
-        <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s7-6.5 7-12a7 7 0 1 0-14 0c0 5.5 7 12 7 12z"></path><circle cx="12" cy="10" r="2.5"></circle></svg>
-        <span data-i18n="cart_delivery_location">التوصيل إلى المملكة العربية السعودية</span>
-      </span>
-    </div>
+    <!-- سطر «التوصيل إلى السعودية» حُذف (بطلب
+         المالك): شكل لا وظيفة — لا يقرأ عنواناً
+         ولا يُغيّر شيئاً. ومعه زال الغلاف العموديّ
+         لأنّه صار يحوي العنوان وحده. -->
+    <h1 data-i18n="cart_page_heading">عربة التسوق</h1>
   </header>
 
   <div id="cart-items" style="display:none; margin:16px 14px 0;"></div>
