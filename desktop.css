@@ -721,6 +721,34 @@
 
   .bestsellers-grid .product-card {
     transition: box-shadow 0.18s, transform 0.18s;
+    /* بطاقات متساوية الارتفاع: بطاقة ذات تقييم
+       أطول من جاراتها، فيقع سطر «موثّق» على
+       ارتفاع مختلف في كلّ بطاقة ويبدو الصفّ مهلهلاً. */
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+
+  /* الخلية تمتدّ على ارتفاع الصفّ لترثه
+     البطاقة بـheight: 100%. */
+  .bestsellers-grid .product-cell {
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* المتن يأخذ الفائض، وسطر الموثّق يُدفع إلى
+     القاع فيستوي في البطاقات كلّها. */
+  .bestsellers-grid .product-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .bestsellers-grid .product-meta {
+    /* auto يدفعه للقاع، والحشوة تحفظ فاصل الـ
+       5px الذي كان margin-top يرسمه. */
+    margin-top: auto;
+    padding-top: 5px;
   }
 
   .bestsellers-grid .product-card:hover {
