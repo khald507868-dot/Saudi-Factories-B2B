@@ -149,6 +149,31 @@
     box-shadow: 0 2px 10px rgba(4, 54, 27, 0.06);
   }
 
+  /* ===== هيكل التحميل =====
+     يُعرض ريثما يردّ الخادم حين لا تحمل
+     النسخة المحلّية المنتج، بدل عرض اسم المصنع
+     و«السعر عند الطلب» ثمّ انقلابهما. */
+  .sk-line {
+    background: #eef2ef;
+    border-radius: 6px;
+    /* العنصر فارغ فلا ارتفاع له من نصّه. */
+    height: 1em;
+    animation: sk-pulse 1.4s ease-in-out infinite;
+  }
+
+  .sk-name { width: 62%; }
+  .sk-price { width: 34%; }
+
+  @keyframes sk-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.45; }
+  }
+
+  /* من طلب تقليل الحركة يرى رماديّاً ثابتاً. */
+  @media (prefers-reduced-motion: reduce) {
+    .sk-line { animation: none; }
+  }
+
   .prod-name {
     font-size: 19px;
     font-weight: 700;
@@ -1073,9 +1098,11 @@
         '<path d="M3 21h18"/><path d="M4 21V10l5 3V10l5 3V10l5 3v8"/>' +
         '<path d="M4 10 5 4h3l1 6"/></svg>';
 
-      /* ===== البيانات =====
-         نفس مصدر بطاقات الرئيسية: sf_factories في localStorage.
-         فالمنتجات ما زالت محليّة ولم تُربط بقاعدة البيانات. */
+      /* ===== الرسمة الأولى =====
+         من sf_factories في localStorage، ريثما يردّ الخادم.
+         والتعليق هنا كان يقول إنّ المنتجات محلّية لم تُربط
+         بالقاعدة — وقد بطل: هي تُقرأ من products، فالنسخة
+         المحلّية غالباً فارغة، ولذلك جاء هيكل التحميل. */
       var factories = {};
       try {
         factories = JSON.parse(localStorage.getItem("sf_factories") || "{}") || {};
@@ -1095,6 +1122,17 @@
       var image = product.image || "";
       var name  = product.name  || factory.name  || "";
       var price = product.price || "";
+
+      /* هل تحمل النسخة المحلّية هذا المنتج فعلاً؟
+         المنتجات صارت تُقرأ من القاعدة، فـlocalStorage
+         غالباً فارغ منه. وحينئذٍ ترسم الصفحة اسم
+         المصنع مكان اسم المنتج و«السعر عند الطلب»
+         مكان السعر، ثمّ تنقلب حين يردّ الخادم — ومضة
+         تُقرأ معلومةً خاطئة (رصدها المالك).
+
+         فإن غاب المنتج محلّيّاً يُعرض هيكل تحميل،
+         وإن حضر بقيت الرسمة المحلّية فهي نافعة حقّاً. */
+      var hasLocalProduct = !!(product && (product.name || product.price));
 
       /* القيم التجميلية مشتقّة من رقم المصنع لتطابق البطاقة
          في الرئيسية بالضبط — نفس المعادلتين هناك. */
@@ -1131,8 +1169,12 @@
          السعر بالريال مهما اختار الزائر. */
       var priceBlock = price
         ? '<div class="prod-price">' + I18N.money(price) + '</div>'
-        : '<div class="prod-price on-request">' +
-          escapeHTML(I18N.t("product_price_on_request")) + '</div>';
+        : (hasLocalProduct
+            /* منتج معروف بلا سعر: «عند الطلب» صحيح. */
+            ? '<div class="prod-price on-request">' +
+              escapeHTML(I18N.t("product_price_on_request")) + '</div>'
+            /* منتج مجهول بعد: هيكل لا دعوى كاذبة. */
+            : '<div class="prod-price sk-line sk-price"></div>');
 
       /* بطاقة الوصف: تُحذف كلياً إن كان فارغاً بدل أن تظهر
          بعنوان بلا محتوى. */
@@ -1174,6 +1216,13 @@
          تسمية المصنع برقمه — فلا يبقى العنوان فارغاً. */
       var displayName = name || factoryName;
 
+      /* اسم المصنع ليس اسم المنتج: عرضه مكانه
+         حتّى يردّ الخادم يُوهِم الزائر. */
+      var nameHTML = hasLocalProduct
+        ? '<div class="prod-name" data-sf-translate>' +
+          escapeHTML(displayName) + '</div>'
+        : '<div class="prod-name sk-line sk-name"></div>';
+
       var SUPPLIER_HTML =
         '<div class="card supplier-card">' +
           '<h2>' + escapeHTML(I18N.t("product_supplier_label")) + '</h2>' +
@@ -1211,7 +1260,7 @@
         '<div class="pd-info">' +
 
         '<div class="card">' +
-          '<div class="prod-name" data-sf-translate>' + escapeHTML(displayName) + '</div>' +
+          nameHTML +
           /* يُملأ من الخادم بعد الرسم، ويبقى مخفيّاً
              إن لم يكن للمنتج تقييم. */
           '<div class="prod-rate" id="prod-rate" hidden></div>' +
@@ -2133,6 +2182,9 @@
         if (title) {
           title.textContent = row.name || factory.name || factoryName;
           title.removeAttribute("data-sf-src");
+          /* نزع الهيكل: الكتابة أعلاه تملأ النصّ
+             ولا تمسّ الأصناف، فيبقى الرمادي فوق الاسم. */
+          title.classList.remove("sk-line", "sk-name");
         }
         /* الشرائح من الخادم تحلّ محلّ المحلّية */
         if (row.price != null && row.price !== "") {
@@ -2165,6 +2217,8 @@
 
         var priceEl = wrap.querySelector(".prod-price");
         if (priceEl) {
+          /* إسناد className كاملاً ينزع أصناف
+             الهيكل معه، فلا يحتاج سطراً زائداً. */
           priceEl.className = row.price ? "prod-price" : "prod-price on-request";
           priceEl.innerHTML = row.price
             ? I18N.money(row.price)
@@ -2256,10 +2310,32 @@
              أمّا ردّ ناجح بلا صفّ فيعني أنّ المنتج لا
              وجود له — فعرض مسودة محلّية يوهم المشتري
              بمنتج ليس في المنصّة (بطلب المالك). */
-          if (!res || res.error) return;
+          if (!res || res.error) { clearSkeleton(); return; }
           if (!res.data) { showMissingProduct(); return; }
           applyLiveProduct(res.data);
-        }).catch(function () {});
+        }).catch(function () { clearSkeleton(); });
+      } else {
+        clearSkeleton();
+      }
+
+      /* الهيكل ينتظر الخادم، فإن لم يردّ وجب أن يعود
+         إلى نصّ يُقرأ بدل رماديّ ينبض بلا نهاية:
+         تعذّر الاتّصال، أو غياب sb أصلاً. */
+      function clearSkeleton() {
+        var wrap = document.getElementById("content-wrap");
+        if (!wrap) return;
+
+        var title = wrap.querySelector(".prod-name.sk-line");
+        if (title) {
+          title.classList.remove("sk-line", "sk-name");
+          title.textContent = displayName;
+        }
+
+        var priceEl = wrap.querySelector(".prod-price.sk-line");
+        if (priceEl) {
+          priceEl.className = "prod-price on-request";
+          priceEl.textContent = I18N.t("product_price_on_request");
+        }
       }
 
       /* منتج طلبه الزائر ولا وجود له في القاعدة. */
