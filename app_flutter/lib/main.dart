@@ -25,7 +25,7 @@ Future<void> main() async {
   await SFCurrency.instance.load();
   // إبلاغ الصفحات التي تعتمد على I18nScope بتغيّر عملة العرض أيضاً.
   SFCurrency.instance.addListener(i18n.refreshDisplay);
-  // لا ننتظر اكتمال قراءة الملف الشخصي — شاشة البداية تنتظرها.
+  // يُقرأ المستخدم فورًا، ويُحمّل ملفه أثناء عرض الترحيب ذي الثلاث ثوانٍ.
   AuthService.instance.start();
   runApp(SaudiFactoriesApp(i18n: i18n));
 }
@@ -100,14 +100,24 @@ class _PhoneColumn extends StatelessWidget {
         child: ClipRect(
           child: SizedBox(
             width: maxWidth,
-            child: MediaQuery(
-              // مهم: يجب تصحيح عرض MediaQuery أيضاً، وإلا ظلّت
-              // الشاشات تحسب تخطيطها على عرض النافذة الكامل
-              // (مثل شبكة المنتجات) وهي داخل عمود ضيّق.
-              data: MediaQuery.of(context).copyWith(
-                size: Size(maxWidth, MediaQuery.sizeOf(context).height),
+            child: DecoratedBox(
+              // فوق محتوى المسارات كي تبقى الحدود ظاهرة على كل الصفحات.
+              position: DecorationPosition.foreground,
+              decoration: const BoxDecoration(
+                border: Border(
+                  left: BorderSide(color: SFColors.border),
+                  right: BorderSide(color: SFColors.border),
+                ),
               ),
-              child: child,
+              child: MediaQuery(
+                // مهم: يجب تصحيح عرض MediaQuery أيضاً، وإلا ظلّت
+                // الشاشات تحسب تخطيطها على عرض النافذة الكامل
+                // (مثل شبكة المنتجات) وهي داخل عمود ضيّق.
+                data: MediaQuery.of(context).copyWith(
+                  size: Size(maxWidth, MediaQuery.sizeOf(context).height),
+                ),
+                child: child,
+              ),
             ),
           ),
         ),
