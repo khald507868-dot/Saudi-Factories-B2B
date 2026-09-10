@@ -68,8 +68,8 @@ class SFTopBar extends StatelessWidget implements PreferredSizeWidget {
             title ?? context.t('app_title'),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              fontSize: 17,
+            style: TextStyle(
+              fontSize: compact ? 15 : 17,
               fontWeight: FontWeight.w700,
               color: SFColors.darkGreen,
             ),

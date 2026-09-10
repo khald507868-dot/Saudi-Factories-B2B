@@ -91,6 +91,7 @@ class _FactoriesPageState extends State<FactoriesPage> {
     return Scaffold(
       backgroundColor: SFColors.pageBg,
       appBar: SFTopBar(
+        compact: true,
         title: widget.initialCategory != null
             ? _categoryName(i18n, widget.initialCategory!)
             : widget.initialRegion != null
