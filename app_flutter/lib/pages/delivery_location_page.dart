@@ -209,15 +209,6 @@ class _DeliveryLocationPageState extends State<DeliveryLocationPage> {
     });
   }
 
-  Future<void> _enterCoordinates() async {
-    final point = await showDialog<LatLng>(
-      context: context,
-      builder: (_) => _CoordinatesDialog(point: _hasSelection ? _point : null),
-    );
-    if (!mounted || point == null) return;
-    _pickPoint(point, moveMap: true);
-  }
-
   void _retryTiles() {
     setState(() {
       _tileFailed = false;
@@ -664,14 +655,6 @@ class _DeliveryLocationPageState extends State<DeliveryLocationPage> {
                   : null,
               child: Text(context.t('delivery_confirm_location')),
             ),
-            TextButton(
-              onPressed: _enterCoordinates,
-              style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
-              child: Text(
-                context.t('delivery_manual_coordinates'),
-                style: const TextStyle(fontSize: 12),
-              ),
-            ),
           ],
         ),
       ),
@@ -708,99 +691,5 @@ class _MapButton extends StatelessWidget {
             )
           : Icon(icon, size: 22),
     ),
-  );
-}
-
-class _CoordinatesDialog extends StatefulWidget {
-  const _CoordinatesDialog({this.point});
-  final LatLng? point;
-
-  @override
-  State<_CoordinatesDialog> createState() => _CoordinatesDialogState();
-}
-
-class _CoordinatesDialogState extends State<_CoordinatesDialog> {
-  late final _latitude = TextEditingController(
-    text: widget.point?.latitude.toStringAsFixed(5) ?? '',
-  );
-  late final _longitude = TextEditingController(
-    text: widget.point?.longitude.toStringAsFixed(5) ?? '',
-  );
-  bool _invalid = false;
-
-  @override
-  void dispose() {
-    _latitude.dispose();
-    _longitude.dispose();
-    super.dispose();
-  }
-
-  void _confirm() {
-    final latitude = double.tryParse(_latitude.text.trim());
-    final longitude = double.tryParse(_longitude.text.trim());
-    if (latitude == null ||
-        longitude == null ||
-        !DeliveryLocation.validCoordinates(latitude, longitude) ||
-        latitude.abs() > 85) {
-      setState(() {
-        _invalid = true;
-      });
-      return;
-    }
-    Navigator.pop(context, LatLng(latitude, longitude));
-  }
-
-  @override
-  Widget build(BuildContext context) => AlertDialog(
-    title: Text(context.t('delivery_manual_coordinates')),
-    content: SingleChildScrollView(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          TextField(
-            controller: _latitude,
-            textDirection: TextDirection.ltr,
-            keyboardType: const TextInputType.numberWithOptions(
-              decimal: true,
-              signed: true,
-            ),
-            decoration: InputDecoration(
-              labelText: context.t('delivery_latitude'),
-            ),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _longitude,
-            textDirection: TextDirection.ltr,
-            keyboardType: const TextInputType.numberWithOptions(
-              decimal: true,
-              signed: true,
-            ),
-            onSubmitted: (_) => _confirm(),
-            decoration: InputDecoration(
-              labelText: context.t('delivery_longitude'),
-            ),
-          ),
-          if (_invalid)
-            Padding(
-              padding: const EdgeInsets.only(top: 10),
-              child: Text(
-                context.t('delivery_coordinates_invalid'),
-                style: const TextStyle(color: SFColors.danger),
-              ),
-            ),
-        ],
-      ),
-    ),
-    actions: [
-      TextButton(
-        onPressed: () => Navigator.pop(context),
-        child: Text(context.t('msg_cancel')),
-      ),
-      TextButton(
-        onPressed: _confirm,
-        child: Text(context.t('delivery_confirm_location')),
-      ),
-    ],
   );
 }
