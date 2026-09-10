@@ -61,7 +61,7 @@ class SaudiFactoriesApp extends StatelessWidget {
               // اتجاه الكتابة يتبع اللغة المختارة، لا لغة الجهاز.
               return Directionality(
                 textDirection: i18n.direction,
-                child: _PhoneColumn(child: child ?? const SizedBox.shrink()),
+                child: PhoneColumn(child: child ?? const SizedBox.shrink()),
               );
             },
             home: const SplashPage(),
@@ -80,8 +80,8 @@ class SaudiFactoriesApp extends StatelessWidget {
 ///
 /// على الجوال الحقيقي لا يفعل هذا شيئاً — العرض أصلاً أضيق من
 /// الحدّ، فيمرّ الطفل كما هو.
-class _PhoneColumn extends StatelessWidget {
-  const _PhoneColumn({required this.child});
+class PhoneColumn extends StatelessWidget {
+  const PhoneColumn({super.key, required this.child});
 
   final Widget child;
 
@@ -98,6 +98,8 @@ class _PhoneColumn extends StatelessWidget {
       color: SFColors.pageBg,
       child: Center(
         child: ClipRect(
+          // سطح مستقل يمنع تمويه الأشرطة من سحب الهامش الأبيض الخارجي.
+          clipBehavior: Clip.antiAliasWithSaveLayer,
           child: SizedBox(
             width: maxWidth,
             child: DecoratedBox(
