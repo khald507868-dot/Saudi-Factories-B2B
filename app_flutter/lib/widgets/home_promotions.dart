@@ -6,7 +6,7 @@ import '../core/theme.dart';
 import '../services/promotion_service.dart';
 import 'common.dart';
 
-/// مكان الإعلانات ثابت في ترتيب الرئيسية، وإدارته تظهر للمشرف وحده.
+/// مكان الإعلانات ثابت في ترتيب الرئيسية، والإضافة من المساحة الفارغة للمشرف وحده.
 class HomePromotions extends StatelessWidget {
   const HomePromotions({
     super.key,
@@ -70,18 +70,6 @@ class HomePromotions extends StatelessWidget {
                   ),
                 ),
               ),
-            if (onManage != null)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Align(
-                  alignment: AlignmentDirectional.centerEnd,
-                  child: TextButton.icon(
-                    onPressed: onManage,
-                    icon: const Icon(Icons.campaign_outlined, size: 18),
-                    label: Text(context.t('promo_manage')),
-                  ),
-                ),
-              ),
             if (snapshot.hasError && onManage != null)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -98,7 +86,7 @@ class HomePromotions extends StatelessWidget {
   );
 }
 
-/// يعرض الصورة كاملة كي لا تُقصّ كتابة العرض أو شروطه.
+/// تملأ الصورة مساحة الإعلان من الحافة إلى الحافة مع الحفاظ على تناسبها.
 /// السحب يدوي، فلا يختفي الإعلان أثناء قراءته.
 class PromotionCarousel extends StatefulWidget {
   const PromotionCarousel({super.key, required this.promotions, this.onOpen});
@@ -113,6 +101,57 @@ class PromotionCarousel extends StatefulWidget {
 class _PromotionCarouselState extends State<PromotionCarousel> {
   final _controller = PageController();
   int _page = 0;
+  double _aspectRatio = 2.4;
+  String? _imageUrl;
+  ImageStream? _imageStream;
+  ImageStreamListener? _imageListener;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _watchImageSize();
+  }
+
+  void _watchImageSize() {
+    if (widget.promotions.isEmpty) {
+      _stopWatchingImage();
+      _imageUrl = null;
+      _aspectRatio = 2.4;
+      return;
+    }
+    final url = widget.promotions[_page].imageUrl;
+    if (url == _imageUrl) return;
+    _stopWatchingImage();
+    _imageUrl = url;
+    _aspectRatio = 2.4;
+    final stream = NetworkImage(url)
+        .resolve(createLocalImageConfiguration(context));
+    _imageStream = stream;
+    _imageListener = ImageStreamListener(
+      (info, synchronousCall) {
+        final ratio = info.image.width / info.image.height;
+        info.dispose();
+        // The cached image may resolve while the carousel is building.
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted || _imageStream != stream) return;
+          _stopWatchingImage();
+          if (_aspectRatio != ratio) setState(() => _aspectRatio = ratio);
+        });
+      },
+      onError: (Object error, StackTrace? stack) {
+        // Image.network below displays the existing error fallback.
+      },
+    );
+    _imageStream!.addListener(_imageListener!);
+  }
+
+  void _stopWatchingImage() {
+    if (_imageStream != null && _imageListener != null) {
+      _imageStream!.removeListener(_imageListener!);
+    }
+    _imageStream = null;
+    _imageListener = null;
+  }
 
   @override
   void didUpdateWidget(covariant PromotionCarousel oldWidget) {
@@ -125,10 +164,12 @@ class _PromotionCarouselState extends State<PromotionCarousel> {
         if (mounted && _controller.hasClients) _controller.jumpToPage(0);
       });
     }
+    _watchImageSize();
   }
 
   @override
   void dispose() {
+    _stopWatchingImage();
     _controller.dispose();
     super.dispose();
   }
@@ -177,12 +218,15 @@ class _PromotionCarouselState extends State<PromotionCarousel> {
           decoration: const BoxDecoration(color: SFColors.white),
           clipBehavior: Clip.hardEdge,
           child: AspectRatio(
-            aspectRatio: 2.4,
+            aspectRatio: _aspectRatio,
             child: PageView.builder(
               key: const ValueKey('home-promotion-pages'),
               controller: _controller,
               itemCount: widget.promotions.length,
-              onPageChanged: (page) => setState(() => _page = page),
+              onPageChanged: (page) => setState(() {
+                _page = page;
+                _watchImageSize();
+              }),
               itemBuilder: (context, index) {
                 final promotion = widget.promotions[index];
                 final hasLink = promotion.targetUrl.isNotEmpty;
@@ -201,7 +245,7 @@ class _PromotionCarouselState extends State<PromotionCarousel> {
                         promotion.imageUrl,
                         width: double.infinity,
                         height: double.infinity,
-                        fit: BoxFit.contain,
+                        fit: BoxFit.cover,
                         loadingBuilder: (context, child, progress) =>
                             progress == null
                             ? child

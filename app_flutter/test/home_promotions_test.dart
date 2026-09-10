@@ -95,42 +95,43 @@ void main() {
   });
 
   for (final language in ['ar', 'en']) {
-    testWidgets('التنقّل والروابط والصورة كاملة على عرض 320: $language', (
-      tester,
-    ) async {
-      SFPromotion? opened;
-      await tester.pumpWidget(
-        host(
-          PromotionCarousel(
-            promotions: const [first, second],
-            onOpen: (item) => opened = item,
+    testWidgets(
+      'التنقّل والروابط والصورة تملأ المساحة على عرض 320: $language',
+      (tester) async {
+        SFPromotion? opened;
+        await tester.pumpWidget(
+          host(
+            PromotionCarousel(
+              promotions: const [first, second],
+              onOpen: (item) => opened = item,
+            ),
+            language: language,
           ),
-          language: language,
-        ),
-      );
-      await tester.pumpAndSettle();
-      expect(
-        tester.getSize(find.byType(PageView)).width,
-        lessThanOrEqualTo(320),
-      );
-      expect(
-        tester.widget<Image>(find.byType(Image).first).fit,
-        BoxFit.contain,
-      );
-      await tester.tap(find.byType(PageView));
-      expect(opened?.id, first.id);
-      final dots = find.byType(InkResponse);
-      // InkWell ليس InkResponse من حيث نوع runtime الذي يفحصه Finder.
-      expect(dots, findsNWidgets(2));
-      await tester.tap(dots.last);
-      await tester.pumpAndSettle();
-      final pager = tester.widget<PageView>(find.byType(PageView));
-      expect(pager.controller!.page, 1);
-      opened = null;
-      await tester.tap(find.byType(PageView));
-      expect(opened, isNull);
-      expect(tester.takeException(), isNull);
-    });
+        );
+        await tester.pumpAndSettle();
+        expect(
+          tester.getSize(find.byType(PageView)).width,
+          lessThanOrEqualTo(320),
+        );
+        expect(
+          tester.widget<Image>(find.byType(Image).first).fit,
+          BoxFit.cover,
+        );
+        await tester.tap(find.byType(PageView));
+        expect(opened?.id, first.id);
+        final dots = find.byType(InkResponse);
+        // InkWell ليس InkResponse من حيث نوع runtime الذي يفحصه Finder.
+        expect(dots, findsNWidgets(2));
+        await tester.tap(dots.last);
+        await tester.pumpAndSettle();
+        final pager = tester.widget<PageView>(find.byType(PageView));
+        expect(pager.controller!.page, 1);
+        opened = null;
+        await tester.tap(find.byType(PageView));
+        expect(opened, isNull);
+        expect(tester.takeException(), isNull);
+      },
+    );
   }
 
   testWidgets('حذف الإعلان الحالي يعيد المؤشر إلى صورة موجودة دون خطأ', (
