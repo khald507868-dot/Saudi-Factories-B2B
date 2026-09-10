@@ -247,17 +247,15 @@ class _CategoriesStrip extends StatelessWidget {
                   Container(
                     width: 80,
                     height: 80,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: SFColors.surfaceAlt,
+                    foregroundDecoration: BoxDecoration(
                       border: Border.all(color: SFColors.border),
                       borderRadius: BorderRadius.circular(SFMetrics.radius),
                     ),
                     child: SFImage(
                       url: images[i18n.categoryKey(cat)] ?? '',
-                      width: 68,
-                      height: 68,
-                      radius: 9,
+                      width: 80,
+                      height: 80,
+                      radius: SFMetrics.radius,
                       placeholderIcon: Icons.category_outlined,
                     ),
                   ),
