@@ -82,10 +82,11 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       backgroundColor: SFColors.pageBg,
       appBar: SFTopBar(
+        compact: true,
         titleWidget: const Align(
           alignment: Alignment.centerLeft,
           heightFactor: 1,
-          child: Wordmark(),
+          child: Wordmark(fontSize: 15, width: 138),
         ),
         searchHint: i18n.t('search_placeholder'),
         onSearchSubmitted: (q) {

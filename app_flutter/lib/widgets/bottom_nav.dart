@@ -44,12 +44,12 @@ class SFBottomNav extends StatelessWidget {
     final reduceMotion = MediaQuery.disableAnimationsOf(context);
 
     return Padding(
-      padding: EdgeInsets.fromLTRB(18, 6, 18, 8 + bottomInset),
+      padding: EdgeInsets.fromLTRB(18, 4, 18, 6 + bottomInset),
       child: Center(
         heightFactor: 1,
         child: SizedBox(
           key: const ValueKey('sf-bottom-nav-surface'),
-          width: 380,
+          width: double.infinity,
           height: SFMetrics.bottomNavHeight,
           child: DecoratedBox(
             decoration: BoxDecoration(
@@ -84,7 +84,7 @@ class SFBottomNav extends StatelessWidget {
                     ),
                   ),
                   child: Padding(
-                    padding: const EdgeInsets.all(4),
+                    padding: const EdgeInsets.all(3),
                     child: LayoutBuilder(
                       builder: (context, constraints) {
                         final itemWidth = constraints.maxWidth / _items.length;
@@ -175,27 +175,27 @@ class SFBottomNav extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               SizedBox(
-                width: 32,
-                height: 24,
+                width: 28,
+                height: 22,
                 child: Stack(
                   clipBehavior: Clip.none,
                   alignment: Alignment.center,
                   children: [
-                    Icon(icon, size: 22, color: SFColors.darkGreen),
+                    Icon(icon, size: 20, color: SFColors.darkGreen),
                     if (badge > 0)
                       PositionedDirectional(
-                        end: 2,
-                        top: -4,
+                        end: 1,
+                        top: -2,
                         child: IgnorePointer(child: _Badge(count: badge)),
                       ),
                   ],
                 ),
               ),
-              const SizedBox(height: 2),
+              const SizedBox(height: 1),
               Text(
                 context.t(tab == SFTab.cart ? 'nav_cart_short' : key),
                 style: TextStyle(
-                  fontSize: 10,
+                  fontSize: 9.5,
                   height: 1.2,
                   fontWeight: active ? FontWeight.w800 : FontWeight.w500,
                   color: SFColors.darkGreen,
@@ -220,9 +220,9 @@ class _Badge extends StatelessWidget {
   Widget build(BuildContext context) {
     final label = count > 99 ? '99+' : '$count';
     return Container(
-      constraints: const BoxConstraints(minWidth: 16),
-      height: 16,
-      padding: const EdgeInsets.symmetric(horizontal: 3),
+      constraints: const BoxConstraints(minWidth: 14),
+      height: 14,
+      padding: const EdgeInsets.symmetric(horizontal: 2),
       decoration: BoxDecoration(
         color: SFColors.danger,
         border: Border.all(color: SFColors.white, width: 1.5),
@@ -234,7 +234,7 @@ class _Badge extends StatelessWidget {
         textDirection: TextDirection.ltr,
         style: const TextStyle(
           color: SFColors.white,
-          fontSize: 8,
+          fontSize: 7.5,
           fontWeight: FontWeight.w700,
           height: 1,
         ),

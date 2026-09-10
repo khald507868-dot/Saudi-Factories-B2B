@@ -19,6 +19,7 @@ class SFTopBar extends StatelessWidget implements PreferredSizeWidget {
     this.actions,
     this.leading,
     this.showBack = false,
+    this.compact = false,
   });
 
   final String? title;
@@ -28,17 +29,25 @@ class SFTopBar extends StatelessWidget implements PreferredSizeWidget {
   final ValueChanged<String>? onSearchSubmitted;
   final List<Widget>? actions;
   final Widget? leading;
+  final bool compact;
+
+  double get _toolbarHeight => compact ? 40 : SFMetrics.topBarHeight;
+  double get _searchHeight => compact ? 38 : 44;
+  double get _searchBottomPadding => compact ? 10 : 16;
 
   /// زر الرجوع موجود في مسار التطبيق (خلافاً لصفحات الويب).
   final bool showBack;
 
   @override
-  Size get preferredSize =>
-      Size.fromHeight(SFMetrics.topBarHeight + (searchHint == null ? 0 : 60));
+  Size get preferredSize => Size.fromHeight(
+    _toolbarHeight +
+        (searchHint == null ? 0 : _searchHeight + _searchBottomPadding),
+  );
 
   @override
   Widget build(BuildContext context) {
     return AppBar(
+      toolbarHeight: _toolbarHeight,
       automaticallyImplyLeading: showBack,
       leading: leading,
       titleSpacing: 16,
@@ -61,10 +70,13 @@ class SFTopBar extends StatelessWidget implements PreferredSizeWidget {
       bottom: searchHint == null
           ? null
           : PreferredSize(
-              preferredSize: const Size.fromHeight(60),
+              preferredSize: Size.fromHeight(
+                _searchHeight + _searchBottomPadding,
+              ),
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                padding: EdgeInsets.fromLTRB(16, 0, 16, _searchBottomPadding),
                 child: _SearchField(
+                  compact: compact,
                   hint: searchHint!,
                   onChanged: onSearchChanged,
                   onSubmitted: onSearchSubmitted,
@@ -76,25 +88,35 @@ class SFTopBar extends StatelessWidget implements PreferredSizeWidget {
 }
 
 class _SearchField extends StatelessWidget {
-  const _SearchField({required this.hint, this.onChanged, this.onSubmitted});
+  const _SearchField({
+    required this.hint,
+    this.onChanged,
+    this.onSubmitted,
+    this.compact = false,
+  });
 
   final String hint;
   final ValueChanged<String>? onChanged;
   final ValueChanged<String>? onSubmitted;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 44,
+      height: compact ? 38 : 44,
       decoration: BoxDecoration(
         color: SFColors.surfaceAlt,
         border: Border.all(color: SFColors.border),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(compact ? 10 : 12),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 14),
+      padding: EdgeInsets.symmetric(horizontal: compact ? 12 : 14),
       child: Row(
         children: [
-          const Icon(Icons.search, size: 20, color: SFColors.darkGreen),
+          Icon(
+            Icons.search,
+            size: compact ? 18 : 20,
+            color: SFColors.darkGreen,
+          ),
           const SizedBox(width: 8),
           Expanded(
             child: TextField(
@@ -115,8 +137,8 @@ class _SearchField extends StatelessWidget {
                 filled: false,
                 contentPadding: EdgeInsets.zero,
                 hintText: hint,
-                hintStyle: const TextStyle(
-                  fontSize: 14,
+                hintStyle: TextStyle(
+                  fontSize: compact ? 13 : 14,
                   color: SFColors.muted2,
                 ),
               ),
