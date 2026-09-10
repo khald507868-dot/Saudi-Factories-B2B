@@ -16,10 +16,9 @@ import '../services/promotion_service.dart';
 import '../services/delivery_address_service.dart';
 import '../widgets/catalog_product_card.dart';
 import '../widgets/common.dart';
-import '../widgets/delivery_address_widgets.dart';
+import '../widgets/home_header.dart';
 import '../widgets/platform_stats.dart';
 import '../widgets/home_promotions.dart';
-import '../widgets/promotion_image_appearance.dart';
 import 'admin_page.dart';
 import 'factories_page.dart';
 
@@ -31,6 +30,7 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  final _scrollController = ScrollController();
   late Future<List<SFProduct>> _products;
   late Future<Map<String, String>> _categoryImages;
   late Future<List<SFPromotion>> _promotions;
@@ -62,6 +62,7 @@ class _HomePageState extends State<HomePage> {
   @override
   void dispose() {
     PromotionService.changes.removeListener(_reloadPromotions);
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -90,15 +91,10 @@ class _HomePageState extends State<HomePage> {
 
     return Scaffold(
       backgroundColor: SFColors.pageBg,
-      appBar: SFTopBar(
-        compact: true,
-        toolbarHeight: 44,
-        backgroundColor: _promotionBackground,
-        searchBackgroundColor: SFColors.white,
-        showBottomBorder: false,
-        titleWidget: DeliveryAddressHeader(
-          foregroundColor: promotionHeaderForeground(_promotionBackground),
-        ),
+      extendBodyBehindAppBar: true,
+      appBar: HomeHeader(
+        scrollController: _scrollController,
+        promotionColor: _promotionBackground,
         searchHint: i18n.t('search_placeholder'),
         onSearchSubmitted: (q) {
           if (q.trim().isEmpty) return;
@@ -112,8 +108,13 @@ class _HomePageState extends State<HomePage> {
       body: RefreshIndicator(
         onRefresh: _reload,
         color: SFColors.midGreen,
+        edgeOffset: HomeHeader.height + MediaQuery.paddingOf(context).top,
         child: ListView(
-          padding: const EdgeInsets.only(bottom: 24),
+          controller: _scrollController,
+          padding: EdgeInsets.only(
+            top: HomeHeader.height + MediaQuery.paddingOf(context).top,
+            bottom: 24,
+          ),
           physics: const AlwaysScrollableScrollPhysics(),
           children: [
             ListenableBuilder(

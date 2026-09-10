@@ -71,15 +71,15 @@ class _HomePromotionsState extends State<HomePromotions> {
                 child: InkWell(
                   onTap: widget.onManage,
                   child: Padding(
-                    padding: const EdgeInsets.all(24),
+                    padding: const EdgeInsets.all(16),
                     child: Column(
                       children: [
                         const Icon(
                           Icons.add_photo_alternate_outlined,
                           color: SFColors.midGreen,
-                          size: 36,
+                          size: 28,
                         ),
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 6),
                         Text(
                           context.t('promo_empty_admin'),
                           style: const TextStyle(fontWeight: FontWeight.w800),
@@ -115,7 +115,7 @@ class _HomePromotionsState extends State<HomePromotions> {
   );
 }
 
-/// تملأ الصورة مساحة الإعلان من الحافة إلى الحافة مع الحفاظ على تناسبها.
+/// بانر بعرض الصفحة وارتفاع محدود، مع إظهار أسفل الصور الطويلة.
 /// السحب يدوي، فلا يختفي الإعلان أثناء قراءته.
 class PromotionCarousel extends StatefulWidget {
   const PromotionCarousel({
@@ -134,9 +134,10 @@ class PromotionCarousel extends StatefulWidget {
 }
 
 class _PromotionCarouselState extends State<PromotionCarousel> {
+  static const double _minimumAspectRatio = 2.5;
   final _controller = PageController();
   int _page = 0;
-  double _aspectRatio = 2.4;
+  double _aspectRatio = _minimumAspectRatio;
   String? _imageUrl;
   ImageStream? _imageStream;
   ImageStreamListener? _imageListener;
@@ -164,7 +165,7 @@ class _PromotionCarouselState extends State<PromotionCarousel> {
       _stopWatchingImage();
       ++_imageVersion;
       _imageUrl = null;
-      _aspectRatio = 2.4;
+      _aspectRatio = _minimumAspectRatio;
       return;
     }
     final url = widget.promotions[_page].imageUrl;
@@ -178,7 +179,7 @@ class _PromotionCarouselState extends State<PromotionCarousel> {
       _reportBackgroundColor(cached.color);
       return;
     }
-    _aspectRatio = 2.4;
+    _aspectRatio = _minimumAspectRatio;
     _reportBackgroundColor(SFColors.surfaceAlt);
     final stream = NetworkImage(url)
         .resolve(createLocalImageConfiguration(context));
@@ -292,7 +293,9 @@ class _PromotionCarouselState extends State<PromotionCarousel> {
           decoration: const BoxDecoration(color: SFColors.white),
           clipBehavior: Clip.hardEdge,
           child: AspectRatio(
-            aspectRatio: _aspectRatio,
+            aspectRatio: _aspectRatio < _minimumAspectRatio
+                ? _minimumAspectRatio
+                : _aspectRatio,
             child: PageView.builder(
               key: const ValueKey('home-promotion-pages'),
               controller: _controller,
@@ -320,6 +323,7 @@ class _PromotionCarouselState extends State<PromotionCarousel> {
                         width: double.infinity,
                         height: double.infinity,
                         fit: BoxFit.cover,
+                        alignment: Alignment.bottomCenter,
                         loadingBuilder: (context, child, progress) =>
                             progress == null
                             ? child

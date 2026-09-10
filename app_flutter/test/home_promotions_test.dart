@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -48,6 +49,47 @@ Widget host(Widget child, {String language = 'ar', double width = 320}) =>
         ),
       ),
     );
+
+Future<void> _cacheImage(
+  WidgetTester tester,
+  String url,
+  int width,
+  int height,
+) async {
+  final image = await tester.runAsync(() async {
+    final recorder = ui.PictureRecorder();
+    final canvas = ui.Canvas(recorder);
+    canvas.drawColor(const Color(0xFFFFD740), ui.BlendMode.src);
+    // مساحة العرض أسفل صورة طويلة، كما في صورة التطبيق المرجعية.
+    canvas.drawRect(
+      Rect.fromLTWH(0, height * .7, width.toDouble(), height * .3),
+      Paint()..color = const Color(0xFF123D29),
+    );
+    final picture = recorder.endRecording();
+    try {
+      return await picture.toImage(width, height);
+    } finally {
+      picture.dispose();
+    }
+  });
+  final key = await NetworkImage(url).obtainKey(ImageConfiguration.empty);
+  PaintingBinding.instance.imageCache.putIfAbsent(
+    key,
+    () => OneFrameImageStreamCompleter(Future.value(ImageInfo(image: image!))),
+  );
+  addTearDown(() => PaintingBinding.instance.imageCache.evict(key));
+  await tester.pump();
+}
+
+Future<void> _settleImage(WidgetTester tester) async {
+  for (var phase = 0; phase < 3; phase++) {
+    await tester.pumpAndSettle();
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 25)),
+    );
+  }
+  await tester.pumpAndSettle();
+}
 
 void main() {
   testWidgets('الزائر لا يرى مسودات أو أدوات الإدارة أو مساحة إعلان فارغة', (
@@ -149,4 +191,56 @@ void main() {
     expect(find.byType(InkResponse), findsNothing);
     expect(tester.takeException(), isNull);
   });
+
+  for (final width in [320.0, 430.0]) {
+    testWidgets('الصورة الطويلة تبقى بعرض الصفحة وارتفاع قصير: $width', (
+      tester,
+    ) async {
+      const tall = SFPromotion(
+        id: 'tall-banner',
+        title: 'عرض أسفل صورة طويلة',
+        imageUrl: 'https://example.com/tall-banner.png',
+        targetUrl: 'https://example.com/tall-offer',
+      );
+      const wide = SFPromotion(
+        id: 'wide-banner',
+        title: 'عرض عريض',
+        imageUrl: 'https://example.com/wide-banner.png',
+      );
+      await _cacheImage(tester, tall.imageUrl, 200, 600);
+      await _cacheImage(tester, wide.imageUrl, 400, 100);
+      SFPromotion? opened;
+      await tester.pumpWidget(
+        host(
+          PromotionCarousel(
+            promotions: const [tall, wide],
+            onOpen: (promotion) => opened = promotion,
+          ),
+          width: width,
+        ),
+      );
+      await _settleImage(tester);
+      final page = find.byType(PageView);
+      expect(tester.getSize(page).width, width);
+      expect(tester.getSize(page).height, closeTo(width / 2.5, .01));
+      final image = tester.widget<Image>(find.byType(Image).first);
+      expect(image.fit, BoxFit.cover);
+      expect(image.alignment, Alignment.bottomCenter);
+      await tester.tap(page);
+      expect(opened?.id, tall.id);
+
+      // الصورة الأعرض تحتفظ بارتفاعها الطبيعي، ونقاط التنقل تبقى عاملة.
+      await tester.tap(find.byType(InkResponse).last);
+      await _settleImage(tester);
+      expect(tester.widget<PageView>(page).controller!.page, 1);
+      expect(tester.getSize(page), Size(width, width / 4));
+      await tester.tap(find.byType(InkResponse).first);
+      await _settleImage(tester);
+      expect(tester.widget<PageView>(page).controller!.page, 0);
+      expect(tester.getSize(page).height, closeTo(width / 2.5, .01));
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pumpAndSettle();
+    });
+  }
 }
