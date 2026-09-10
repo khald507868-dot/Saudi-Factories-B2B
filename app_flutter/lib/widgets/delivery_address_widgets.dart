@@ -45,7 +45,7 @@ class _DeliveryAddressHeaderState extends State<DeliveryAddressHeader> {
             borderRadius: BorderRadius.circular(10),
             onTap: () => showDeliveryAddresses(context, service: _service),
             child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4),
+              padding: const EdgeInsets.symmetric(vertical: 2),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -55,7 +55,7 @@ class _DeliveryAddressHeaderState extends State<DeliveryAddressHeader> {
                     children: [
                       const Icon(
                         Icons.location_on_outlined,
-                        size: 19,
+                        size: 17,
                         color: SFColors.midGreen,
                       ),
                       const SizedBox(width: 5),
@@ -65,8 +65,8 @@ class _DeliveryAddressHeaderState extends State<DeliveryAddressHeader> {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
-                            fontSize: 14,
-                            height: 1.3,
+                            fontSize: 13,
+                            height: 1.2,
                             fontWeight: FontWeight.w800,
                             color: SFColors.darkGreen,
                           ),
@@ -75,19 +75,19 @@ class _DeliveryAddressHeaderState extends State<DeliveryAddressHeader> {
                       const SizedBox(width: 4),
                       const Icon(
                         Icons.keyboard_arrow_down_rounded,
-                        size: 22,
+                        size: 20,
                         color: SFColors.darkGreen,
                       ),
                     ],
                   ),
-                  const SizedBox(height: 3),
+                  const SizedBox(height: 2),
                   Text(
                     selected?.addressLine ?? context.t('delivery_empty'),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       fontSize: 11,
-                      height: 1.3,
+                      height: 1.2,
                       fontWeight: FontWeight.w400,
                       color: SFColors.muted2,
                     ),

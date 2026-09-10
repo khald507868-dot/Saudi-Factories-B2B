@@ -35,8 +35,8 @@ class SFTopBar extends StatelessWidget implements PreferredSizeWidget {
 
   double get _toolbarHeight =>
       toolbarHeight ?? (compact ? 40 : SFMetrics.topBarHeight);
-  double get _searchHeight => compact ? 38 : 44;
-  double get _searchBottomPadding => compact ? 10 : 16;
+  double get _searchHeight => compact ? 34 : 44;
+  double get _searchBottomPadding => compact ? 6 : 16;
 
   /// زر الرجوع موجود في مسار التطبيق (خلافاً لصفحات الويب).
   final bool showBack;
@@ -106,7 +106,7 @@ class _SearchField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: compact ? 38 : 44,
+      height: compact ? 34 : 44,
       decoration: BoxDecoration(
         color: SFColors.surfaceAlt,
         border: Border.all(color: SFColors.searchBorder),
@@ -141,7 +141,7 @@ class _SearchField extends StatelessWidget {
                 contentPadding: EdgeInsets.zero,
                 hintText: hint,
                 hintStyle: TextStyle(
-                  fontSize: compact ? 13 : 14,
+                  fontSize: compact ? 12 : 14,
                   color: SFColors.muted2,
                 ),
               ),

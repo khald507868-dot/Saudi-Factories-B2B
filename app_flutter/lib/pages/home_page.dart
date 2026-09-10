@@ -84,7 +84,7 @@ class _HomePageState extends State<HomePage> {
       backgroundColor: SFColors.pageBg,
       appBar: SFTopBar(
         compact: true,
-        toolbarHeight: 56,
+        toolbarHeight: 44,
         titleWidget: const DeliveryAddressHeader(),
         searchHint: i18n.t('search_placeholder'),
         onSearchSubmitted: (q) {
