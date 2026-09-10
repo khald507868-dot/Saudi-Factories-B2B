@@ -60,6 +60,7 @@ class _MessagesPageState extends State<MessagesPage> {
   @override
   Widget build(BuildContext context) {
     final i18n = context.i18n;
+    final bottomInset = MediaQuery.paddingOf(context).bottom;
 
     if (!AuthService.instance.isSignedIn) {
       return Scaffold(
@@ -111,7 +112,7 @@ class _MessagesPageState extends State<MessagesPage> {
             }
             return ListView.builder(
               physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + bottomInset),
               itemCount: threads.length,
               itemBuilder: (context, i) => _ThreadTile(
                 thread: threads[i],

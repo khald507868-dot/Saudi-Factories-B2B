@@ -27,6 +27,7 @@ class _CategoriesPageState extends State<CategoriesPage> {
   Widget build(BuildContext context) {
     final i18n = context.i18n;
     final cats = i18n.categories;
+    final bottomInset = MediaQuery.paddingOf(context).bottom;
 
     return Scaffold(
       backgroundColor: SFColors.pageBg,
@@ -40,7 +41,7 @@ class _CategoriesPageState extends State<CategoriesPage> {
           },
           child: LayoutBuilder(
             builder: (context, constraints) => GridView.builder(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + bottomInset),
               physics: const AlwaysScrollableScrollPhysics(),
               itemCount: cats.length,
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(

@@ -67,15 +67,16 @@ class SFBottomNav extends StatelessWidget {
               child: BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
                 child: DecoratedBox(
+                  key: const ValueKey('sf-bottom-nav-glass'),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(999),
                     gradient: LinearGradient(
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                       colors: [
-                        SFColors.surfaceAlt.withValues(alpha: 0.98),
-                        SFColors.surfaceAlt.withValues(alpha: 0.94),
-                        SFColors.surfaceAlt.withValues(alpha: 0.92),
+                        SFColors.white.withValues(alpha: 0.72),
+                        SFColors.white.withValues(alpha: 0.58),
+                        SFColors.white.withValues(alpha: 0.64),
                       ],
                     ),
                     border: Border.all(
@@ -100,14 +101,15 @@ class SFBottomNav extends StatelessWidget {
                               bottom: 0,
                               width: itemWidth,
                               child: DecoratedBox(
+                                key: const ValueKey('sf-bottom-nav-selection'),
                                 decoration: BoxDecoration(
                                   borderRadius: BorderRadius.circular(999),
-                                  gradient: const LinearGradient(
+                                  gradient: LinearGradient(
                                     begin: Alignment.topLeft,
                                     end: Alignment.bottomRight,
                                     colors: [
-                                      SFColors.selected,
-                                      SFColors.border,
+                                      SFColors.selected.withValues(alpha: 0.45),
+                                      SFColors.border.withValues(alpha: 0.50),
                                     ],
                                   ),
                                   border: Border.all(

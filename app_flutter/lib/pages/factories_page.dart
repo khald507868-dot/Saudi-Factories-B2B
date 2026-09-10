@@ -87,6 +87,7 @@ class _FactoriesPageState extends State<FactoriesPage> {
   @override
   Widget build(BuildContext context) {
     final i18n = context.i18n;
+    final bottomInset = MediaQuery.paddingOf(context).bottom;
 
     return Scaffold(
       backgroundColor: SFColors.pageBg,
@@ -134,7 +135,7 @@ class _FactoriesPageState extends State<FactoriesPage> {
                     );
                   }
                   return ListView.separated(
-                    padding: const EdgeInsets.all(16),
+                    padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + bottomInset),
                     physics: const AlwaysScrollableScrollPhysics(),
                     itemCount: items.length,
                     separatorBuilder: (_, _) => const SizedBox(height: 12),

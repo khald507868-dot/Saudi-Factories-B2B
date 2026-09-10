@@ -134,6 +134,7 @@ class AppShellState extends State<AppShell> {
     final index = SFTab.values.indexOf(_tab);
 
     return Scaffold(
+      extendBody: true,
       body: IndexedStack(
         key: ValueKey(_sessionUser),
         index: index,

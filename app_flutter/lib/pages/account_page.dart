@@ -152,6 +152,7 @@ class _AccountPageState extends State<AccountPage> {
   @override
   Widget build(BuildContext context) {
     final i18n = context.i18n;
+    final bottomInset = MediaQuery.paddingOf(context).bottom;
     final auth = AuthService.instance;
     final profile = auth.profile;
 
@@ -192,7 +193,7 @@ class _AccountPageState extends State<AccountPage> {
         color: SFColors.midGreen,
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + bottomInset),
           children: [
             // بطاقة المستخدم
             Container(

@@ -88,6 +88,7 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     final i18n = context.i18n;
+    final bottomInset = MediaQuery.paddingOf(context).bottom;
 
     return Scaffold(
       backgroundColor: SFColors.pageBg,
@@ -113,7 +114,7 @@ class _HomePageState extends State<HomePage> {
           controller: _scrollController,
           padding: EdgeInsets.only(
             top: HomeHeader.height + MediaQuery.paddingOf(context).top,
-            bottom: 24,
+            bottom: 24 + bottomInset,
           ),
           physics: const AlwaysScrollableScrollPhysics(),
           children: [
