@@ -215,9 +215,10 @@ class _CategoriesStrip extends StatelessWidget {
   Widget build(BuildContext context) {
     final i18n = context.i18n;
     final cats = i18n.categories;
+    final labelHeight = MediaQuery.textScalerOf(context).scale(11) * 1.25 * 3;
 
     return SizedBox(
-      height: 124,
+      height: (98 + labelHeight).clamp(140.0, double.infinity),
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
@@ -239,33 +240,37 @@ class _CategoriesStrip extends StatelessWidget {
               );
             },
             borderRadius: BorderRadius.circular(SFMetrics.radius),
-            child: Container(
-              width: 110,
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: SFColors.surfaceAlt,
-                border: Border.all(color: SFColors.border),
-                borderRadius: BorderRadius.circular(SFMetrics.radius),
-              ),
+            child: SizedBox(
+              width: 88,
               child: Column(
                 children: [
-                  SFImage(
-                    url: images[i18n.categoryKey(cat)] ?? '',
-                    width: 48,
-                    height: 48,
-                    radius: 12,
-                    placeholderIcon: Icons.category_outlined,
+                  Container(
+                    width: 80,
+                    height: 80,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: SFColors.surfaceAlt,
+                      border: Border.all(color: SFColors.border),
+                      borderRadius: BorderRadius.circular(SFMetrics.radius),
+                    ),
+                    child: SFImage(
+                      url: images[i18n.categoryKey(cat)] ?? '',
+                      width: 68,
+                      height: 68,
+                      radius: 9,
+                      placeholderIcon: Icons.category_outlined,
+                    ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 6),
                   Expanded(
                     child: Text(
                       i18n.categoryName(cat),
                       textAlign: TextAlign.center,
-                      maxLines: 2,
+                      maxLines: 3,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         fontSize: 11,
-                        height: 1.4,
+                        height: 1.25,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
