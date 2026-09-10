@@ -102,7 +102,7 @@ class _HomePageState extends State<HomePage> {
         onRefresh: _reload,
         color: SFColors.midGreen,
         child: ListView(
-          padding: const EdgeInsets.only(top: 20, bottom: 24),
+          padding: const EdgeInsets.only(bottom: 24),
           physics: const AlwaysScrollableScrollPhysics(),
           children: [
             ListenableBuilder(

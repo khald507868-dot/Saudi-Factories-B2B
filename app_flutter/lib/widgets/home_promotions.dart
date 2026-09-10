@@ -27,9 +27,9 @@ class HomePromotions extends StatelessWidget {
       final items = (snapshot.data ?? <SFPromotion>[])
           .where((item) => item.isActive)
           .toList();
-      if (items.isEmpty && onManage == null) return const SizedBox.shrink();
+      if (items.isEmpty && onManage == null) return const SizedBox(height: 20);
       return Padding(
-        padding: EdgeInsets.fromLTRB(16, 0, 16, items.length > 1 ? 4 : 20),
+        padding: EdgeInsets.only(bottom: items.length > 1 ? 4 : 20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -38,11 +38,7 @@ class HomePromotions extends StatelessWidget {
             else
               Material(
                 color: SFColors.surfaceAlt,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(SFMetrics.radius),
-                  side: const BorderSide(color: SFColors.border),
-                ),
-                clipBehavior: Clip.antiAlias,
+                clipBehavior: Clip.hardEdge,
                 child: InkWell(
                   onTap: onManage,
                   child: Padding(
@@ -75,19 +71,25 @@ class HomePromotions extends StatelessWidget {
                 ),
               ),
             if (onManage != null)
-              Align(
-                alignment: AlignmentDirectional.centerEnd,
-                child: TextButton.icon(
-                  onPressed: onManage,
-                  icon: const Icon(Icons.campaign_outlined, size: 18),
-                  label: Text(context.t('promo_manage')),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Align(
+                  alignment: AlignmentDirectional.centerEnd,
+                  child: TextButton.icon(
+                    onPressed: onManage,
+                    icon: const Icon(Icons.campaign_outlined, size: 18),
+                    label: Text(context.t('promo_manage')),
+                  ),
                 ),
               ),
             if (snapshot.hasError && onManage != null)
-              TextButton.icon(
-                onPressed: onRetry,
-                icon: const Icon(Icons.refresh, size: 18),
-                label: Text(context.t('promo_load_failed')),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: TextButton.icon(
+                  onPressed: onRetry,
+                  icon: const Icon(Icons.refresh, size: 18),
+                  label: Text(context.t('promo_load_failed')),
+                ),
               ),
           ],
         ),
@@ -172,12 +174,8 @@ class _PromotionCarouselState extends State<PromotionCarousel> {
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          decoration: BoxDecoration(
-            color: SFColors.white,
-            borderRadius: BorderRadius.circular(SFMetrics.radius),
-            border: Border.all(color: SFColors.border),
-          ),
-          clipBehavior: Clip.antiAlias,
+          decoration: const BoxDecoration(color: SFColors.white),
+          clipBehavior: Clip.hardEdge,
           child: AspectRatio(
             aspectRatio: 2.4,
             child: PageView.builder(
