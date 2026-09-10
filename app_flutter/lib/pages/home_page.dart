@@ -1,7 +1,7 @@
 // ============================================================
 //  الرئيسية — مقابل app-home.html
 //
-//  الترتيب: الإعلانات، الفئات، أرقام المنصة، ثم المنتجات.
+//  الترتيب: الإعلانات، الفئات، المنتجات، ثم أرقام المنصة.
 //  البيانات حقيقية من القاعدة.
 // ============================================================
 
@@ -14,13 +14,15 @@ import '../services/catalog_service.dart';
 import '../services/auth_service.dart';
 import '../services/promotion_service.dart';
 import '../services/delivery_address_service.dart';
-import '../widgets/catalog_product_card.dart';
+import '../services/reviews_service.dart';
 import '../widgets/common.dart';
 import '../widgets/home_header.dart';
 import '../widgets/platform_stats.dart';
 import '../widgets/home_promotions.dart';
+import '../widgets/home_product_details.dart';
 import 'admin_page.dart';
 import 'factories_page.dart';
+import 'product_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -150,9 +152,8 @@ class _HomePageState extends State<HomePage> {
                   _CategoriesStrip(images: snapshot.data ?? {}),
             ),
             const SizedBox(height: 24),
-            const PlatformStats(),
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 24, 16, 12),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Text(
                 i18n.t('home_bestsellers'),
                 style: const TextStyle(
@@ -181,30 +182,81 @@ class _HomePageState extends State<HomePage> {
                 if (items.isEmpty) {
                   return SFStateView(message: i18n.t('factory_no_products'));
                 }
-                return LayoutBuilder(
-                  builder: (context, constraints) => GridView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      crossAxisSpacing: 12,
-                      mainAxisSpacing: 12,
-                      mainAxisExtent:
-                          (constraints.maxWidth - 44) / 2 / 1.18 + 118,
-                    ),
-                    itemCount: items.length,
-                    itemBuilder: (context, i) =>
-                        CatalogProductCard(product: items[i]),
-                  ),
-                );
+                return _ProductsStrip(products: items);
               },
             ),
+            const SizedBox(height: 24),
+            const PlatformStats(),
           ],
         ),
       ),
     );
   }
+}
+
+class _ProductsStrip extends StatefulWidget {
+  const _ProductsStrip({required this.products});
+
+  final List<SFProduct> products;
+
+  @override
+  State<_ProductsStrip> createState() => _ProductsStripState();
+}
+
+class _ProductsStripState extends State<_ProductsStrip> {
+  late Future<Map<int, SFProductRating>> _ratings;
+
+  void _loadRatings() {
+    // طلب واحد للشريط كله، دون تأخير ظهور الصور والأسعار.
+    _ratings = SFReviews.loadRatings(
+      widget.products.map((product) => product.id).toList(),
+    );
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRatings();
+  }
+
+  @override
+  void didUpdateWidget(covariant _ProductsStrip oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.products != widget.products) _loadRatings();
+  }
+
+  Future<void> _openProduct(int index) async {
+    final product = widget.products[index];
+    await Navigator.of(context)
+        .push(MaterialPageRoute(builder: (_) => ProductPage(product: product)));
+    // ينعكس التقييم الذي أضيف أو عُدّل في صفحة المنتج عند الرجوع.
+    if (mounted) setState(_loadRatings);
+  }
+
+  @override
+  Widget build(BuildContext context) =>
+      FutureBuilder<Map<int, SFProductRating>>(
+        future: _ratings,
+        builder: (context, snapshot) => _HomeItemsStrip(
+          key: const PageStorageKey('home-products'),
+          itemCount: widget.products.length,
+          imageAt: (i) => widget.products[i].image,
+          labelAt: (i) =>
+              widget.products[i].name.isEmpty ? '—' : widget.products[i].name,
+          placeholderIcon: Icons.inventory_2_outlined,
+          onTap: _openProduct,
+          detailsHeight: HomeProductDetails.heightFor(context),
+          detailsBuilder: (context, i) => HomeProductDetails(
+            product: widget.products[i],
+            rating: snapshot.hasData
+                ? snapshot.data![widget.products[i].id] ??
+                      const SFProductRating(average: 0, count: 0)
+                : null,
+            ratingLoading: snapshot.connectionState != ConnectionState.done,
+            ratingFailed: snapshot.hasError,
+          ),
+        ),
+      );
 }
 
 /// شريط الفئات الأفقي — الضغط يفتح قائمة المصانع مصفّاة.
@@ -215,30 +267,64 @@ class _CategoriesStrip extends StatelessWidget {
   Widget build(BuildContext context) {
     final i18n = context.i18n;
     final cats = i18n.categories;
+
+    return _HomeItemsStrip(
+      key: const PageStorageKey('home-categories'),
+      itemCount: cats.length,
+      imageAt: (i) => images[i18n.categoryKey(cats[i])] ?? '',
+      labelAt: (i) => i18n.categoryName(cats[i]),
+      placeholderIcon: Icons.category_outlined,
+      onTap: (i) {
+        // مفتاح الربط هو الاسم الإنجليزي المخزّن في عمود industry.
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => FactoriesPage(
+              initialCategory: i18n.categoryKey(cats[i]),
+              categoryLabel: i18n.categoryName(cats[i]),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// نفس حجم الصور والإطار والاسم للفئات والمنتجات في الرئيسية.
+class _HomeItemsStrip extends StatelessWidget {
+  const _HomeItemsStrip({
+    super.key,
+    required this.itemCount,
+    required this.imageAt,
+    required this.labelAt,
+    required this.placeholderIcon,
+    required this.onTap,
+    this.detailsBuilder,
+    this.detailsHeight = 0,
+  });
+
+  final int itemCount;
+  final String Function(int) imageAt;
+  final String Function(int) labelAt;
+  final IconData placeholderIcon;
+  final void Function(int) onTap;
+  final IndexedWidgetBuilder? detailsBuilder;
+  final double detailsHeight;
+
+  @override
+  Widget build(BuildContext context) {
     final labelHeight = MediaQuery.textScalerOf(context).scale(11) * 1.25 * 3;
+    final extraHeight = detailsBuilder == null ? 0 : detailsHeight + 4;
 
     return SizedBox(
-      height: (98 + labelHeight).clamp(140.0, double.infinity),
+      height: (98 + labelHeight).clamp(140.0, double.infinity) + extraHeight,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-        itemCount: cats.length,
+        itemCount: itemCount,
         separatorBuilder: (_, _) => const SizedBox(width: 10),
         itemBuilder: (context, i) {
-          final cat = cats[i];
           return InkWell(
-            onTap: () {
-              // مفتاح الربط هو الاسم الإنجليزي — هو ما يخزّنه
-              // عمود industry في القاعدة.
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => FactoriesPage(
-                    initialCategory: i18n.categoryKey(cat),
-                    categoryLabel: i18n.categoryName(cat),
-                  ),
-                ),
-              );
-            },
+            onTap: () => onTap(i),
             borderRadius: BorderRadius.circular(SFMetrics.radius),
             child: SizedBox(
               width: 88,
@@ -252,25 +338,36 @@ class _CategoriesStrip extends StatelessWidget {
                       borderRadius: BorderRadius.circular(SFMetrics.radius),
                     ),
                     child: SFImage(
-                      url: images[i18n.categoryKey(cat)] ?? '',
+                      url: imageAt(i),
                       width: 80,
                       height: 80,
                       radius: SFMetrics.radius,
-                      placeholderIcon: Icons.category_outlined,
+                      placeholderIcon: placeholderIcon,
                     ),
                   ),
                   const SizedBox(height: 6),
                   Expanded(
-                    child: Text(
-                      i18n.categoryName(cat),
-                      textAlign: TextAlign.center,
-                      maxLines: 3,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 11,
-                        height: 1.25,
-                        fontWeight: FontWeight.w600,
-                      ),
+                    child: Column(
+                      children: [
+                        Text(
+                          labelAt(i),
+                          textAlign: TextAlign.center,
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 11,
+                            height: 1.25,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        if (detailsBuilder != null) ...[
+                          const SizedBox(height: 4),
+                          SizedBox(
+                            height: detailsHeight,
+                            child: detailsBuilder!(context, i),
+                          ),
+                        ],
+                      ],
                     ),
                   ),
                 ],
