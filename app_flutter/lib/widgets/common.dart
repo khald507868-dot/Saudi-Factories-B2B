@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 
 import '../core/theme.dart';
 import '../core/i18n.dart';
-import 'currency_picker.dart';
 
 /// شريط أبيض مثل الويب؛ البحث في سطر مستقل كي لا يزاحم الشعار.
 class SFTopBar extends StatelessWidget implements PreferredSizeWidget {
@@ -57,8 +56,7 @@ class SFTopBar extends StatelessWidget implements PreferredSizeWidget {
           ),
       actions: [
         ...?actions,
-        const SFCurrencyButton(),
-        const SizedBox(width: 12),
+        if (actions?.isNotEmpty ?? false) const SizedBox(width: 12),
       ],
       bottom: searchHint == null
           ? null

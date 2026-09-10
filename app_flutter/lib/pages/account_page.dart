@@ -158,7 +158,16 @@ class _AccountPageState extends State<AccountPage> {
     if (!auth.isSignedIn) {
       return Scaffold(
         backgroundColor: SFColors.pageBg,
-        appBar: SFTopBar(title: i18n.t('nav_account')),
+        appBar: SFTopBar(
+          title: i18n.t('nav_account'),
+          actions: [
+            IconButton(
+              tooltip: i18n.t('row_settings'),
+              onPressed: () => _open(const SettingsPage()),
+              icon: const Icon(Icons.settings_outlined),
+            ),
+          ],
+        ),
         body: SFStateView(
           message: i18n.t('login_required_action'),
           icon: Icons.lock_outline,

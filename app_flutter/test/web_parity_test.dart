@@ -1,11 +1,13 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:saudi_factories/core/currency.dart';
 import 'package:saudi_factories/core/i18n.dart';
 import 'package:saudi_factories/core/pricing.dart';
+import 'package:saudi_factories/pages/account_page.dart';
 import 'package:saudi_factories/services/commerce_service.dart';
 import 'package:saudi_factories/services/factory_service.dart';
 import 'package:saudi_factories/services/messages_service.dart';
@@ -191,15 +193,10 @@ void main() {
   });
 
   testWidgets('اختيار العملة من الإعدادات يحفظ الاختيار', (tester) async {
-    await tester.pumpWidget(
-      I18nScope(
-        i18n: I18n('en'),
-        child: MaterialApp(
-          theme: ThemeData(splashFactory: InkRipple.splashFactory),
-          home: const SettingsPage(),
-        ),
-      ),
-    );
+    final i18n = I18n('en');
+    addTearDown(i18n.dispose);
+    await tester.pumpWidget(_preferencesApp(i18n));
+    expect(find.text('Saudi Riyal · SAR'), findsOneWidget);
     await tester.tap(find.text('Choose currency'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField), 'USD');
@@ -207,6 +204,85 @@ void main() {
     await tester.tap(find.text('US Dollar'));
     await tester.pumpAndSettle();
     expect(SFCurrency.instance.code, 'USD');
+    expect(find.text('US Dollar · USD'), findsOneWidget);
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getString('sf_currency'), 'USD');
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await SFCurrency.instance.load();
+    await tester.pumpWidget(_preferencesApp(i18n));
+    expect(find.text('US Dollar · USD'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('تغيير اللغة من الإعدادات يحفظها ويحدث النص والاتجاه', (
+    tester,
+  ) async {
+    final i18n = I18n('en');
+    addTearDown(i18n.dispose);
+    await tester.pumpWidget(_preferencesApp(i18n));
+    expect(
+      Directionality.of(tester.element(find.byType(SettingsPage))),
+      TextDirection.ltr,
+    );
+
+    await tester.tap(find.text('Language'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), 'ar');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('العربية'));
+    await tester.pumpAndSettle();
+
+    expect(i18n.lang, 'ar');
+    expect(find.text('الإعدادات'), findsOneWidget);
+    expect(find.text('اللغة'), findsOneWidget);
+    expect(find.text('ريال سعودي · SAR'), findsOneWidget);
+    expect(
+      Directionality.of(tester.element(find.byType(SettingsPage))),
+      TextDirection.rtl,
+    );
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getString('sf_lang'), 'ar');
+    final restored = await I18n.load();
+    addTearDown(restored.dispose);
+    expect(restored.lang, 'ar');
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('الزائر يستطيع فتح إعدادات اللغة والعملة من الحساب', (
+    tester,
+  ) async {
+    final i18n = I18n('en');
+    addTearDown(i18n.dispose);
+    await tester.pumpWidget(_preferencesApp(i18n, home: const AccountPage()));
+    await tester.tap(find.byTooltip('Settings'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(SettingsPage), findsOneWidget);
+    expect(find.text('Language'), findsOneWidget);
+    expect(find.text('Choose currency'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+}
+
+Widget _preferencesApp(I18n i18n, {Widget home = const SettingsPage()}) {
+  return I18nScope(
+    i18n: i18n,
+    child: AnimatedBuilder(
+      animation: i18n,
+      builder: (context, _) => MaterialApp(
+        theme: ThemeData(splashFactory: InkRipple.splashFactory),
+        locale: i18n.locale,
+        localizationsDelegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: const [Locale('ar'), Locale('en')],
+        builder: (context, child) =>
+            Directionality(textDirection: i18n.direction, child: child!),
+        home: home,
+      ),
+    ),
+  );
 }

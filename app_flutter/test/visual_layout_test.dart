@@ -11,7 +11,6 @@ import 'package:saudi_factories/core/theme.dart';
 import 'package:saudi_factories/pages/user_type_page.dart';
 import 'package:saudi_factories/widgets/bottom_nav.dart';
 import 'package:saudi_factories/widgets/common.dart';
-import 'package:saudi_factories/widgets/currency_picker.dart';
 import 'package:saudi_factories/widgets/price_text.dart';
 import 'package:saudi_factories/widgets/wordmark.dart';
 
@@ -137,7 +136,6 @@ void main() {
         await tester.pumpAndSettle();
         expect(tester.takeException(), isNull);
         expect(find.text('99+'), findsNWidgets(2));
-        expect(find.byType(SFCurrencyButton).hitTestable(), findsOneWidget);
         expect(find.byType(TextField).hitTestable(), findsOneWidget);
         expect(find.byType(SFPriceText).hitTestable(), findsOneWidget);
         expect(tester.getRect(find.byType(TextField)).width, greaterThan(150));
@@ -198,7 +196,101 @@ void main() {
       );
     }
   }
+
+  for (final language in ['ar', 'en']) {
+    testWidgets(
+      'Floating navigation stays tappable above the home indicator: $language',
+      (tester) async {
+        const size = Size(320, 568);
+        const bottomInset = 34.0;
+        _setViewport(tester, size);
+        final i18n = I18n(language);
+        addTearDown(i18n.dispose);
+        final semantics = tester.ensureSemantics();
+        try {
+          var current = SFTab.home;
+          await tester.pumpWidget(
+            _host(
+              i18n: i18n,
+              scale: 1.3,
+              bottomPadding: bottomInset,
+              child: StatefulBuilder(
+                builder: (context, setState) => Scaffold(
+                  body: const SizedBox.expand(),
+                  bottomNavigationBar: SFBottomNav(
+                    current: current,
+                    unreadMessages: 101,
+                    cartCount: 120,
+                    onTap: (tab) => setState(() => current = tab),
+                  ),
+                ),
+              ),
+            ),
+          );
+          await tester.pumpAndSettle();
+          expect(tester.takeException(), isNull);
+
+          final capsule = tester.getRect(
+            find.byKey(const Key('sf-bottom-nav-surface')),
+          );
+          expect(capsule.left, greaterThan(0));
+          expect(capsule.right, lessThan(size.width));
+          expect(capsule.bottom, lessThanOrEqualTo(size.height - bottomInset));
+          expect(find.text('99+'), findsNWidgets(2));
+          for (final badge in find.text('99+').evaluate()) {
+            final bounds = tester.getRect(find.byWidget(badge.widget));
+            expect(capsule.contains(bounds.topLeft), isTrue);
+            expect(capsule.contains(bounds.bottomRight), isTrue);
+          }
+
+          double? previousCenter;
+          for (final tab in SFTab.values) {
+            final item = _navigationItem(i18n, tab);
+            final target = find.descendant(
+              of: item,
+              matching: find.byType(InkWell),
+            );
+            expect(target.hitTestable(), findsOneWidget);
+            final bounds = tester.getRect(target);
+            expect(bounds.width, greaterThanOrEqualTo(44));
+            expect(bounds.height, greaterThanOrEqualTo(44));
+            expect(bounds.bottom, lessThanOrEqualTo(size.height - bottomInset));
+            if (previousCenter != null) {
+              expect(
+                bounds.center.dx,
+                i18n.isRtl
+                    ? lessThan(previousCenter)
+                    : greaterThan(previousCenter),
+              );
+            }
+            previousCenter = bounds.center.dx;
+
+            await tester.tap(target);
+            await tester.pumpAndSettle();
+            expect(current, tab);
+            for (final candidate in SFTab.values) {
+              final flags = tester
+                  .getSemantics(_navigationItem(i18n, candidate))
+                  .flagsCollection;
+              expect(flags.isButton, isTrue);
+              expect(flags.isSelected.toBoolOrNull(), candidate == tab);
+            }
+            expect(tester.takeException(), isNull);
+          }
+        } finally {
+          semantics.dispose();
+        }
+      },
+    );
+  }
 }
+
+Finder _navigationItem(I18n i18n, SFTab tab) => find.byWidgetPredicate(
+  (widget) =>
+      widget is Semantics &&
+      widget.properties.button == true &&
+      widget.properties.label == i18n.t('nav_${tab.name}'),
+);
 
 void _setViewport(WidgetTester tester, Size size) {
   tester.view.physicalSize = size;
@@ -211,6 +303,7 @@ Widget _host({
   required I18n i18n,
   required double scale,
   required Widget child,
+  double bottomPadding = 0,
 }) {
   return I18nScope(
     i18n: i18n,
@@ -219,9 +312,12 @@ Widget _host({
       // effect keeps production colors, typography and dimensions intact.
       theme: buildAppTheme().copyWith(splashFactory: InkRipple.splashFactory),
       builder: (context, body) => MediaQuery(
-        data: MediaQuery.of(context)
-            .copyWith(textScaler: TextScaler.linear(scale)),
-        child: Directionality(textDirection: TextDirection.rtl, child: body!),
+        data: MediaQuery.of(context).copyWith(
+          textScaler: TextScaler.linear(scale),
+          padding: EdgeInsets.only(bottom: bottomPadding),
+          viewPadding: EdgeInsets.only(bottom: bottomPadding),
+        ),
+        child: Directionality(textDirection: i18n.direction, child: body!),
       ),
       home: child,
     ),

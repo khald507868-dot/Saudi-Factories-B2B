@@ -1,9 +1,11 @@
 // ============================================================
-//  تنقّل الجوال بألوان الويب: أبيض، ومؤشر أخضر واضح للقسم الحالي.
+//  شريط عائم بحواف دائرية ومؤشر متحرك يشمل الأيقونة واسم القسم.
 //
 //  شارة الرسائل غير المقروءة تُقرأ من get_unread_message_total
 //  وتتحدّث مع كل تغيّر في جدول الرسائل.
 // ============================================================
+
+import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
 
@@ -38,81 +40,172 @@ class SFBottomNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bottomInset = MediaQuery.of(context).padding.bottom;
+    final bottomInset = MediaQuery.paddingOf(context).bottom;
+    final reduceMotion = MediaQuery.disableAnimationsOf(context);
 
-    return Container(
-      height: SFMetrics.bottomNavHeight + bottomInset,
-      padding: EdgeInsets.only(bottom: bottomInset),
-      decoration: const BoxDecoration(
-        color: SFColors.white,
-        border: Border(top: BorderSide(color: SFColors.divider)),
-      ),
-      child: Row(
-        children: _items.map((item) {
-          final (tab, icon, key) = item;
-          final active = tab == current;
-          final badge = switch (tab) {
-            SFTab.messages => unreadMessages,
-            SFTab.cart => cartCount,
-            _ => 0,
-          };
-
-          return Expanded(
-            child: Semantics(
-              selected: active,
-              button: true,
-              label: context.t(key),
-              child: InkWell(
-                onTap: () => onTap(tab),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Stack(
-                      clipBehavior: Clip.none,
-                      children: [
-                        AnimatedContainer(
-                          duration: const Duration(milliseconds: 160),
-                          width: 42,
-                          height: 30,
-                          decoration: BoxDecoration(
-                            color: active
-                                ? SFColors.selected
-                                : Colors.transparent,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Icon(
-                            icon,
-                            size: 22,
-                            color: active ? SFColors.midGreen : SFColors.muted2,
-                          ),
-                        ),
-                        if (badge > 0)
-                          PositionedDirectional(
-                            // يتبع اتجاه اللغة تلقائياً — لا حاجة لنسخة ltr.
-                            start: 0,
-                            top: -3,
-                            child: _Badge(count: badge),
-                          ),
+    return Padding(
+      padding: EdgeInsets.fromLTRB(18, 6, 18, 8 + bottomInset),
+      child: Center(
+        heightFactor: 1,
+        child: SizedBox(
+          key: const ValueKey('sf-bottom-nav-surface'),
+          width: 380,
+          height: SFMetrics.bottomNavHeight,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(999),
+              boxShadow: [
+                BoxShadow(
+                  color: SFColors.darkGreen.withValues(alpha: 0.08),
+                  blurRadius: 16,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(999),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(999),
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        SFColors.white.withValues(alpha: 0.96),
+                        SFColors.white.withValues(alpha: 0.86),
+                        SFColors.surfaceAlt.withValues(alpha: 0.92),
                       ],
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      context.t(tab == SFTab.cart ? 'nav_cart_short' : key),
-                      style: TextStyle(
-                        fontSize: 10,
-                        height: 1.1,
-                        fontWeight: active ? FontWeight.w700 : FontWeight.w500,
-                        color: active ? SFColors.midGreen : SFColors.muted2,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                    border: Border.all(
+                      color: SFColors.white.withValues(alpha: 0.95),
+                      width: 1.5,
                     ),
-                  ],
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(4),
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final itemWidth = constraints.maxWidth / _items.length;
+                        return Stack(
+                          children: [
+                            AnimatedPositionedDirectional(
+                              duration: reduceMotion
+                                  ? Duration.zero
+                                  : const Duration(milliseconds: 240),
+                              curve: Curves.easeOutCubic,
+                              start: SFTab.values.indexOf(current) * itemWidth,
+                              top: 0,
+                              bottom: 0,
+                              width: itemWidth,
+                              child: DecoratedBox(
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(999),
+                                  gradient: const LinearGradient(
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                    colors: [
+                                      SFColors.selected,
+                                      SFColors.border,
+                                    ],
+                                  ),
+                                  border: Border.all(
+                                    color: SFColors.white,
+                                    width: 1.5,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: _items.map((item) {
+                                final (tab, icon, key) = item;
+                                final badge = switch (tab) {
+                                  SFTab.messages => unreadMessages,
+                                  SFTab.cart => cartCount,
+                                  _ => 0,
+                                };
+                                return Expanded(
+                                  child: _buildItem(
+                                    context,
+                                    tab,
+                                    icon,
+                                    key,
+                                    badge,
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+                  ),
                 ),
               ),
             ),
-          );
-        }).toList(),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildItem(
+    BuildContext context,
+    SFTab tab,
+    IconData icon,
+    String key,
+    int badge,
+  ) {
+    final active = tab == current;
+    return Semantics(
+      selected: active,
+      button: true,
+      label: context.t(key),
+      value: badge > 0 ? '$badge' : null,
+      excludeSemantics: true,
+      onTap: () => onTap(tab),
+      child: Material(
+        type: MaterialType.transparency,
+        child: InkWell(
+          onTap: () => onTap(tab),
+          borderRadius: BorderRadius.circular(999),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              SizedBox(
+                width: 32,
+                height: 24,
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  alignment: Alignment.center,
+                  children: [
+                    Icon(icon, size: 22, color: SFColors.darkGreen),
+                    if (badge > 0)
+                      PositionedDirectional(
+                        end: 2,
+                        top: -4,
+                        child: IgnorePointer(child: _Badge(count: badge)),
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                context.t(tab == SFTab.cart ? 'nav_cart_short' : key),
+                style: TextStyle(
+                  fontSize: 10,
+                  height: 1.2,
+                  fontWeight: active ? FontWeight.w800 : FontWeight.w500,
+                  color: SFColors.darkGreen,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -129,9 +222,10 @@ class _Badge extends StatelessWidget {
     return Container(
       constraints: const BoxConstraints(minWidth: 16),
       height: 16,
-      padding: const EdgeInsets.symmetric(horizontal: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 3),
       decoration: BoxDecoration(
         color: SFColors.danger,
+        border: Border.all(color: SFColors.white, width: 1.5),
         borderRadius: BorderRadius.circular(999),
       ),
       alignment: Alignment.center,
@@ -140,7 +234,7 @@ class _Badge extends StatelessWidget {
         textDirection: TextDirection.ltr,
         style: const TextStyle(
           color: SFColors.white,
-          fontSize: 9,
+          fontSize: 8,
           fontWeight: FontWeight.w700,
           height: 1,
         ),

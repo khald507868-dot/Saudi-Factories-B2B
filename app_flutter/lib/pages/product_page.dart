@@ -20,7 +20,6 @@ import '../services/messages_service.dart';
 import '../services/favorites_service.dart';
 import '../widgets/bottom_nav.dart';
 import '../widgets/common.dart';
-import '../widgets/currency_picker.dart';
 import '../widgets/product_reviews.dart';
 import '../widgets/price_text.dart';
 import 'factory_page.dart';
@@ -206,7 +205,6 @@ class _ProductPageState extends State<ProductPage> {
             tooltip: i18n.t(_favorite ? 'fav_remove' : 'fav_add'),
             icon: Icon(_favorite ? Icons.favorite : Icons.favorite_border),
           ),
-          const SFCurrencyButton(),
         ],
         title: Text(
           p.name.isEmpty ? i18n.t('app_title') : p.name,

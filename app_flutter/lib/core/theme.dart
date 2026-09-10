@@ -53,7 +53,7 @@ class SFColors {
 
 /// قياسات مريحة للجوال، مستقلة عن تخطيط سطح المكتب.
 class SFMetrics {
-  static const double bottomNavHeight = 64;
+  static const double bottomNavHeight = 58;
   static const double topBarHeight = 56;
   static const double radius = 12;
   static const double pagePadding = 16;

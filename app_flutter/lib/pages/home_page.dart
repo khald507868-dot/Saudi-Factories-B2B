@@ -1,7 +1,7 @@
 // ============================================================
 //  الرئيسية — مقابل app-home.html
 //
-//  الترتيب: الفئات، أرقام المنصة، خريطة المناطق، ثم المنتجات.
+//  الترتيب: الإعلانات، الفئات، أرقام المنصة، خريطة المناطق، ثم المنتجات.
 //  البيانات حقيقية من القاعدة.
 // ============================================================
 
@@ -11,11 +11,15 @@ import '../core/i18n.dart';
 import '../core/theme.dart';
 import '../services/factory_service.dart';
 import '../services/catalog_service.dart';
+import '../services/auth_service.dart';
+import '../services/promotion_service.dart';
 import '../widgets/catalog_product_card.dart';
 import '../widgets/common.dart';
 import '../widgets/wordmark.dart';
 import '../widgets/factory_map.dart';
 import '../widgets/platform_stats.dart';
+import '../widgets/home_promotions.dart';
+import 'admin_page.dart';
 import 'factories_page.dart';
 
 class HomePage extends StatefulWidget {
@@ -28,18 +32,45 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   late Future<List<SFProduct>> _products;
   late Future<Map<String, String>> _categoryImages;
+  late Future<List<SFPromotion>> _promotions;
 
   @override
   void initState() {
     super.initState();
     _products = FactoryService.latestProducts(limit: 24);
     _categoryImages = CatalogService.categoryImages();
+    _promotions = PromotionService.listPublic();
+    PromotionService.changes.addListener(_reloadPromotions);
+  }
+
+  void _reloadPromotions() {
+    if (mounted) {
+      setState(() {
+        _promotions = PromotionService.listPublic();
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    PromotionService.changes.removeListener(_reloadPromotions);
+    super.dispose();
+  }
+
+  Future<void> _managePromotions() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => const AdminPage(initialSection: 'promotions'),
+      ),
+    );
+    _reloadPromotions();
   }
 
   Future<void> _reload() async {
     setState(() {
       _products = FactoryService.latestProducts(limit: 24);
       _categoryImages = CatalogService.categoryImages();
+      _promotions = PromotionService.listPublic();
     });
     await _products;
   }
@@ -51,7 +82,11 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       backgroundColor: SFColors.pageBg,
       appBar: SFTopBar(
-        titleWidget: const Wordmark(),
+        titleWidget: const Align(
+          alignment: Alignment.centerLeft,
+          heightFactor: 1,
+          child: Wordmark(),
+        ),
         searchHint: i18n.t('search_placeholder'),
         onSearchSubmitted: (q) {
           if (q.trim().isEmpty) return;
@@ -69,20 +104,21 @@ class _HomePageState extends State<HomePage> {
           padding: const EdgeInsets.only(top: 20, bottom: 24),
           physics: const AlwaysScrollableScrollPhysics(),
           children: [
+            ListenableBuilder(
+              listenable: AuthService.instance,
+              builder: (context, _) => HomePromotions(
+                promotions: _promotions,
+                onRetry: _reloadPromotions,
+                onManage: AuthService.instance.profile?.isAdmin == true
+                    ? _managePromotions
+                    : null,
+              ),
+            ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    i18n.t('splash_tagline'),
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800,
-                      height: 1.4,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
                   Text(
                     i18n.t('drawer_categories_title'),
                     style: const TextStyle(

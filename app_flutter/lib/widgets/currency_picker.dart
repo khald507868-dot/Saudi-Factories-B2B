@@ -12,28 +12,6 @@ Future<void> showSFCurrencyPicker(BuildContext context) =>
       builder: (_) => const _CurrencyPicker(),
     );
 
-class SFCurrencyButton extends StatelessWidget {
-  const SFCurrencyButton({super.key});
-
-  @override
-  Widget build(BuildContext context) => TextButton(
-    onPressed: () => showSFCurrencyPicker(context),
-    style: TextButton.styleFrom(
-      foregroundColor: SFColors.darkGreen,
-      backgroundColor: SFColors.surfaceAlt,
-      side: const BorderSide(color: SFColors.border),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      minimumSize: const Size(54, 36),
-      padding: const EdgeInsets.symmetric(horizontal: 10),
-    ),
-    child: Text(
-      SFCurrency.instance.code,
-      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
-      semanticsLabel: context.t('currency_pick'),
-    ),
-  );
-}
-
 class _CurrencyPicker extends StatefulWidget {
   const _CurrencyPicker();
   @override

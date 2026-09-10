@@ -108,19 +108,26 @@ class SettingsPage extends StatelessWidget {
                   onTap: () => _pickLanguage(context),
                 ),
                 const Divider(indent: 16, endIndent: 16),
-                ListTile(
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 6,
-                  ),
-                  leading: const Icon(
-                    Icons.currency_exchange,
-                    color: SFColors.midGreen,
-                  ),
-                  title: Text(i18n.t('currency_pick')),
-                  subtitle: Text(SFCurrency.instance.code),
-                  trailing: const Icon(Icons.unfold_more, size: 20),
-                  onTap: () => showSFCurrencyPicker(context),
+                ListenableBuilder(
+                  listenable: SFCurrency.instance,
+                  builder: (context, _) {
+                    final currency = SFCurrency.instance.current;
+                    final name = i18n.lang == 'ar' ? currency.ar : currency.en;
+                    return ListTile(
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 6,
+                      ),
+                      leading: const Icon(
+                        Icons.currency_exchange,
+                        color: SFColors.midGreen,
+                      ),
+                      title: Text(i18n.t('currency_pick')),
+                      subtitle: Text('$name · ${currency.code}'),
+                      trailing: const Icon(Icons.unfold_more, size: 20),
+                      onTap: () => showSFCurrencyPicker(context),
+                    );
+                  },
                 ),
               ],
             ),

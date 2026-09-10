@@ -17,27 +17,31 @@ import '../services/auth_service.dart';
 import '../services/factory_service.dart';
 import '../widgets/common.dart';
 import '../widgets/category_image_admin.dart';
+import '../widgets/promotion_admin.dart';
 
 class AdminPage extends StatefulWidget {
-  const AdminPage({super.key});
+  const AdminPage({super.key, this.initialSection = 'pending'});
+  final String initialSection;
 
   @override
   State<AdminPage> createState() => _AdminPageState();
 }
 
 class _AdminPageState extends State<AdminPage> {
-  late Future<List<SFFactory>> _future;
-  String _status = 'pending';
+  late Future<List<SFFactory>> _future = FactoryService.adminList();
+  late String _status;
   final Set<int> _busy = {};
 
   @override
   void initState() {
     super.initState();
-    _future = FactoryService.adminList();
+    _status = widget.initialSection;
   }
 
   Future<void> _reload() async {
-    setState(() => _future = FactoryService.adminList());
+    setState(() {
+      _future = FactoryService.adminList();
+    });
     await _future;
   }
 
@@ -108,7 +112,11 @@ class _AdminPageState extends State<AdminPage> {
     return Scaffold(
       backgroundColor: SFColors.pageBg,
       appBar: AppBar(
-        title: Text(i18n.t('admin_page_title')),
+        title: Text(
+          i18n.t(
+            _status == 'promotions' ? 'promo_admin_title' : 'admin_page_title',
+          ),
+        ),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(56),
           child: SingleChildScrollView(
@@ -118,6 +126,7 @@ class _AdminPageState extends State<AdminPage> {
               child: Row(
                 children: [
                   for (final status in [
+                    'promotions',
                     'pending',
                     'approved',
                     'rejected',
@@ -130,7 +139,9 @@ class _AdminPageState extends State<AdminPage> {
                         onSelected: (_) => setState(() => _status = status),
                         label: Text(
                           i18n.t(
-                            status == 'catimg'
+                            status == 'promotions'
+                                ? 'promo_admin_title'
+                                : status == 'catimg'
                                 ? 'admin_cat_images'
                                 : 'fs_$status',
                           ),
@@ -143,7 +154,9 @@ class _AdminPageState extends State<AdminPage> {
           ),
         ),
       ),
-      body: _status == 'catimg'
+      body: _status == 'promotions'
+          ? const PromotionAdmin()
+          : _status == 'catimg'
           ? const CategoryImageAdmin()
           : RefreshIndicator(
               onRefresh: _reload,
