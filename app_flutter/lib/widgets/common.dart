@@ -7,7 +7,7 @@ import 'package:flutter/material.dart';
 import '../core/theme.dart';
 import '../core/i18n.dart';
 
-/// شريط أبيض مثل الويب؛ البحث في سطر مستقل كي لا يزاحم الشعار.
+/// شريط علوي بخلفية قابلة للتخصيص والبحث في سطر مستقل عن العنوان.
 class SFTopBar extends StatelessWidget implements PreferredSizeWidget {
   const SFTopBar({
     super.key,
@@ -21,6 +21,9 @@ class SFTopBar extends StatelessWidget implements PreferredSizeWidget {
     this.showBack = false,
     this.compact = false,
     this.toolbarHeight,
+    this.backgroundColor,
+    this.searchBackgroundColor,
+    this.showBottomBorder = true,
   });
 
   final String? title;
@@ -32,6 +35,9 @@ class SFTopBar extends StatelessWidget implements PreferredSizeWidget {
   final Widget? leading;
   final bool compact;
   final double? toolbarHeight;
+  final Color? backgroundColor;
+  final Color? searchBackgroundColor;
+  final bool showBottomBorder;
 
   double get _toolbarHeight =>
       toolbarHeight ?? (compact ? 40 : SFMetrics.topBarHeight);
@@ -50,6 +56,8 @@ class SFTopBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     return AppBar(
+      backgroundColor: backgroundColor,
+      shape: showBottomBorder ? null : const Border(),
       toolbarHeight: _toolbarHeight,
       automaticallyImplyLeading: showBack,
       leading: leading,
@@ -80,6 +88,7 @@ class SFTopBar extends StatelessWidget implements PreferredSizeWidget {
                 padding: EdgeInsets.fromLTRB(16, 0, 16, _searchBottomPadding),
                 child: _SearchField(
                   compact: compact,
+                  backgroundColor: searchBackgroundColor,
                   hint: searchHint!,
                   onChanged: onSearchChanged,
                   onSubmitted: onSearchSubmitted,
@@ -96,19 +105,21 @@ class _SearchField extends StatelessWidget {
     this.onChanged,
     this.onSubmitted,
     this.compact = false,
+    this.backgroundColor,
   });
 
   final String hint;
   final ValueChanged<String>? onChanged;
   final ValueChanged<String>? onSubmitted;
   final bool compact;
+  final Color? backgroundColor;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       height: compact ? 34 : 44,
       decoration: BoxDecoration(
-        color: SFColors.surfaceAlt,
+        color: backgroundColor ?? SFColors.surfaceAlt,
         border: Border.all(color: SFColors.searchBorder),
         borderRadius: BorderRadius.circular(compact ? 10 : 12),
       ),

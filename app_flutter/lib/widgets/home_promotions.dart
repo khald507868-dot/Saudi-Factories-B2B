@@ -5,42 +5,71 @@ import '../core/i18n.dart';
 import '../core/theme.dart';
 import '../services/promotion_service.dart';
 import 'common.dart';
+import 'promotion_image_appearance.dart';
 
 /// مكان الإعلانات ثابت في ترتيب الرئيسية، والإضافة من المساحة الفارغة للمشرف وحده.
-class HomePromotions extends StatelessWidget {
+class HomePromotions extends StatefulWidget {
   const HomePromotions({
     super.key,
     required this.promotions,
     required this.onRetry,
     this.onManage,
+    this.onBackgroundColorChanged,
   });
 
   final Future<List<SFPromotion>> promotions;
   final VoidCallback onRetry;
   final VoidCallback? onManage;
+  final ValueChanged<Color>? onBackgroundColorChanged;
+
+  @override
+  State<HomePromotions> createState() => _HomePromotionsState();
+}
+
+class _HomePromotionsState extends State<HomePromotions> {
+  Color? _backgroundColor;
+
+  void _reportBackgroundColor(Color color) {
+    if (_backgroundColor == color) return;
+    _backgroundColor = color;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _backgroundColor == color) {
+        widget.onBackgroundColorChanged?.call(color);
+      }
+    });
+    WidgetsBinding.instance.ensureVisualUpdate();
+  }
 
   @override
   Widget build(BuildContext context) => FutureBuilder<List<SFPromotion>>(
-    future: promotions,
+    future: widget.promotions,
     builder: (context, snapshot) {
       // لا نعرض إعلاناً وهمياً أو خطأ تقنياً للزائر عند غياب الإعلانات.
       final items = (snapshot.data ?? <SFPromotion>[])
           .where((item) => item.isActive)
           .toList();
-      if (items.isEmpty && onManage == null) return const SizedBox(height: 20);
+      if (items.isEmpty) {
+        _reportBackgroundColor(
+          widget.onManage == null ? SFColors.white : SFColors.surfaceAlt,
+        );
+        if (widget.onManage == null) return const SizedBox(height: 20);
+      }
       return Padding(
         padding: EdgeInsets.only(bottom: items.length > 1 ? 4 : 20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             if (items.isNotEmpty)
-              PromotionCarousel(promotions: items)
+              PromotionCarousel(
+                promotions: items,
+                onBackgroundColorChanged: _reportBackgroundColor,
+              )
             else
               Material(
                 color: SFColors.surfaceAlt,
                 clipBehavior: Clip.hardEdge,
                 child: InkWell(
-                  onTap: onManage,
+                  onTap: widget.onManage,
                   child: Padding(
                     padding: const EdgeInsets.all(24),
                     child: Column(
@@ -70,11 +99,11 @@ class HomePromotions extends StatelessWidget {
                   ),
                 ),
               ),
-            if (snapshot.hasError && onManage != null)
+            if (snapshot.hasError && widget.onManage != null)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: TextButton.icon(
-                  onPressed: onRetry,
+                  onPressed: widget.onRetry,
                   icon: const Icon(Icons.refresh, size: 18),
                   label: Text(context.t('promo_load_failed')),
                 ),
@@ -89,10 +118,16 @@ class HomePromotions extends StatelessWidget {
 /// تملأ الصورة مساحة الإعلان من الحافة إلى الحافة مع الحفاظ على تناسبها.
 /// السحب يدوي، فلا يختفي الإعلان أثناء قراءته.
 class PromotionCarousel extends StatefulWidget {
-  const PromotionCarousel({super.key, required this.promotions, this.onOpen});
+  const PromotionCarousel({
+    super.key,
+    required this.promotions,
+    this.onOpen,
+    this.onBackgroundColorChanged,
+  });
 
   final List<SFPromotion> promotions;
   final ValueChanged<SFPromotion>? onOpen;
+  final ValueChanged<Color>? onBackgroundColorChanged;
 
   @override
   State<PromotionCarousel> createState() => _PromotionCarouselState();
@@ -105,6 +140,18 @@ class _PromotionCarouselState extends State<PromotionCarousel> {
   String? _imageUrl;
   ImageStream? _imageStream;
   ImageStreamListener? _imageListener;
+  int _imageVersion = 0;
+  final _appearances = <String, ({double aspectRatio, Color color})>{};
+
+  void _reportBackgroundColor(Color color) {
+    final version = _imageVersion;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && version == _imageVersion) {
+        widget.onBackgroundColorChanged?.call(color);
+      }
+    });
+    WidgetsBinding.instance.ensureVisualUpdate();
+  }
 
   @override
   void didChangeDependencies() {
@@ -115,6 +162,7 @@ class _PromotionCarouselState extends State<PromotionCarousel> {
   void _watchImageSize() {
     if (widget.promotions.isEmpty) {
       _stopWatchingImage();
+      ++_imageVersion;
       _imageUrl = null;
       _aspectRatio = 2.4;
       return;
@@ -122,24 +170,48 @@ class _PromotionCarouselState extends State<PromotionCarousel> {
     final url = widget.promotions[_page].imageUrl;
     if (url == _imageUrl) return;
     _stopWatchingImage();
+    final version = ++_imageVersion;
     _imageUrl = url;
+    final cached = _appearances[url];
+    if (cached != null) {
+      _aspectRatio = cached.aspectRatio;
+      _reportBackgroundColor(cached.color);
+      return;
+    }
     _aspectRatio = 2.4;
+    _reportBackgroundColor(SFColors.surfaceAlt);
     final stream = NetworkImage(url)
         .resolve(createLocalImageConfiguration(context));
     _imageStream = stream;
     _imageListener = ImageStreamListener(
       (info, synchronousCall) {
         final ratio = info.image.width / info.image.height;
-        info.dispose();
         // The cached image may resolve while the carousel is building.
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!mounted || _imageStream != stream) return;
+        WidgetsBinding.instance.addPostFrameCallback((_) async {
+          if (!mounted || _imageStream != stream) {
+            info.dispose();
+            return;
+          }
           _stopWatchingImage();
           if (_aspectRatio != ratio) setState(() => _aspectRatio = ratio);
+          var color = SFColors.surfaceAlt;
+          try {
+            color = await promotionHeaderColor(info.image);
+          } catch (_) {
+            // Keep the banner usable if pixel reading is unavailable.
+          } finally {
+            info.dispose();
+          }
+          if (!mounted || version != _imageVersion) return;
+          _appearances[url] = (aspectRatio: ratio, color: color);
+          widget.onBackgroundColorChanged?.call(color);
         });
       },
       onError: (Object error, StackTrace? stack) {
         // Image.network below displays the existing error fallback.
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted && _imageStream == stream) _stopWatchingImage();
+        });
       },
     );
     _imageStream!.addListener(_imageListener!);
@@ -164,6 +236,8 @@ class _PromotionCarouselState extends State<PromotionCarousel> {
         if (mounted && _controller.hasClients) _controller.jumpToPage(0);
       });
     }
+    final urls = widget.promotions.map((item) => item.imageUrl).toSet();
+    _appearances.removeWhere((url, _) => !urls.contains(url));
     _watchImageSize();
   }
 

@@ -10,9 +10,10 @@ import 'common.dart';
 
 /// عنوان التوصيل المختار يفتح قائمة العناوين من أعلى الرئيسية.
 class DeliveryAddressHeader extends StatefulWidget {
-  const DeliveryAddressHeader({super.key, this.service});
+  const DeliveryAddressHeader({super.key, this.service, this.foregroundColor});
 
   final DeliveryAddressService? service;
+  final Color? foregroundColor;
 
   @override
   State<DeliveryAddressHeader> createState() => _DeliveryAddressHeaderState();
@@ -53,10 +54,10 @@ class _DeliveryAddressHeaderState extends State<DeliveryAddressHeader> {
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.location_on_outlined,
                         size: 17,
-                        color: SFColors.midGreen,
+                        color: widget.foregroundColor ?? SFColors.midGreen,
                       ),
                       const SizedBox(width: 5),
                       Flexible(
@@ -64,19 +65,19 @@ class _DeliveryAddressHeaderState extends State<DeliveryAddressHeader> {
                           selected?.label ?? context.t('delivery_choose'),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 13,
                             height: 1.2,
                             fontWeight: FontWeight.w800,
-                            color: SFColors.darkGreen,
+                            color: widget.foregroundColor ?? SFColors.darkGreen,
                           ),
                         ),
                       ),
                       const SizedBox(width: 4),
-                      const Icon(
+                      Icon(
                         Icons.keyboard_arrow_down_rounded,
                         size: 20,
-                        color: SFColors.darkGreen,
+                        color: widget.foregroundColor ?? SFColors.darkGreen,
                       ),
                     ],
                   ),
@@ -85,11 +86,11 @@ class _DeliveryAddressHeaderState extends State<DeliveryAddressHeader> {
                     selected?.addressLine ?? context.t('delivery_empty'),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 11,
                       height: 1.2,
                       fontWeight: FontWeight.w400,
-                      color: SFColors.muted2,
+                      color: widget.foregroundColor ?? SFColors.muted2,
                     ),
                   ),
                 ],

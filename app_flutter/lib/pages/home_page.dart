@@ -19,6 +19,7 @@ import '../widgets/common.dart';
 import '../widgets/delivery_address_widgets.dart';
 import '../widgets/platform_stats.dart';
 import '../widgets/home_promotions.dart';
+import '../widgets/promotion_image_appearance.dart';
 import 'admin_page.dart';
 import 'factories_page.dart';
 
@@ -33,6 +34,13 @@ class _HomePageState extends State<HomePage> {
   late Future<List<SFProduct>> _products;
   late Future<Map<String, String>> _categoryImages;
   late Future<List<SFPromotion>> _promotions;
+  Color _promotionBackground = SFColors.white;
+
+  void _updatePromotionBackground(Color color) {
+    if (mounted && _promotionBackground != color) {
+      setState(() => _promotionBackground = color);
+    }
+  }
 
   @override
   void initState() {
@@ -85,7 +93,12 @@ class _HomePageState extends State<HomePage> {
       appBar: SFTopBar(
         compact: true,
         toolbarHeight: 44,
-        titleWidget: const DeliveryAddressHeader(),
+        backgroundColor: _promotionBackground,
+        searchBackgroundColor: SFColors.white,
+        showBottomBorder: false,
+        titleWidget: DeliveryAddressHeader(
+          foregroundColor: promotionHeaderForeground(_promotionBackground),
+        ),
         searchHint: i18n.t('search_placeholder'),
         onSearchSubmitted: (q) {
           if (q.trim().isEmpty) return;
@@ -108,6 +121,7 @@ class _HomePageState extends State<HomePage> {
               builder: (context, _) => HomePromotions(
                 promotions: _promotions,
                 onRetry: _reloadPromotions,
+                onBackgroundColorChanged: _updatePromotionBackground,
                 onManage: AuthService.instance.profile?.isAdmin == true
                     ? _managePromotions
                     : null,
