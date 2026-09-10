@@ -579,7 +579,7 @@ const Map<String, Map<String, String>> kDict = {
     "auth_switch_supplier": "هل أنت مصنع؟ ادخل من هنا",
     "auth_switch_individual": "هل أنت مشترٍ؟ ادخل من هنا",
     "splash_title": "المصانع السعودية",
-    "splash_tagline": "كل مصانع المملكة، في منصّة واحدة",
+    "splash_tagline": "كل مصانع المملكة في منصّة واحدة",
     "usertype_title": "اختر نوع الحساب",
     "usertype_subtitle": "لتتمكن من استخدام التطبيق بالشكل المناسب لك",
     "usertype_individual": "أفراد",
