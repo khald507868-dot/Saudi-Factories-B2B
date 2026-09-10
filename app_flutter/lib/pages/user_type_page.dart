@@ -114,7 +114,7 @@ class _TypeCard extends StatelessWidget {
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
         decoration: BoxDecoration(
-          color: SFColors.white,
+          color: SFColors.surfaceAlt,
           border: Border.all(color: SFColors.border),
           borderRadius: BorderRadius.circular(SFMetrics.radius),
         ),

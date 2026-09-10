@@ -25,7 +25,7 @@ class CatalogProductCard extends StatelessWidget {
     void open() => Navigator.of(context)
         .push(MaterialPageRoute(builder: (_) => ProductPage(product: product)));
     return Material(
-      color: SFColors.white,
+      color: SFColors.surfaceAlt,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(SFMetrics.radius),
         side: const BorderSide(color: SFColors.border),
@@ -129,7 +129,7 @@ class _ProductImageGalleryState extends State<ProductImageGallery> {
   Widget build(BuildContext context) {
     if (widget.images.isEmpty) return const SFImage(url: '', radius: 0);
     return ColoredBox(
-      color: SFColors.white,
+      color: SFColors.surfaceAlt,
       child: Stack(
         fit: StackFit.expand,
         children: [

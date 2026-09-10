@@ -73,8 +73,8 @@ class SFBottomNav extends StatelessWidget {
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                       colors: [
-                        SFColors.white.withValues(alpha: 0.96),
-                        SFColors.white.withValues(alpha: 0.86),
+                        SFColors.surfaceAlt.withValues(alpha: 0.98),
+                        SFColors.surfaceAlt.withValues(alpha: 0.94),
                         SFColors.surfaceAlt.withValues(alpha: 0.92),
                       ],
                     ),

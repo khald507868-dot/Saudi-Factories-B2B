@@ -198,7 +198,7 @@ class _AccountPageState extends State<AccountPage> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: SFColors.white,
+                color: SFColors.surfaceAlt,
                 border: Border.all(color: SFColors.border),
                 borderRadius: BorderRadius.circular(SFMetrics.radius),
               ),

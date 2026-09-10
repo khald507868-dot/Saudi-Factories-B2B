@@ -13,7 +13,7 @@ class SFColors {
   static const Color darkGreen = Color(0xFF04361B);
 
   /// خلفية الصفحات.
-  static const Color pageBg = Color(0xFFF6F7F6);
+  static const Color pageBg = Color(0xFFFFFFFF);
 
   /// الأخضر الفاتح — التمييز والروابط النشطة.
   static const Color green = Color(0xFF45A06A);
@@ -164,7 +164,7 @@ ThemeData buildAppTheme() {
       ),
     ),
     cardTheme: CardThemeData(
-      color: SFColors.white,
+      color: SFColors.surfaceAlt,
       elevation: 0,
       margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(

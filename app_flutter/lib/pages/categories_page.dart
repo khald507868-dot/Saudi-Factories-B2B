@@ -52,7 +52,7 @@ class _CategoriesPageState extends State<CategoriesPage> {
               itemBuilder: (context, i) {
                 final cat = cats[i];
                 return Material(
-                  color: SFColors.white,
+                  color: SFColors.surfaceAlt,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(SFMetrics.radius),
                     side: const BorderSide(color: SFColors.border),

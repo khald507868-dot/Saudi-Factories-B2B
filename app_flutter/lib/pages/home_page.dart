@@ -241,7 +241,7 @@ class _CategoriesStrip extends StatelessWidget {
               width: 110,
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: SFColors.white,
+                color: SFColors.surfaceAlt,
                 border: Border.all(color: SFColors.border),
                 borderRadius: BorderRadius.circular(SFMetrics.radius),
               ),

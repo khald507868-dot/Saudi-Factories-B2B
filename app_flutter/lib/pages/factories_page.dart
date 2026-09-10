@@ -161,7 +161,7 @@ class _FactoryCard extends StatelessWidget {
 
     final location = _locationName(i18n, factory);
     return Material(
-      color: SFColors.white,
+      color: SFColors.surfaceAlt,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(SFMetrics.radius),
         side: const BorderSide(color: SFColors.border),
