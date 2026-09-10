@@ -1,7 +1,7 @@
 // ============================================================
 //  الرئيسية — مقابل app-home.html
 //
-//  الترتيب: الإعلانات، الفئات، أرقام المنصة، خريطة المناطق، ثم المنتجات.
+//  الترتيب: الإعلانات، الفئات، أرقام المنصة، ثم المنتجات.
 //  البيانات حقيقية من القاعدة.
 // ============================================================
 
@@ -13,10 +13,10 @@ import '../services/factory_service.dart';
 import '../services/catalog_service.dart';
 import '../services/auth_service.dart';
 import '../services/promotion_service.dart';
+import '../services/delivery_address_service.dart';
 import '../widgets/catalog_product_card.dart';
 import '../widgets/common.dart';
-import '../widgets/wordmark.dart';
-import '../widgets/factory_map.dart';
+import '../widgets/delivery_address_widgets.dart';
 import '../widgets/platform_stats.dart';
 import '../widgets/home_promotions.dart';
 import 'admin_page.dart';
@@ -67,6 +67,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _reload() async {
+    DeliveryAddressService.instance.reload();
     setState(() {
       _products = FactoryService.latestProducts(limit: 24);
       _categoryImages = CatalogService.categoryImages();
@@ -83,11 +84,8 @@ class _HomePageState extends State<HomePage> {
       backgroundColor: SFColors.pageBg,
       appBar: SFTopBar(
         compact: true,
-        titleWidget: const Align(
-          alignment: Alignment.centerLeft,
-          heightFactor: 1,
-          child: Wordmark(fontSize: 15, width: 138),
-        ),
+        toolbarHeight: 56,
+        titleWidget: const DeliveryAddressHeader(),
         searchHint: i18n.t('search_placeholder'),
         onSearchSubmitted: (q) {
           if (q.trim().isEmpty) return;
@@ -137,8 +135,6 @@ class _HomePageState extends State<HomePage> {
             ),
             const SizedBox(height: 24),
             const PlatformStats(),
-            const SizedBox(height: 24),
-            const FactoryMap(),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 24, 16, 12),
               child: Text(

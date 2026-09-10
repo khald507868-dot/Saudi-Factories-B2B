@@ -20,6 +20,7 @@ class SFTopBar extends StatelessWidget implements PreferredSizeWidget {
     this.leading,
     this.showBack = false,
     this.compact = false,
+    this.toolbarHeight,
   });
 
   final String? title;
@@ -30,8 +31,10 @@ class SFTopBar extends StatelessWidget implements PreferredSizeWidget {
   final List<Widget>? actions;
   final Widget? leading;
   final bool compact;
+  final double? toolbarHeight;
 
-  double get _toolbarHeight => compact ? 40 : SFMetrics.topBarHeight;
+  double get _toolbarHeight =>
+      toolbarHeight ?? (compact ? 40 : SFMetrics.topBarHeight);
   double get _searchHeight => compact ? 38 : 44;
   double get _searchBottomPadding => compact ? 10 : 16;
 
@@ -106,7 +109,7 @@ class _SearchField extends StatelessWidget {
       height: compact ? 38 : 44,
       decoration: BoxDecoration(
         color: SFColors.surfaceAlt,
-        border: Border.all(color: SFColors.border),
+        border: Border.all(color: SFColors.searchBorder),
         borderRadius: BorderRadius.circular(compact ? 10 : 12),
       ),
       padding: EdgeInsets.symmetric(horizontal: compact ? 12 : 14),

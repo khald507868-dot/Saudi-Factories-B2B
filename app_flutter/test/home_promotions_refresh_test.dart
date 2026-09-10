@@ -70,7 +70,7 @@ void main() {
           ),
         ),
       );
-      // نترك قراءة ملف الخريطة وطلبات العميل الوهمي تنتهي خارج الساعة المزيفة.
+      // نترك طلبات العميل الوهمي تنتهي خارج الساعة المزيفة.
       await tester.runAsync(
         () => Future<void>.delayed(const Duration(milliseconds: 50)),
       );

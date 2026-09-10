@@ -35,6 +35,8 @@ class SFColors {
 
   /// حدود البطاقات الخضراء نفسها في green-frames.css.
   static const Color border = Color(0xFFC7DFCE);
+  /// أخضر إطار البحث حسب المرجع المرئي.
+  static const Color searchBorder = Color(0xFF3D7047);
   static const Color divider = Color(0xFFE6EBE8);
   static const Color text = Color(0xFF12331D);
   static const Color selected = Color(0xFFE6F2EA);
