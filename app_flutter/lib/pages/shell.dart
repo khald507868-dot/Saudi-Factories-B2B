@@ -139,7 +139,7 @@ class AppShellState extends State<AppShell> {
         key: ValueKey(_sessionUser),
         index: index,
         children: [
-          const HomePage(),
+          HomePage(isActive: _tab == SFTab.home),
           const CategoriesPage(),
           const FactoriesPage(),
           const MessagesPage(),

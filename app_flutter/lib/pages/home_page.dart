@@ -1,7 +1,7 @@
 // ============================================================
 //  الرئيسية — مقابل app-home.html
 //
-//  الترتيب: الإعلانات، الفئات، المنتجات، ثم أرقام المنصة.
+//  الترتيب: الإعلانات، الفئات، ثم المنتجات؛ أرقام المنصة من زر الترويسة.
 //  البيانات حقيقية من القاعدة.
 // ============================================================
 
@@ -20,12 +20,15 @@ import '../widgets/home_header.dart';
 import '../widgets/platform_stats.dart';
 import '../widgets/home_promotions.dart';
 import '../widgets/home_product_details.dart';
+import '../widgets/slow_auto_scroll.dart';
 import 'admin_page.dart';
 import 'factories_page.dart';
 import 'product_page.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  const HomePage({super.key, this.isActive = true});
+
+  final bool isActive;
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -99,6 +102,7 @@ class _HomePageState extends State<HomePage> {
         scrollController: _scrollController,
         promotionColor: _promotionBackground,
         searchHint: i18n.t('search_placeholder'),
+        onStatsPressed: () => showPlatformStats(context),
         onSearchSubmitted: (q) {
           if (q.trim().isEmpty) return;
           Navigator.of(context).push(
@@ -182,11 +186,12 @@ class _HomePageState extends State<HomePage> {
                 if (items.isEmpty) {
                   return SFStateView(message: i18n.t('factory_no_products'));
                 }
-                return _ProductsStrip(products: items);
+                return _ProductsStrip(
+                  products: items,
+                  autoScrollEnabled: widget.isActive,
+                );
               },
             ),
-            const SizedBox(height: 24),
-            const PlatformStats(),
           ],
         ),
       ),
@@ -195,9 +200,13 @@ class _HomePageState extends State<HomePage> {
 }
 
 class _ProductsStrip extends StatefulWidget {
-  const _ProductsStrip({required this.products});
+  const _ProductsStrip({
+    required this.products,
+    required this.autoScrollEnabled,
+  });
 
   final List<SFProduct> products;
+  final bool autoScrollEnabled;
 
   @override
   State<_ProductsStrip> createState() => _ProductsStripState();
@@ -237,23 +246,27 @@ class _ProductsStripState extends State<_ProductsStrip> {
   Widget build(BuildContext context) =>
       FutureBuilder<Map<int, SFProductRating>>(
         future: _ratings,
-        builder: (context, snapshot) => _HomeItemsStrip(
-          key: const PageStorageKey('home-products'),
-          itemCount: widget.products.length,
-          imageAt: (i) => widget.products[i].image,
-          labelAt: (i) =>
-              widget.products[i].name.isEmpty ? '—' : widget.products[i].name,
-          placeholderIcon: Icons.inventory_2_outlined,
-          onTap: _openProduct,
-          detailsHeight: HomeProductDetails.heightFor(context),
-          detailsBuilder: (context, i) => HomeProductDetails(
-            product: widget.products[i],
-            rating: snapshot.hasData
-                ? snapshot.data![widget.products[i].id] ??
-                      const SFProductRating(average: 0, count: 0)
-                : null,
-            ratingLoading: snapshot.connectionState != ConnectionState.done,
-            ratingFailed: snapshot.hasError,
+        builder: (context, snapshot) => SlowAutoScroll(
+          enabled: widget.autoScrollEnabled,
+          builder: (context, controller) => _HomeItemsStrip(
+            controller: controller,
+            key: const PageStorageKey('home-products'),
+            itemCount: widget.products.length,
+            imageAt: (i) => widget.products[i].image,
+            labelAt: (i) =>
+                widget.products[i].name.isEmpty ? '—' : widget.products[i].name,
+            placeholderIcon: Icons.inventory_2_outlined,
+            onTap: _openProduct,
+            detailsHeight: HomeProductDetails.heightFor(context),
+            detailsBuilder: (context, i) => HomeProductDetails(
+              product: widget.products[i],
+              rating: snapshot.hasData
+                  ? snapshot.data![widget.products[i].id] ??
+                        const SFProductRating(average: 0, count: 0)
+                  : null,
+              ratingLoading: snapshot.connectionState != ConnectionState.done,
+              ratingFailed: snapshot.hasError,
+            ),
           ),
         ),
       );
@@ -300,6 +313,7 @@ class _HomeItemsStrip extends StatelessWidget {
     required this.onTap,
     this.detailsBuilder,
     this.detailsHeight = 0,
+    this.controller,
   });
 
   final int itemCount;
@@ -309,6 +323,7 @@ class _HomeItemsStrip extends StatelessWidget {
   final void Function(int) onTap;
   final IndexedWidgetBuilder? detailsBuilder;
   final double detailsHeight;
+  final ScrollController? controller;
 
   @override
   Widget build(BuildContext context) {
@@ -318,6 +333,7 @@ class _HomeItemsStrip extends StatelessWidget {
     return SizedBox(
       height: (98 + labelHeight).clamp(140.0, double.infinity) + extraHeight,
       child: ListView.separated(
+        controller: controller,
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
         itemCount: itemCount,

@@ -13,6 +13,7 @@ Widget _host({
   required ScrollController scroll,
   required String language,
   required ValueChanged<String> onSearch,
+  required VoidCallback onStatsPressed,
 }) => I18nScope(
   i18n: I18n(language),
   child: MaterialApp(
@@ -35,6 +36,7 @@ Widget _host({
           promotionColor: _bannerColor,
           searchHint: context.t('search_placeholder'),
           onSearchSubmitted: onSearch,
+          onStatsPressed: onStatsPressed,
         ),
         body: ListView.builder(
           key: const ValueKey('home-scroll-content'),
@@ -78,11 +80,13 @@ void main() {
         final scroll = ScrollController();
         addTearDown(scroll.dispose);
         String? submitted;
+        var statsPresses = 0;
         await tester.pumpWidget(
           _host(
             scroll: scroll,
             language: language,
             onSearch: (query) => submitted = query,
+            onStatsPressed: () => statsPresses++,
           ),
         );
         await tester.pumpAndSettle();
@@ -111,6 +115,20 @@ void main() {
         );
         final address = find.byKey(const ValueKey('delivery-address-trigger'));
         expect(tester.getTopLeft(address).dy, greaterThanOrEqualTo(_safeTop));
+        final stats = find.byKey(const ValueKey('home-stats-trigger'));
+        expect(stats, findsOneWidget);
+        final statsRect = tester.getRect(stats);
+        expect(statsRect.width, greaterThanOrEqualTo(44));
+        expect(statsRect.height, greaterThanOrEqualTo(44));
+        expect(
+          statsRect.left,
+          greaterThanOrEqualTo(tester.getRect(address).right),
+        );
+        expect(statsRect.right, lessThanOrEqualTo(headerRect.right));
+        expect(statsRect.top, greaterThanOrEqualTo(_safeTop));
+        await tester.tap(stats);
+        await tester.pumpAndSettle();
+        expect(statsPresses, 1);
 
         scroll.jumpTo(50);
         await tester.pumpAndSettle();
@@ -150,6 +168,10 @@ void main() {
         await tester.pumpAndSettle();
         expect(_background(tester), scrolled);
         expect(tester.getRect(find.byType(HomeHeader)), headerRect);
+        expect(tester.getRect(stats), statsRect);
+        await tester.tap(stats);
+        await tester.pumpAndSettle();
+        expect(statsPresses, 2);
 
         await tester.tap(find.byType(TextField));
         await tester.enterText(find.byType(TextField), 'حديد');

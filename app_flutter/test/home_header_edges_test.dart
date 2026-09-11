@@ -29,6 +29,7 @@ Widget _host(ScrollController scroll) => I18nScope(
                 promotionColor: _contentColor,
                 searchHint: context.t('search_placeholder'),
                 onSearchSubmitted: (_) {},
+                onStatsPressed: () {},
               ),
               body: ListView(
                 controller: scroll,

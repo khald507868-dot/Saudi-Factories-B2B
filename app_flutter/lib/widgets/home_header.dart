@@ -2,6 +2,7 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 
+import '../core/i18n.dart';
 import '../core/theme.dart';
 import 'common.dart';
 import 'delivery_address_widgets.dart';
@@ -15,6 +16,7 @@ class HomeHeader extends StatelessWidget implements PreferredSizeWidget {
     required this.promotionColor,
     required this.searchHint,
     required this.onSearchSubmitted,
+    required this.onStatsPressed,
   });
 
   static const height = 84.0;
@@ -23,6 +25,7 @@ class HomeHeader extends StatelessWidget implements PreferredSizeWidget {
   final Color promotionColor;
   final String searchHint;
   final ValueChanged<String> onSearchSubmitted;
+  final VoidCallback onStatsPressed;
 
   @override
   Size get preferredSize => const Size.fromHeight(height);
@@ -63,7 +66,31 @@ class HomeHeader extends StatelessWidget implements PreferredSizeWidget {
                 alpha: 1 - 0.12 * progress,
               ),
               showBottomBorder: false,
-              titleWidget: DeliveryAddressHeader(foregroundColor: foreground),
+              titleWidget: Row(
+                // يظل زر الأرقام في اليمين مع احتفاظ العنوان باتجاه لغته.
+                textDirection: TextDirection.ltr,
+                children: [
+                  Expanded(
+                    child: DeliveryAddressHeader(foregroundColor: foreground),
+                  ),
+                  const SizedBox(width: 8),
+                  SizedBox(
+                    width: 44,
+                    height: 44,
+                    child: IconButton(
+                      key: const ValueKey('home-stats-trigger'),
+                      onPressed: onStatsPressed,
+                      tooltip: context.t('stats_title'),
+                      padding: EdgeInsets.zero,
+                      icon: Icon(
+                        Icons.bar_chart_rounded,
+                        size: 22,
+                        color: foreground,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
               searchHint: searchHint,
               onSearchSubmitted: onSearchSubmitted,
             ),
