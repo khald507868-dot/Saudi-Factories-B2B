@@ -18,6 +18,7 @@ import '../services/factory_service.dart';
 import '../widgets/common.dart';
 import '../widgets/category_image_admin.dart';
 import '../widgets/promotion_admin.dart';
+import '../widgets/video_promotion_admin.dart';
 
 class AdminPage extends StatefulWidget {
   const AdminPage({super.key, this.initialSection = 'pending'});
@@ -114,7 +115,11 @@ class _AdminPageState extends State<AdminPage> {
       appBar: AppBar(
         title: Text(
           i18n.t(
-            _status == 'promotions' ? 'promo_admin_title' : 'admin_page_title',
+            _status == 'video_ads'
+                ? 'video_ads_admin_title'
+                : _status == 'promotions'
+                ? 'promo_admin_title'
+                : 'admin_page_title',
           ),
         ),
         bottom: PreferredSize(
@@ -127,6 +132,7 @@ class _AdminPageState extends State<AdminPage> {
                 children: [
                   for (final status in [
                     'promotions',
+                    'video_ads',
                     'pending',
                     'approved',
                     'rejected',
@@ -139,7 +145,9 @@ class _AdminPageState extends State<AdminPage> {
                         onSelected: (_) => setState(() => _status = status),
                         label: Text(
                           i18n.t(
-                            status == 'promotions'
+                            status == 'video_ads'
+                                ? 'video_ads_admin_title'
+                                : status == 'promotions'
                                 ? 'promo_admin_title'
                                 : status == 'catimg'
                                 ? 'admin_cat_images'
@@ -154,7 +162,9 @@ class _AdminPageState extends State<AdminPage> {
           ),
         ),
       ),
-      body: _status == 'promotions'
+      body: _status == 'video_ads'
+          ? const VideoPromotionAdmin()
+          : _status == 'promotions'
           ? const PromotionAdmin()
           : _status == 'catimg'
           ? const CategoryImageAdmin()

@@ -13,12 +13,14 @@ import '../services/factory_service.dart';
 import '../services/catalog_service.dart';
 import '../services/auth_service.dart';
 import '../services/promotion_service.dart';
+import '../services/video_promotion_service.dart';
 import '../services/delivery_address_service.dart';
 import '../services/reviews_service.dart';
 import '../widgets/common.dart';
 import '../widgets/home_header.dart';
 import '../widgets/platform_stats.dart';
 import '../widgets/home_promotions.dart';
+import '../widgets/home_video_promotions.dart';
 import '../widgets/home_product_details.dart';
 import '../widgets/slow_auto_scroll.dart';
 import 'admin_page.dart';
@@ -39,6 +41,7 @@ class _HomePageState extends State<HomePage> {
   late Future<List<SFProduct>> _products;
   late Future<Map<String, String>> _categoryImages;
   late Future<List<SFPromotion>> _promotions;
+  late Future<List<SFVideoPromotion>> _videoPromotions;
   Color _promotionBackground = SFColors.white;
 
   void _updatePromotionBackground(Color color) {
@@ -53,7 +56,24 @@ class _HomePageState extends State<HomePage> {
     _products = FactoryService.latestProducts(limit: 24);
     _categoryImages = CatalogService.categoryImages();
     _promotions = PromotionService.listPublic();
+    _videoPromotions = VideoPromotionService.listPublic();
+    VideoPromotionService.changes.addListener(_reloadVideoPromotions);
     PromotionService.changes.addListener(_reloadPromotions);
+  }
+
+  void _reloadVideoPromotions() {
+    if (mounted) {
+      setState(() => _videoPromotions = VideoPromotionService.listPublic());
+    }
+  }
+
+  Future<void> _manageVideoPromotions() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => const AdminPage(initialSection: 'video_ads'),
+      ),
+    );
+    _reloadVideoPromotions();
   }
 
   void _reloadPromotions() {
@@ -66,6 +86,7 @@ class _HomePageState extends State<HomePage> {
 
   @override
   void dispose() {
+    VideoPromotionService.changes.removeListener(_reloadVideoPromotions);
     PromotionService.changes.removeListener(_reloadPromotions);
     _scrollController.dispose();
     super.dispose();
@@ -86,6 +107,7 @@ class _HomePageState extends State<HomePage> {
       _products = FactoryService.latestProducts(limit: 24);
       _categoryImages = CatalogService.categoryImages();
       _promotions = PromotionService.listPublic();
+      _videoPromotions = VideoPromotionService.listPublic();
     });
     await _products;
   }
@@ -154,6 +176,16 @@ class _HomePageState extends State<HomePage> {
               future: _categoryImages,
               builder: (_, snapshot) =>
                   _CategoriesStrip(images: snapshot.data ?? {}),
+            ),
+            ListenableBuilder(
+              listenable: AuthService.instance,
+              builder: (context, _) => HomeVideoPromotions(
+                promotions: _videoPromotions,
+                onRetry: _reloadVideoPromotions,
+                onManage: AuthService.instance.profile?.isAdmin == true
+                    ? _manageVideoPromotions
+                    : null,
+              ),
             ),
             const SizedBox(height: 24),
             Padding(
