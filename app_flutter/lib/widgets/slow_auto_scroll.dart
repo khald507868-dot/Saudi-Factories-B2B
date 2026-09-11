@@ -3,11 +3,23 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
-/// تحريك شريط أفقي ببطء، مع إعطاء الأولوية للتصفح اليدوي دائماً.
+/// شريط دائري بطيء. يبني المستدعي نسخاً متطابقة عند الحاجة للتمرير.
 class SlowAutoScroll extends StatefulWidget {
-  const SlowAutoScroll({super.key, required this.builder, this.enabled = true});
+  const SlowAutoScroll({
+    super.key,
+    required this.builder,
+    required this.cycleExtent,
+    required this.contentExtent,
+    this.enabled = true,
+  }) : assert(cycleExtent > 0),
+       assert(contentExtent >= 0);
 
-  final Widget Function(BuildContext, ScrollController) builder;
+  final Widget Function(BuildContext, ScrollController, int repetitions)
+  builder;
+  // طول النسخة شاملاً الفاصل بين آخر عنصر وأول عنصر في النسخة التالية.
+  final double cycleExtent;
+  // عرض نسخة واحدة مع الهوامش، لتجنب تكرار قائمة تتسع بالكامل للشاشة.
+  final double contentExtent;
   final bool enabled;
 
   @override
@@ -24,8 +36,9 @@ class _SlowAutoScrollState extends State<SlowAutoScroll>
   ScrollPosition? _verticalPosition;
   ModalRoute<dynamic>? _route;
   Duration _lastElapsed = Duration.zero;
-  double _direction = 1;
   double _viewportHeight = 0;
+  bool _looping = false;
+  bool _resetPosition = true;
   bool _appVisible = true;
   bool _tickerEnabled = true;
   bool _reducedMotion = false;
@@ -45,7 +58,11 @@ class _SlowAutoScrollState extends State<SlowAutoScroll>
     WidgetsBinding.instance.addObserver(this);
     _ticker = createTicker(_tick);
     _controller = ScrollController(
-      onAttach: (_) => _scheduleCheck(),
+      keepScrollOffset: false,
+      onAttach: (_) {
+        _resetPosition = true;
+        _scheduleCheck();
+      },
       onDetach: (_) => _stopTicker(),
     );
     _controller.addListener(_positionChanged);
@@ -72,6 +89,7 @@ class _SlowAutoScrollState extends State<SlowAutoScroll>
   @override
   void didUpdateWidget(covariant SlowAutoScroll oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.cycleExtent != widget.cycleExtent) _resetPosition = true;
     _updateMotion();
     _scheduleCheck();
   }
@@ -104,6 +122,20 @@ class _SlowAutoScrollState extends State<SlowAutoScroll>
         _visible =
             top.isFinite && top < _viewportHeight && top + box.size.height > 0;
       }
+      if (_controller.positions.length == 1 &&
+          _controller.position.hasContentDimensions &&
+          !_manualScrolling) {
+        if (_resetPosition) {
+          _resetPosition = false;
+          _jumpTo(_looping ? widget.cycleExtent : 0);
+        } else if (_looping) {
+          final current = _controller.position.pixels;
+          final normalized = _loopOffset(current);
+          if ((current - normalized).abs() > _extentTolerance) {
+            _jumpTo(normalized);
+          }
+        }
+      }
       _updateMotion();
     });
     WidgetsBinding.instance.ensureVisualUpdate();
@@ -112,6 +144,8 @@ class _SlowAutoScrollState extends State<SlowAutoScroll>
   bool get _canMove {
     if (!mounted ||
         !widget.enabled ||
+        !_looping ||
+        _resetPosition ||
         !_appVisible ||
         !_tickerEnabled ||
         _reducedMotion ||
@@ -152,8 +186,17 @@ class _SlowAutoScrollState extends State<SlowAutoScroll>
     // لا نقفز مسافة كبيرة بعد تجمّد إطار أو خفض المتصفح لمعدل الرسم.
     final seconds = math.min(delta.inMicroseconds / 1000000, .1);
     if (seconds <= 0) return;
+    _jumpTo(
+      _loopOffset(_controller.position.pixels + _pixelsPerSecond * seconds),
+    );
+  }
+
+  double _loopOffset(double offset) =>
+      widget.cycleExtent + (offset - widget.cycleExtent) % widget.cycleExtent;
+
+  void _jumpTo(double offset) {
     final position = _controller.position;
-    final target = (position.pixels + _direction * _pixelsPerSecond * seconds)
+    final target = offset
         .clamp(position.minScrollExtent, position.maxScrollExtent)
         .toDouble();
     _drivingScroll = true;
@@ -161,13 +204,6 @@ class _SlowAutoScrollState extends State<SlowAutoScroll>
       _controller.jumpTo(target);
     } finally {
       _drivingScroll = false;
-    }
-    final reachedEdge = _direction > 0
-        ? target >= position.maxScrollExtent
-        : target <= position.minScrollExtent;
-    if (reachedEdge) {
-      // ينعكس الاتجاه مباشرة حتى تبقى الحركة متصلة عند طرف القائمة.
-      _direction = -_direction;
     }
   }
 
@@ -182,6 +218,7 @@ class _SlowAutoScrollState extends State<SlowAutoScroll>
       _updateMotion();
     } else if (notification is ScrollEndNotification) {
       _manualScrolling = false;
+      _scheduleCheck();
       _updateMotion();
     }
     // تبقى إشعارات التمرير متاحة للصفحة ولمؤشرات التمرير الأصلية.
@@ -199,8 +236,22 @@ class _SlowAutoScrollState extends State<SlowAutoScroll>
   }
 
   @override
-  Widget build(BuildContext context) =>
-      NotificationListener<ScrollMetricsNotification>(
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) {
+      final looping =
+          constraints.hasBoundedWidth &&
+          widget.contentExtent > constraints.maxWidth + _extentTolerance;
+      if (_looping != looping) {
+        _looping = looping;
+        _resetPosition = true;
+        _scheduleCheck();
+      }
+      // تكفي ثلاث نسخ عادةً؛ نسخة إضافية تمنع ظهور هامش النهاية إذا كان
+      // عرض الشاشة أكبر بقليل من الدورة وكانت الهوامش سبب التجاوز.
+      final repetitions = _looping
+          ? math.max(3, (constraints.maxWidth / widget.cycleExtent).ceil() + 2)
+          : 1;
+      return NotificationListener<ScrollMetricsNotification>(
         onNotification: (notification) {
           if (notification.depth == 0 &&
               notification.metrics.axis == Axis.horizontal) {
@@ -210,7 +261,13 @@ class _SlowAutoScrollState extends State<SlowAutoScroll>
         },
         child: NotificationListener<ScrollNotification>(
           onNotification: _onScroll,
-          child: widget.builder(context, _controller),
+          child: ScrollConfiguration(
+            behavior: ScrollConfiguration.of(context)
+                .copyWith(scrollbars: false),
+            child: widget.builder(context, _controller, repetitions),
+          ),
         ),
       );
+    },
+  );
 }

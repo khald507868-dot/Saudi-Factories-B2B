@@ -13,7 +13,11 @@ Widget _host({
   bool tickerEnabled = true,
   int itemCount = 10,
   double width = 320,
+  double itemWidth = 100,
+  double gap = 0,
+  double horizontalPadding = 0,
   ValueChanged<int>? onTap,
+  ValueChanged<int>? onRepetitions,
   FocusNode? firstItemFocus,
   GlobalKey<NavigatorState>? navigatorKey,
   ScrollController? verticalController,
@@ -25,19 +29,31 @@ Widget _host({
       enabled: tickerEnabled,
       child: SlowAutoScroll(
         enabled: enabled,
-        builder: (context, controller) {
+        cycleExtent: itemCount * (itemWidth + gap),
+        contentExtent:
+            itemCount * itemWidth +
+            (itemCount - 1) * gap +
+            2 * horizontalPadding,
+        builder: (context, controller, repetitions) {
           onController(controller);
-          return ListView.builder(
+          onRepetitions?.call(repetitions);
+          return ListView.separated(
             key: _stripKey,
             controller: controller,
             scrollDirection: Axis.horizontal,
-            itemExtent: 100,
-            itemCount: itemCount,
+            padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+            itemCount: itemCount * repetitions,
+            separatorBuilder: (_, _) => SizedBox(width: gap),
             itemBuilder: (context, index) => InkWell(
               key: ValueKey('auto-scroll-item-$index'),
-              focusNode: index == 0 ? firstItemFocus : null,
-              onTap: () => onTap?.call(index),
-              child: Center(child: Text('Product $index')),
+              focusNode: index == (repetitions > 1 ? itemCount : 0)
+                  ? firstItemFocus
+                  : null,
+              onTap: () => onTap?.call(index % itemCount),
+              child: SizedBox(
+                width: itemWidth,
+                child: Center(child: Text('Product ${index % itemCount}')),
+              ),
             ),
           );
         },
@@ -81,6 +97,36 @@ Future<void> _dispose(WidgetTester tester) async {
   expect(tester.binding.hasScheduledFrame, isFalse);
 }
 
+double _visibleProductCenter(WidgetTester tester, int product) {
+  final strip = tester.getRect(find.byKey(_stripKey));
+  final positions = find
+      .text('Product $product')
+      .evaluate()
+      .map((element) => tester.getCenter(find.byWidget(element.widget)).dx)
+      .where((center) => center >= strip.left && center <= strip.right)
+      .toList();
+  expect(positions, hasLength(1));
+  return positions.single;
+}
+
+void _expectNoEndGap(WidgetTester tester, double gap) {
+  final strip = tester.getRect(find.byKey(_stripKey));
+  final cards =
+      find
+          .descendant(of: find.byKey(_stripKey), matching: find.byType(InkWell))
+          .evaluate()
+          .map((element) => tester.getRect(find.byWidget(element.widget)))
+          .where((rect) => rect.overlaps(strip))
+          .toList()
+        ..sort((a, b) => a.left.compareTo(b.left));
+  expect(cards, isNotEmpty);
+  expect(cards.first.left - strip.left, lessThanOrEqualTo(gap + .01));
+  expect(strip.right - cards.last.right, lessThanOrEqualTo(gap + .01));
+  for (var index = 1; index < cards.length; index++) {
+    expect(cards[index].left - cards[index - 1].right, closeTo(gap, .01));
+  }
+}
+
 void main() {
   for (final direction in [TextDirection.rtl, TextDirection.ltr]) {
     testWidgets('حركة بطيئة باتجاه $direction مع بقاء البطاقة قابلة للنقر', (
@@ -96,7 +142,7 @@ void main() {
         ),
       );
       await tester.pump();
-      final item = find.byKey(const ValueKey('auto-scroll-item-1'));
+      final item = find.byKey(const ValueKey('auto-scroll-item-11'));
       final before = tester.getCenter(item).dx;
       final initialOffset = controller.offset;
       await _advance(tester, const Duration(seconds: 2));
@@ -145,39 +191,90 @@ void main() {
     },
   );
 
-  testWidgets('القائمة تعكس اتجاهها عند الطرفين فورًا دون توقف أو قفزة', (
+  for (final direction in [TextDirection.rtl, TextDirection.ltr]) {
+    testWidgets('تتصل دورتان باتجاه $direction دون ارتداد أو قفزة بصرية', (
+      tester,
+    ) async {
+      late ScrollController controller;
+      int? tapped;
+      await tester.pumpWidget(
+        _host(
+          direction: direction,
+          width: 120,
+          itemCount: 2,
+          onController: (value) => controller = value,
+          onTap: (index) => tapped = index,
+        ),
+      );
+      await tester.pump();
+      const cycle = 200.0;
+      expect(controller.offset, cycle);
+      var wraps = 0;
+      for (var frame = 0; frame < 1800 && wraps < 2; frame++) {
+        final previous = controller.offset;
+        final before = previous >= 2 * cycle - .5
+            ? _visibleProductCenter(tester, 0)
+            : null;
+        await tester.pump(const Duration(milliseconds: 20));
+        final delta = controller.offset - previous;
+        if (delta < -cycle / 2) {
+          wraps++;
+          expect(before, isNotNull);
+          final after = _visibleProductCenter(tester, 0);
+          expect(
+            direction == TextDirection.rtl ? after - before! : before! - after,
+            closeTo(.24, .03),
+          );
+          expect(delta + cycle, closeTo(.24, .03));
+        } else {
+          expect(delta, inInclusiveRange(0, .25));
+        }
+      }
+      expect(wraps, 2);
+      await tester.tap(find.text('Product 0').hitTestable());
+      await tester.pump();
+      expect(tapped, 0);
+      await _dispose(tester);
+    });
+  }
+
+  testWidgets('تبقى الوصلة ممتلئة عندما تجعل الهوامش الدورة أقصر من الشاشة', (
     tester,
   ) async {
-    late ScrollController controller;
-    await tester.pumpWidget(
-      _host(
-        width: 380,
-        itemCount: 4,
-        onController: (value) => controller = value,
-      ),
-    );
-    final end = controller.position.maxScrollExtent;
-    expect(end, 20);
-    for (var frame = 0; frame < 120 && controller.offset < end; frame++) {
-      final previous = controller.offset;
-      await tester.pump(const Duration(milliseconds: 20));
-      expect(controller.offset - previous, inInclusiveRange(0, .25));
+    for (final direction in [TextDirection.rtl, TextDirection.ltr]) {
+      for (final width in [400.0, 410.0]) {
+        late ScrollController controller;
+        var repetitions = 0;
+        await tester.pumpWidget(
+          _host(
+            direction: direction,
+            width: width,
+            itemCount: 4,
+            itemWidth: 88,
+            gap: 10,
+            horizontalPadding: 16,
+            onController: (value) => controller = value,
+            onRepetitions: (value) => repetitions = value,
+          ),
+        );
+        await tester.pump();
+        expect(repetitions, 4);
+        const cycle = 392.0;
+        controller.jumpTo(2 * cycle - .4);
+        await tester.pump();
+        _expectNoEndGap(tester, 10);
+        final before = _visibleProductCenter(tester, 0);
+        await _advance(tester, const Duration(milliseconds: 40));
+        expect(controller.offset, inInclusiveRange(cycle, cycle + 1));
+        final after = _visibleProductCenter(tester, 0);
+        expect(
+          direction == TextDirection.rtl ? after - before : before - after,
+          closeTo(.48, .05),
+        );
+        _expectNoEndGap(tester, 10);
+        await _dispose(tester);
+      }
     }
-    expect(controller.offset, closeTo(end, .01));
-    await tester.pump(const Duration(milliseconds: 20));
-    expect(end - controller.offset, closeTo(.24, .02));
-    final returning = controller.offset;
-    await _advance(tester, const Duration(milliseconds: 500));
-    expect(returning - controller.offset, closeTo(6, .5));
-    for (var frame = 0; frame < 120 && controller.offset > 0; frame++) {
-      final previous = controller.offset;
-      await tester.pump(const Duration(milliseconds: 20));
-      expect(previous - controller.offset, inInclusiveRange(0, .25));
-    }
-    expect(controller.offset, closeTo(0, .01));
-    await tester.pump(const Duration(milliseconds: 20));
-    expect(controller.offset, closeTo(.24, .02));
-    await _dispose(tester);
   });
 
   testWidgets('التعطيل وتقليل الحركة وعدم وجود محتوى زائد تمنع التمرير', (
@@ -199,11 +296,56 @@ void main() {
           onController: (value) => controller = value,
         ),
       );
+      await tester.pump();
+      final initial = controller.offset;
+      expect(initial, scenario == 'no-overflow' ? 0 : 1000);
       await _advance(tester, const Duration(seconds: 5));
-      expect(controller.offset, 0, reason: scenario);
+      expect(controller.offset, initial, reason: scenario);
       await _dispose(tester);
     }
   });
+
+  testWidgets(
+    'النسخ والحركة تتكيف مع عرض الشريط وعدد المنتجات دون إعادة إنشائه',
+    (tester) async {
+      late ScrollController controller;
+      ScrollController? original;
+      var repetitions = 0;
+      for (final scenario in [
+        (count: 1, width: 320.0, looping: false),
+        (count: 2, width: 320.0, looping: false),
+        (count: 2, width: 120.0, looping: true),
+        (count: 2, width: 320.0, looping: false),
+        (count: 4, width: 320.0, looping: true),
+        (count: 3, width: 320.0, looping: false),
+      ]) {
+        await tester.pumpWidget(
+          _host(
+            itemCount: scenario.count,
+            width: scenario.width,
+            onController: (value) => controller = value,
+            onRepetitions: (value) => repetitions = value,
+          ),
+        );
+        await tester.pump();
+        await tester.pump();
+        original ??= controller;
+        expect(controller, same(original));
+        expect(repetitions, scenario.looping ? 3 : 1);
+        final initial = controller.offset;
+        expect(initial, scenario.looping ? scenario.count * 100 : 0);
+        await _advance(tester, const Duration(seconds: 1));
+        if (scenario.looping) {
+          expect(controller.offset - initial, closeTo(12, 1));
+        } else {
+          expect(controller.offset, 0);
+          expect(controller.position.maxScrollExtent, 0);
+        }
+        expect(tester.takeException(), isNull);
+      }
+      await _dispose(tester);
+    },
+  );
 
   testWidgets('المؤشر الساكن وتركيز البطاقة لا يوقفان الحركة البطيئة', (
     tester,
@@ -256,7 +398,7 @@ void main() {
     final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
     await mouse.addPointer(location: const Offset(0, 300));
     final card = tester.getCenter(
-      find.byKey(const ValueKey('auto-scroll-item-0')),
+      find.byKey(const ValueKey('auto-scroll-item-10')),
     );
     await mouse.moveTo(card);
     final beforeClick = controller.offset;

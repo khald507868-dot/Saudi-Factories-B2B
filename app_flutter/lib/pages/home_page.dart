@@ -246,27 +246,24 @@ class _ProductsStripState extends State<_ProductsStrip> {
   Widget build(BuildContext context) =>
       FutureBuilder<Map<int, SFProductRating>>(
         future: _ratings,
-        builder: (context, snapshot) => SlowAutoScroll(
-          enabled: widget.autoScrollEnabled,
-          builder: (context, controller) => _HomeItemsStrip(
-            controller: controller,
-            key: const PageStorageKey('home-products'),
-            itemCount: widget.products.length,
-            imageAt: (i) => widget.products[i].image,
-            labelAt: (i) =>
-                widget.products[i].name.isEmpty ? '—' : widget.products[i].name,
-            placeholderIcon: Icons.inventory_2_outlined,
-            onTap: _openProduct,
-            detailsHeight: HomeProductDetails.heightFor(context),
-            detailsBuilder: (context, i) => HomeProductDetails(
-              product: widget.products[i],
-              rating: snapshot.hasData
-                  ? snapshot.data![widget.products[i].id] ??
-                        const SFProductRating(average: 0, count: 0)
-                  : null,
-              ratingLoading: snapshot.connectionState != ConnectionState.done,
-              ratingFailed: snapshot.hasError,
-            ),
+        builder: (context, snapshot) => _HomeItemsStrip(
+          autoScrollEnabled: widget.autoScrollEnabled,
+          key: const PageStorageKey('home-products'),
+          itemCount: widget.products.length,
+          imageAt: (i) => widget.products[i].image,
+          labelAt: (i) =>
+              widget.products[i].name.isEmpty ? '—' : widget.products[i].name,
+          placeholderIcon: Icons.inventory_2_outlined,
+          onTap: _openProduct,
+          detailsHeight: HomeProductDetails.heightFor(context),
+          detailsBuilder: (context, i) => HomeProductDetails(
+            product: widget.products[i],
+            rating: snapshot.hasData
+                ? snapshot.data![widget.products[i].id] ??
+                      const SFProductRating(average: 0, count: 0)
+                : null,
+            ratingLoading: snapshot.connectionState != ConnectionState.done,
+            ratingFailed: snapshot.hasError,
           ),
         ),
       );
@@ -313,7 +310,7 @@ class _HomeItemsStrip extends StatelessWidget {
     required this.onTap,
     this.detailsBuilder,
     this.detailsHeight = 0,
-    this.controller,
+    this.autoScrollEnabled,
   });
 
   final int itemCount;
@@ -323,7 +320,9 @@ class _HomeItemsStrip extends StatelessWidget {
   final void Function(int) onTap;
   final IndexedWidgetBuilder? detailsBuilder;
   final double detailsHeight;
-  final ScrollController? controller;
+  final bool? autoScrollEnabled;
+  static const _itemWidth = 88.0;
+  static const _itemSpacing = 10.0;
 
   @override
   Widget build(BuildContext context) {
@@ -332,66 +331,85 @@ class _HomeItemsStrip extends StatelessWidget {
 
     return SizedBox(
       height: (98 + labelHeight).clamp(140.0, double.infinity) + extraHeight,
-      child: ListView.separated(
-        controller: controller,
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-        itemCount: itemCount,
-        separatorBuilder: (_, _) => const SizedBox(width: 10),
-        itemBuilder: (context, i) {
-          return InkWell(
-            onTap: () => onTap(i),
-            borderRadius: BorderRadius.circular(SFMetrics.radius),
-            child: SizedBox(
-              width: 88,
-              child: Column(
-                children: [
-                  Container(
-                    width: 80,
-                    height: 80,
-                    foregroundDecoration: BoxDecoration(
-                      border: Border.all(color: SFColors.border),
-                      borderRadius: BorderRadius.circular(SFMetrics.radius),
-                    ),
-                    child: SFImage(
-                      url: imageAt(i),
-                      width: 80,
-                      height: 80,
-                      radius: SFMetrics.radius,
-                      placeholderIcon: placeholderIcon,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Expanded(
-                    child: Column(
-                      children: [
-                        Text(
-                          labelAt(i),
-                          textAlign: TextAlign.center,
-                          maxLines: 3,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 11,
-                            height: 1.25,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        if (detailsBuilder != null) ...[
-                          const SizedBox(height: 4),
-                          SizedBox(
-                            height: detailsHeight,
-                            child: detailsBuilder!(context, i),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                ],
+      child: autoScrollEnabled == null || itemCount == 0
+          ? _buildList(context)
+          : SlowAutoScroll(
+              enabled: autoScrollEnabled!,
+              cycleExtent: itemCount * (_itemWidth + _itemSpacing),
+              contentExtent:
+                  itemCount * (_itemWidth + _itemSpacing) - _itemSpacing + 32,
+              builder: (context, controller, repetitions) => _buildList(
+                context,
+                controller: controller,
+                repetitions: repetitions,
               ),
             ),
-          );
-        },
-      ),
     );
   }
+
+  Widget _buildList(
+    BuildContext context, {
+    ScrollController? controller,
+    int repetitions = 1,
+  }) => ListView.separated(
+    controller: controller,
+    scrollDirection: Axis.horizontal,
+    padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+    itemCount: itemCount * repetitions,
+    separatorBuilder: (_, _) => const SizedBox(width: _itemSpacing),
+    itemBuilder: (context, index) {
+      final i = index % itemCount;
+      return InkWell(
+        onTap: () => onTap(i),
+        borderRadius: BorderRadius.circular(SFMetrics.radius),
+        child: SizedBox(
+          width: _itemWidth,
+          child: Column(
+            children: [
+              Container(
+                width: 80,
+                height: 80,
+                foregroundDecoration: BoxDecoration(
+                  border: Border.all(color: SFColors.border),
+                  borderRadius: BorderRadius.circular(SFMetrics.radius),
+                ),
+                child: SFImage(
+                  url: imageAt(i),
+                  width: 80,
+                  height: 80,
+                  radius: SFMetrics.radius,
+                  placeholderIcon: placeholderIcon,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Expanded(
+                child: Column(
+                  children: [
+                    Text(
+                      labelAt(i),
+                      textAlign: TextAlign.center,
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        height: 1.25,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    if (detailsBuilder != null) ...[
+                      const SizedBox(height: 4),
+                      SizedBox(
+                        height: detailsHeight,
+                        child: detailsBuilder!(context, i),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
 }
