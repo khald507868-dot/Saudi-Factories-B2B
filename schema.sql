@@ -953,7 +953,7 @@ begin
   if p_expected_updated_at is not null
      and current_row.updated_at is distinct from p_expected_updated_at then
     raise exception 'Factory data changed in another session; reload before saving'
-      using errcode = '40001';
+      using errcode = 'PT409';
   end if;
 
   if coalesce(p_factory->>'website', '') <> ''
@@ -1801,7 +1801,7 @@ begin
   if p_expected_updated_at is not null
      and current_row.updated_at is distinct from p_expected_updated_at then
     raise exception 'Factory data changed in another session; reload before saving'
-      using errcode = '40001';
+      using errcode = 'PT409';
   end if;
 
   if coalesce(p_factory->>'website', '') <> ''

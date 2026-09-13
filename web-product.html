@@ -26,6 +26,7 @@
 <script src="translate.js"></script>
 <script src="reviews-service.js"></script>
 <script src="i18n.js"></script>
+<script src="product-card-data.js"></script>
 <script src="currency-ui.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase-config.js"></script>
@@ -785,6 +786,158 @@
     .prod-thumb { transition: none; }
   }
 
+  /* ===== منتجات مشابهة — شريط دائر باستمرار =====
+     الحركة بـtransform على المسار لا بـscrollLeft:
+     الأخير سالب في RTL في المتصفّحات الحديثة
+     ويختلف باختلاف الاتّجاه — والإزاحة واحدة
+     في الحالتين. يتكيّف عدد النسخ مع عرض النافذة
+     وتعود الحركة عند طول قائمة واحدة بلا فراغ. */
+  .similar-strip {
+    margin: 14px 14px 0;
+    padding: 16px 0 18px;
+    background: #386641;
+    border-radius: 0;
+    overflow: hidden;
+  }
+
+  .similar-strip[hidden] { display: none !important; }
+
+  .similar-strip h2 {
+    margin: 0 0 12px;
+    padding: 0 18px;
+    font-size: 16px;
+    color: #ffffff;
+  }
+
+  /* النافذة: overflow هنا لا على البطاقة
+     كي لا يُقصّ ظلّ العنوان. */
+  .similar-view {
+    overflow: hidden;
+    position: relative;
+    /* الحشوة هنا لا على المسار: حشوة المسار
+       تنتقل مع الـtransform فتكسر تطابق النسختين
+       فيظهر فراغ عند الدورة. */
+    padding: 0 18px;
+  }
+
+  .similar-track {
+    display: flex;
+    gap: 12px;
+    width: max-content;
+    will-change: transform;
+  }
+
+  /* الوقوف عند المؤشّر مقصود: الزائر يقرأ
+     البطاقة قبل النقر، ومطاردتها متعبة. */
+  .similar-card {
+    flex: 0 0 auto;
+    width: 132px;
+    background: #ffffff;
+    border: 0;
+    border-radius: 8px;
+    overflow: hidden;
+    text-decoration: none;
+    color: inherit;
+    display: flex;
+    flex-direction: column;
+    transition: box-shadow .15s, transform .15s;
+  }
+
+  .similar-card:hover {
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.16);
+    transform: translateY(-2px);
+  }
+
+  .similar-thumb {
+    width: 100%;
+    height: 108px;
+    background: #f6f7f7;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  .similar-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+
+  .similar-thumb svg {
+    width: 28px;
+    height: 28px;
+    stroke: #b6c0ba;
+    fill: none;
+    stroke-width: 1.4;
+  }
+
+  .similar-body {
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .similar-name {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #171c19;
+    line-height: 1.4;
+    /* سطران ثابتان: اختلاف ارتفاع البطاقات
+       يكسر استواء الشريط المتحرّك. */
+    height: 35px;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+
+  .similar-price {
+    margin-top: auto;
+    padding-top: 4px;
+    line-height: 1.2;
+    font-size: 13px;
+    font-weight: 800;
+    color: #1f6b42;
+  }
+
+  .similar-price.on-request {
+    font-size: 11.5px;
+    font-weight: 600;
+    color: #6b7a71;
+  }
+
+  .similar-rating,
+  .similar-verified {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 4px;
+    font-size: clamp(11px, .8vw, 14px);
+    line-height: 1.2;
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+  .similar-rating { color: #6b7d70; }
+  .similar-rating .rv-stars { gap: 1px; }
+  .similar-rating .rv-star { width: 1em; height: 1em; }
+  .similar-verified { color: #04361b; font-weight: 700; }
+  .similar-verified svg {
+    width: 1em;
+    height: 1em;
+    stroke: #c9a227;
+    stroke-width: 2.6;
+    fill: none;
+    flex-shrink: 0;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .similar-card { transition: none; }
+  }
+
   .buy-total {
     display: flex;
     align-items: baseline;
@@ -1428,8 +1581,7 @@
 
         '</div>' +
 
-
-        '<div class="actions">' +
+        '<div class="pd-purchase"><div class="actions">' +
           (product.id
             ? '<div class="qty-picker">' +
                 '<span class="qty-label" data-i18n="prod_quantity">' +
@@ -1488,7 +1640,16 @@
               '<span>' + escapeHTML(I18N.t("buy_reply_time")) + '</span>' +
             '</div>' +
           '</div>' +
-        '</div>';
+        '</div></div>';
+
+      /* خارج حاوية التفاصيل المحدودة العرض حتى تمتدّ
+         الخلفية إلى حافتي الصفحة، بما فيها الشاشات العريضة. */
+      wrap.insertAdjacentHTML("afterend",
+        '<section class="similar-strip" id="similar-strip" hidden>' +
+          '<h2 data-i18n="similar_products">' +
+            escapeHTML(I18N.t("similar_products")) + '</h2>' +
+          '<div class="similar-view"><div class="similar-track" id="similar-track"></div></div>' +
+        '</section>');
 
       /* ===== المفضّلة =====
          الحالة تُقرأ من الخادم بعد الرسم، والنقر يبدّلها تفاؤلياً.
@@ -2674,6 +2835,143 @@
         }
       }
 
+      /* ===== منتجات مشابهة =====
+         من المصنع نفسه: هو أقرب ما يملكه العميل من
+         معنى التشابه اليوم، ولا حقل فئة على المنتج
+         يُقارن به. والمنتج المعروض يُستبعد. */
+      function similarCardHTML(row, rating) {
+        var img = sfSafeHttpUrl(row.image) ||
+          (Array.isArray(row.images) ? row.images.filter(function (u) {
+            return sfSafeHttpUrl(u);
+          })[0] : "");
+        var href = "web-product.html?factory=" + encodeURIComponent(row.factory_id) +
+          "&product=" + encodeURIComponent(row.id);
+        var cardPrice = SFProductCard.priceHTML(row);
+        var ratingHTML = rating && rating.count > 0
+          ? '<div class="similar-rating">' + starsHTML(rating.avg) +
+              '<span>' + Number(rating.avg).toFixed(1) + ' (' +
+                escapeHTML(rating.count) + ')</span></div>' : '';
+        return '<a class="similar-card" href="' + escapeHTML(href) + '">' +
+          '<div class="similar-thumb">' +
+            (img ? '<img alt="" loading="lazy" src="' + escapeHTML(img) + '">' : imageIcon) +
+          '</div>' +
+          '<div class="similar-body">' +
+            '<div class="similar-name" data-sf-translate>' + escapeHTML(row.name || "") + '</div>' +
+            (cardPrice
+              ? '<div class="similar-price">' + cardPrice + '</div>'
+              : '<div class="similar-price on-request">' +
+                  escapeHTML(I18N.t("product_price_on_request")) + '</div>') +
+            ratingHTML +
+            (row.factories && row.factories.status === "approved"
+              ? '<div class="similar-verified">' + checkIcon +
+                  escapeHTML(I18N.t("product_verified")) + '</div>' : '') +
+          '</div>' +
+        '</a>';
+      }
+
+      /* نكرّر القائمة بما يكفي لتغطية النافذة ودورة حركة كاملة،
+         ونقيس الدورة من البطاقات الأصلية والفواصل بينها.
+         نسختان فقط لا تكفيان عندما تكون القائمة أقصر من النافذة. */
+      function startSimilarLoop(track) {
+        var reduce = window.matchMedia &&
+          window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        var SPEED = 26;            /* بكسل في الثانية */
+        var offset = 0;
+        var last = 0;
+        var paused = false;
+        var rtl = document.documentElement.getAttribute("dir") !== "ltr";
+        var originals = Array.prototype.slice.call(track.children);
+        if (!originals.length) return;
+        var span = 0;
+        var copies = 1;
+
+        /* المستمع على النافذة الثابتة لا على المسار:
+           المسار ينزلق تحت المؤشّر فيتناوب عليه
+           mouseenter/mouseleave وهو واقف مكانه. */
+        var view = track.parentNode || track;
+        function updateLoopSize() {
+          var gap = parseFloat(window.getComputedStyle(track).columnGap) || 0;
+          span = originals.reduce(function (width, card) {
+            return width + card.getBoundingClientRect().width + gap;
+          }, 0);
+          if (span <= 0) return;
+
+          var needed = Math.max(2, Math.ceil((view.clientWidth + gap) / span) + 1);
+          while (copies < needed) {
+            originals.forEach(function (card) { track.appendChild(card.cloneNode(true)); });
+            copies++;
+          }
+          while (copies > needed) {
+            originals.forEach(function () { track.lastElementChild.remove(); });
+            copies--;
+          }
+          offset %= span;
+          track.style.transform = "translateX(" + (rtl ? offset : -offset) + "px)";
+        }
+        updateLoopSize();
+        if (window.ResizeObserver) {
+          var sizeObserver = new ResizeObserver(updateLoopSize);
+          sizeObserver.observe(view);
+          sizeObserver.observe(originals[0]);
+        } else {
+          window.addEventListener("resize", updateLoopSize);
+        }
+        if (reduce) return;
+
+        view.addEventListener("mouseenter", function () { paused = true; });
+        view.addEventListener("mouseleave", function () { paused = false; });
+        document.addEventListener("visibilitychange", function () { last = 0; });
+
+        function step(now) {
+          if (document.hidden) { last = now; requestAnimationFrame(step); return; }
+          if (!last) last = now;
+          var dt = (now - last) / 1000;
+          last = now;
+          if (!paused) {
+            if (span > 0) {
+              offset = (offset + SPEED * dt) % span;
+              track.style.transform = "translateX(" +
+                (rtl ? offset : -offset) + "px)";
+            }
+          }
+          requestAnimationFrame(step);
+        }
+        requestAnimationFrame(step);
+      }
+
+      function loadSimilar(fid, excludeId) {
+        if (!window.sb || !fid) return;
+        var box = document.getElementById("similar-strip");
+        var track = document.getElementById("similar-track");
+        if (!box || !track) return;
+
+        return sb.from("products")
+          .select("id, factory_id, name, price, tiers, image, images, factories(status)")
+          .eq("factory_id", fid)
+          .order("sort_order")
+          .limit(13)
+          .then(function (res) {
+            if (!res || res.error) return;
+            var rows = (res.data || []).filter(function (r) {
+              return String(r.id) !== String(excludeId);
+            }).slice(0, 12);
+            if (!rows.length) return;
+
+            var ratings = window.SFReviews
+              ? SFReviews.loadRatings(rows.map(function (row) { return row.id; }))
+              : Promise.resolve({});
+            return ratings.catch(function () { return {}; }).then(function (map) {
+              track.innerHTML = rows.map(function (row) {
+                return similarCardHTML(row, (map || {})[String(row.id)]);
+              }).join("");
+              box.hidden = false;
+              startSimilarLoop(track);
+              if (window.SFTranslate) SFTranslate.translateAll(track);
+            });
+          })
+          .catch(function () { /* الشريط زيادة، ففشله يُطوى */ });
+      }
+
       if (window.sb) {
         (window.SF_AUTH_READY || Promise.resolve()).then(function () {
           var query = sb.from("products").select(
@@ -2691,6 +2989,9 @@
           if (!res || res.error) { clearSkeleton(); return; }
           if (!res.data) { showMissingProduct(); return; }
           applyLiveProduct(res.data);
+          /* بعد وصول الصفّ: معرّف المصنع منه أوثق من
+             معامل الرابط، والمنتج نفسه يُستبعد بمعرّفه. */
+          loadSimilar(res.data.factory_id, res.data.id);
         }).catch(function () { clearSkeleton(); });
       } else {
         clearSkeleton();

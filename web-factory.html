@@ -1864,6 +1864,7 @@
       var savePending = false;
       var saveInFlight = false;
       var saveQueued = false;
+      var saveConflict = false;
 
       function newClientKey() {
         if (window.crypto && typeof window.crypto.randomUUID === "function") {
@@ -1904,6 +1905,10 @@
         if (!canEdit) return;
         ensureClientKeys();
         saveLocalDraft();
+        if (saveConflict) {
+          showSaveProblem(I18N.t("factory_edit_conflict"));
+          return;
+        }
         if (!factoryRow) return;
 
         savePending = true;
@@ -1912,7 +1917,7 @@
       }
 
       function pushToDb() {
-        if (!canEdit || !factoryRow || !window.sb || !savePending) {
+        if (saveConflict || !canEdit || !factoryRow || !window.sb || !savePending) {
           return Promise.resolve();
         }
         if (saveInFlight) {
@@ -1981,8 +1986,13 @@
           storageWarning.classList.remove("show");
         }).catch(function (err) {
           savePending = true;
+          if (err && (err.code === "PT409" || err.code === "40001")) {
+            saveConflict = true;
+            saveQueued = false;
+            if (saveTimer) clearTimeout(saveTimer);
+          }
           console.warn("atomic factory save:", err && err.message);
-          showSaveProblem(err && err.message);
+          showSaveProblem(saveConflict ? I18N.t("factory_edit_conflict") : err && err.message);
         }).then(function () {
           saveInFlight = false;
           if (saveQueued) {
@@ -3175,7 +3185,7 @@
         }
         /* ترميز لا نصّاً: رمز الريال مرسوم. */
         return hi > lo
-          ? trim(lo) + " - " + I18N.money(trim(hi))
+          ? I18N.moneyRange(trim(lo), trim(hi))
           : I18N.money(trim(lo));
       }
 

@@ -712,47 +712,75 @@
     margin-bottom: 14px !important;
   }
 
-  /* شبكة المنتجات: تملأ العرض تلقائياً بدل عمودين */
+  /* نفس عرض بطاقات المنتجات المشابهة، دون تمديد البطاقة
+     لملء ما يتبقّى من الصفّ. */
   .bestsellers-grid {
     display: grid !important;
-    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)) !important;
-    gap: 16px !important;
+    grid-template-columns: repeat(auto-fill, minmax(0, clamp(168px, 13.2vw, 250px))) !important;
+    gap: 8px !important;
+    justify-content: center;
   }
 
   .bestsellers-grid .product-card {
-    transition: box-shadow 0.18s, transform 0.18s;
-    /* بطاقات متساوية الارتفاع: بطاقة ذات تقييم
-       أطول من جاراتها، فيقع سطر «موثّق» على
-       ارتفاع مختلف في كلّ بطاقة ويبدو الصفّ مهلهلاً. */
+    transition: box-shadow .15s, transform .15s;
     display: flex;
     flex-direction: column;
-    height: 100%;
+    border-radius: 8px;
+    box-shadow: none;
   }
 
-  /* الخلية تمتدّ على ارتفاع الصفّ لترثه
-     البطاقة بـheight: 100%. */
   .bestsellers-grid .product-cell {
     display: flex;
     flex-direction: column;
+    min-width: 0;
   }
 
-  /* المتن يأخذ الفائض، وسطر الموثّق يُدفع إلى
-     القاع فيستوي في البطاقات كلّها. */
   .bestsellers-grid .product-body {
     flex: 1;
     display: flex;
     flex-direction: column;
+    min-height: 0;
+    padding: 8px 10px;
+    text-align: start;
   }
 
+  .bestsellers-grid .product-image {
+    background: #f6f7f7;
+    flex-shrink: 0;
+  }
+
+  .bestsellers-grid .product-image img { object-fit: contain; }
+  .bestsellers-grid .product-image svg {
+    width: 28px;
+    height: 28px;
+    stroke: #b6c0ba;
+    stroke-width: 1.4;
+  }
+
+  .bestsellers-grid .pc-rate,
   .bestsellers-grid .product-meta {
-    /* auto يدفعه للقاع، والحشوة تحفظ فاصل الـ
-       5px الذي كان margin-top يرسمه. */
+    margin-top: 4px;
+    padding-top: 0;
+    gap: 4px;
+    font-size: clamp(11px, .8vw, 14px);
+    line-height: 1.2;
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+  .bestsellers-grid .product-meta:empty { display: none; }
+  .bestsellers-grid .product-verified { gap: 4px; }
+  .bestsellers-grid .product-verified svg,
+  .bestsellers-grid .pc-star { width: 1em; height: 1em; }
+
+  .bestsellers-grid .product-price {
     margin-top: auto;
-    padding-top: 5px;
+    padding-top: 4px;
+    line-height: 1.2;
+    color: #1f6b42;
   }
 
   .bestsellers-grid .product-card:hover {
-    box-shadow: 0 6px 18px rgba(4, 54, 27, 0.13);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.16);
     transform: translateY(-2px);
   }
 
@@ -2001,11 +2029,17 @@
     border-radius: 14px;
   }
 
-  /* صندوق الشراء: عمود ثالث يرافق القراءة،
-     فالأزرار تبقى في العين مهما طال الوصف. */
-  .product-page .actions {
+  /* الغلاف يمتدّ بارتفاع صفّ التفاصيل ويحدّ حركة صندوق
+     الشراء الثابت قبل شريط المنتجات المشابهة. */
+  .product-page .pd-purchase {
     grid-column: 3;
-    grid-row: 1 / span 20;
+    grid-row: 1;
+    align-self: stretch;
+    min-width: 0;
+  }
+
+  /* صندوق الشراء يرافق القراءة داخل عموده فقط. */
+  .product-page .actions {
     position: sticky;
     top: 18px;
     margin: 0 !important;
@@ -2072,15 +2106,58 @@
 
   .product-page .prod-name { font-size: 22px; line-height: 1.5; }
 
+  /* شريط مستقلّ خارج شبكة التفاصيل، بعرض الصفحة حتى الحافتين. */
+  .product-page .similar-strip {
+    min-width: 0;
+    margin: 22px 0 0 !important;
+    padding: 16px 0 12px;
+    border: 0;
+  }
+
+  .product-page .similar-strip h2 {
+    font-size: clamp(22px, 1.7vw, 32px);
+    padding: 0 16px;
+  }
+  .product-page .similar-view { padding: 2px 16px 0; }
+  .product-page .similar-track { gap: 8px; }
+  /* بطاقات طويلة وصور مربّعة مثل المرجع، مع الحفاظ
+     على عدد البطاقات الظاهرة عند تغيير عرض الشاشة. */
+  .bestsellers-grid .product-card,
+  .product-page .similar-card {
+    width: clamp(168px, 13.2vw, 250px);
+    aspect-ratio: 250 / 396;
+  }
+  .bestsellers-grid .product-image,
+  .product-page .similar-thumb { height: auto; aspect-ratio: 1; }
+  .bestsellers-grid .product-name,
+  .product-page .similar-name {
+    font-size: clamp(14px, 1.1vw, 20px);
+    height: 1.4em;
+    max-height: none;
+    margin-bottom: 0;
+    line-height: 1.4;
+    color: #171c19;
+    flex-shrink: 0;
+    display: block;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-weight: 500;
+  }
+  .bestsellers-grid .product-price,
+  .product-page .similar-price { font-size: var(--sf-price-font-size); }
+  .product-page .similar-price.on-request { font-size: clamp(12px, 1vw, 16px); }
+
   /* شاشة أضيق من أن تسع ثلاثة: الصندوق
      ينزل تحت الصورة ويبقى الوصف إلى جانبها. */
   @media (max-width: 1100px) {
     .product-page .content-wrap {
       grid-template-columns: 280px minmax(0, 1fr) !important;
     }
-    .product-page .actions {
+    .product-page .pd-purchase {
       grid-column: 1;
       grid-row: auto;
+    }
+    .product-page .actions {
       position: static;
     }
   }
@@ -2093,7 +2170,7 @@
     }
     .product-page .pd-media,
     .product-page .pd-info,
-    .product-page .actions { grid-column: 1; }
+    .product-page .pd-purchase { grid-column: 1; }
   }
 
   /* لا قاعدة عرض خاصّة بـview-only هنا:

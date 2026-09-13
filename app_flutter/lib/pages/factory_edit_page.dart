@@ -6,7 +6,7 @@
 //  التخزين فقط — صورة base64 تصل مبتورة وتظهر مربّعاً رمادياً.
 //
 //  updated_at يُرسل كطابع تفاؤلي: إن عُدِّل المصنع في جلسة
-//  أخرى يرفض الخادم الحفظ (40001) بدل الكتابة فوق عمل غيرنا.
+//  أخرى يرفض الخادم الحفظ (PT409) بدل الكتابة فوق عمل غيرنا.
 // ============================================================
 
 import 'package:flutter/material.dart';
@@ -284,7 +284,7 @@ class _FactoryEditPageState extends State<FactoryEditPage> {
       final msg = e.toString();
       showSFError(
         context,
-        msg.contains('40001')
+        (msg.contains('PT409') || msg.contains('40001'))
             ? Exception(context.t('factory_edit_conflict'))
             : e,
       );

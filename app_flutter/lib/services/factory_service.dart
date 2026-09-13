@@ -228,7 +228,7 @@ class FactoryService {
   }
 
   /// حفظ بيانات المصنع. [expectedUpdatedAt] يمنع الكتابة فوق
-  /// تعديل جرى في جلسة أخرى (يُرفض بالرمز 40001).
+  /// تعديل جرى في جلسة أخرى (يُرفض بالرمز PT409).
   static Future<dynamic> save({
     required int factoryId,
     required Map<String, dynamic> factory,

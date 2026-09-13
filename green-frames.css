@@ -1,17 +1,38 @@
-@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap');
-
-/* خط عربي موحّد وواضح في صفحات الفرد والمصنع. */
-html[lang="ar"] body,
-html[lang="ar"] button,
-html[lang="ar"] input,
-html[lang="ar"] textarea,
-html[lang="ar"] select {
-  font-family: "Tajawal", "Segoe UI", Tahoma, Arial, sans-serif !important;
+/* خط البطاقة المرجعية موحّد في جميع صفحات الموقع واللغات. */
+:root {
+  --sf-font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+  --sf-price-font-size: clamp(18px, 1.4vw, 26px);
+  --sf-price-font-weight: 800;
 }
 
-/* يبقى اسم العلامة بالخط اللاتيني المميّز. */
+body,
+button,
+input,
+textarea,
+select,
 .wm-title {
-  font-family: "Segoe UI", Tahoma, Arial, sans-serif !important;
+  font-family: var(--sf-font-family) !important;
+}
+
+/* كل مبلغ من I18N.money وmoneyRange يحمل التنسيق نفسه،
+   بما فيه الأرقام داخل الجداول وملخّصات الطلبات. */
+.sf-money {
+  display: inline-block;
+  font-family: var(--sf-font-family);
+  font-size: var(--sf-price-font-size);
+  font-weight: var(--sf-price-font-weight);
+  line-height: 1.2;
+  direction: ltr;
+  unicode-bidi: isolate;
+  white-space: nowrap;
+}
+
+/* مبالغ الإحصائيات تأخذ حجم عدّاداتها، مثل عدد المنتجات والمصانع. */
+.stat-num .sf-money,
+.dash-stat-num .sf-money {
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
 }
 
 /* إطار أخضر هادئ مخصّص لبطاقات المنتجات فقط. */

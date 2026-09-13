@@ -18,6 +18,7 @@
 <script src="translate.js"></script>
 <script src="reviews-service.js"></script>
 <script src="i18n.js"></script>
+<script src="product-card-data.js"></script>
 <script src="currency-ui.js"></script>
 <!-- زر اللغة بجانب السلة — في هذه الصفحة وحدها بطلب المالك -->
 <script src="lang-switch.js"></script>
@@ -1807,10 +1808,6 @@
           '<span>' + m.avg.toFixed(1) + ' (' + m.count + ')</span></div>';
       }
 
-      function trimNum(n) {
-        return String(Number(n).toFixed(2)).replace(/[.]00$/, '');
-      }
-
       var verified = I18N.t('product_verified');
 
       function showState(msg) {
@@ -1844,36 +1841,9 @@
              فيظهر للمشتري كأنّه المنتج ويُضلّله. */
           var image = gallery[0] || '';
           var name = row.name || factory.name || '';
-          var price = row.price || '';
-          /* مدى السعر: أرخص شريحة إلى أغلاها، كما في
-             علي بابا. وعرض الأساسي وحده يُخفي الخصم
-             في المكان الذي يقارن فيه المشتري. */
-          var priceHTML = '';
-          if (price) {
-            var lo = null, hi = null;
-            (Array.isArray(row.tiers) ? row.tiers : []).forEach(function (t) {
-              if (!t) return;
-              var pr = parseFloat(t.price);
-              var mn = parseInt(t.min, 10);
-              if (isNaN(pr) || pr <= 0 || isNaN(mn) || mn < 1) return;
-              if (lo === null || pr < lo) lo = pr;
-              if (hi === null || pr > hi) hi = pr;
-            });
-            /* عبر I18N لا برمز مكتوب باليد: وإلّا بقي
-               السعر بالريال مهما اختار الزائر — وهو ما
-               وقع فعلاً. ومدىً حقيقيّ حين تختلف الأطراف
-               فحسب؛ وشريحة واحدة تُعرض رقماً واحداً. */
-            if (lo !== null && hi !== null && hi > lo) {
-              priceHTML = '<div class="product-price">' +
-                I18N.moneyRange(trimNum(lo), trimNum(hi)) + '</div>';
-            } else if (lo !== null) {
-              priceHTML = '<div class="product-price">' +
-                I18N.money(trimNum(lo)) + '</div>';
-            } else {
-              priceHTML = '<div class="product-price">' +
-                I18N.money(price) + '</div>';
-            }
-          }
+          var cardPrice = SFProductCard.priceHTML(row);
+          var priceHTML = cardPrice
+            ? '<div class="product-price">' + cardPrice + '</div>' : '';
 
           var fid = row.factory_id;
 
