@@ -20,6 +20,7 @@
 <script src="i18n.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase-config.js"></script>
+<script src="account-access.js"></script>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -1202,6 +1203,10 @@
           password: passwordInput.value
         }).then(function (res) {
           if (res.error) {
+            if (res.error.code === "email_not_confirmed" || /email not confirmed/i.test(res.error.message || "")) {
+              SFAccountAccess.verifyEmail(emailInput.value.trim(), sfAuthReturnTarget("index.html"));
+              return;
+            }
             showError(arabicError(res.error.message));
             btn.disabled = false;
             btn.textContent = originalLabel;
@@ -1230,7 +1235,7 @@
               /* الدخول نجح فعلاً، فالوجهة الرئيسية في الحالتين.
                  وفصل البوّابتين تنظيمي لا أمني: النوع الحقيقي
                  يأتي من الخادم أعلاه، وRLS هي الحماية. */
-              window.location.href = sfAuthReturnTarget("index.html");
+              return SFAccountAccess.finish(sfAuthReturnTarget("index.html"));
             });
         }).catch(function (err) {
           showError(arabicError(err && err.message ? err.message : String(err)));
@@ -1443,7 +1448,7 @@
         var checkedGender = form.querySelector('input[name="gender"]:checked');
 
         /* إنشاء حساب حقيقي — كلمة المرور تُشفَّر في الخادم ولا تُخزَّن عندنا */
-        sb.auth.signUp({
+        SFAccountAccess.signUp({
           email: emailInput.value.trim(),
           password: pass,
           options: {
@@ -1475,13 +1480,7 @@
             return;
           }
 
-          if (!res.data.session) {
-            showSuccess(I18N.t("signup_email_confirmation"));
-            btn.textContent = I18N.t("signup_confirmation_sent");
-            return;
-          }
-
-          window.location.href = sfAuthReturnTarget("index.html");
+          SFAccountAccess.verifyEmail(emailInput.value.trim(), sfAuthReturnTarget("index.html"));
         }).catch(function (err) {
           showError(arabicError(err && err.message ? err.message : String(err)));
           btn.disabled = false;

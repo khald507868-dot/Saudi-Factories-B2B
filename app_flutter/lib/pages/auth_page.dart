@@ -19,6 +19,7 @@ import '../services/auth_service.dart';
 import '../widgets/common.dart';
 import '../widgets/wordmark.dart';
 import 'shell.dart';
+import 'account_gate.dart';
 
 class AuthPage extends StatefulWidget {
   const AuthPage({
@@ -137,6 +138,21 @@ class _LoginFormState extends State<_LoginForm> {
       );
     } catch (e) {
       if (!mounted) return;
+      if (e.toString().toLowerCase().contains('email not confirmed') ||
+          e.toString().contains('email_not_confirmed')) {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => VerifyEmailPage(
+              email: _email.text.trim(),
+              onVerified: () => Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(builder: (_) => const AppShell()),
+                (route) => false,
+              ),
+            ),
+          ),
+        );
+        return;
+      }
       setState(() => _error = arabicAuthError(e));
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -330,15 +346,17 @@ class _RegisterFormState extends State<_RegisterForm> {
         return;
       }
 
-      // لا جلسة ⇒ تأكيد البريد مفعّل. لا نكتب شيئاً في القاعدة.
-      if (res.session == null) {
-        setState(() => _success = context.t('signup_email_confirmation'));
-        return;
-      }
-
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const AppShell()),
-        (route) => false,
+      final navigator = Navigator.of(context);
+      navigator.pushReplacement(
+        MaterialPageRoute(
+          builder: (_) => VerifyEmailPage(
+            email: _email.text.trim(),
+            onVerified: () => navigator.pushAndRemoveUntil(
+              MaterialPageRoute(builder: (_) => const AppShell()),
+              (route) => false,
+            ),
+          ),
+        ),
       );
     } catch (e) {
       if (!mounted) return;

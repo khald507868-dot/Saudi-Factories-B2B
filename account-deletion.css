@@ -1,0 +1,23 @@
+button.account-row.delete-account-row {
+  width: 100%; border: 0; background: transparent; font: inherit;
+  text-align: start; cursor: pointer;
+}
+.delete-account-row .row-label { color: #b3402f; }
+#delete-account-row .row-label svg { stroke: currentColor; }
+.delete-account-row:hover { background: #fff5f3; }
+#delete-account-dialog {
+  margin: auto; width: min(480px, calc(100% - 32px)); max-height: calc(100dvh - 32px);
+  overflow: auto; border: 1px solid #cbded0; border-radius: 20px;
+  padding: 26px; color: #193920; background: white;
+}
+#delete-account-dialog::backdrop { background: rgb(0 0 0 / 45%); }
+#delete-account-form { display: grid; gap: 20px; }
+#delete-account-form h2 { font-size: 24px; }
+#delete-account-form p, .delete-account-confirm { font-size: 16px; line-height: 1.7; }
+.delete-account-confirm { display: flex; align-items: flex-start; gap: 10px; }
+.delete-account-confirm input { flex: none; width: 18px; height: 18px; margin-top: 5px; accent-color: #b3402f; }
+.delete-account-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 12px; }
+.delete-account-actions button { font: inherit; padding: 11px 20px; border: 1px solid #cad9ce; border-radius: 10px; cursor: pointer; background: white; color: #193920; }
+#delete-account-submit { background: #b3402f; border-color: #b3402f; color: white; }
+.delete-account-actions button:disabled { opacity: .55; cursor: not-allowed; }
+#delete-account-error { color: #b3402f; }

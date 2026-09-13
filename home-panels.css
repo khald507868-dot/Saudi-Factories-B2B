@@ -1,0 +1,99 @@
+.home-promotions[hidden], .home-promotions [hidden], .home-dialog [hidden] { display: none !important; }
+.home-promotions {
+  grid-column: 2;
+  grid-row: 1;
+  min-width: 0;
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  gap: 10px;
+}
+.home-promo-stage { flex: 1; min-height: 280px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.home-promo-card { min-width: 0; display: flex; flex-direction: column; overflow: hidden; border: 1px solid var(--sf-product-frame); border-radius: 20px; background: #fff; }
+.home-promo-card-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 16px 14px 10px; }
+.home-promo-card-head h3 { flex: 1; min-width: 0; font-size: clamp(16px, 1.4vw, 22px); line-height: 1.4; overflow-wrap: anywhere; }
+.home-promo-card .home-promo-card-edit { padding: 6px; width: 32px; height: 32px; flex-shrink: 0; display: grid; place-items: center; }
+.home-promo-card-edit svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; }
+.home-promo-card-image { position: relative; flex: 1; min-height: 260px; display: grid; place-items: center; margin: 0 12px 14px; border-radius: 12px; overflow: hidden; }
+.home-promo-card-image img { width: 100%; height: 100%; object-fit: contain; position: absolute; inset: 0; }
+.home-promo-placeholder { flex: 1; min-height: 320px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 24px 14px; text-align: center; color: #6b7d70; }
+.home-promo-placeholder svg { width: 48px; height: 48px; fill: none; stroke: #a1b8a7; stroke-width: 1.4; }
+.home-promo-manage {
+  align-self: flex-end;
+  border: 1px solid var(--sf-product-frame); border-radius: 999px;
+  background: #fff; color: #1f6b42; padding: 9px 14px; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 7px; font-weight: 700;
+}
+.home-promo-manage[hidden] { display: none; }
+.home-promo-manage svg, .home-promo-empty svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.8; }
+.home-promo-empty {
+  width: 100%; flex: 1; min-height: 320px; padding: 32px 14px;
+  display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 12px;
+  background: #fff; border: 0; color: #386641; cursor: pointer;
+}
+.home-promo-empty svg { width: 54px; height: 54px; }
+.home-promo-empty strong { font-size: 20px; }
+.home-promo-empty span { font-size: 14px; color: #6b7d70; }
+.home-promo-controls { display: flex; justify-content: center; align-items: center; gap: 16px; padding: 8px; }
+.home-promo-controls[hidden] { display: none; }
+.home-promo-controls button, .home-dialog-close {
+  display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%;
+  border: 1px solid var(--sf-product-frame); background: #fff; color: #1f6b42; cursor: pointer;
+}
+.home-stats-toggle {
+  position: fixed; right: 0; top: 50%; z-index: 80; transform: translateY(-50%);
+  width: 36px; height: 76px; border: 1px solid #386641; border-right: 0;
+  border-radius: 14px 0 0 14px; color: white; background: #386641;
+  display: grid; place-items: center; cursor: pointer; box-shadow: 0 3px 12px #04361b26;
+}
+.home-stats-toggle svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2.2; }
+.home-dialog {
+  color: #04361b; background: #fff; border: 1px solid var(--sf-product-frame);
+  border-radius: 16px; width: min(820px, calc(100% - 32px)); max-height: calc(100dvh - 32px);
+  margin: auto; padding: 24px; overflow-y: auto; box-shadow: 0 12px 60px #04361b33;
+}
+.home-dialog::backdrop { background: #12331d66; }
+.home-dialog-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 22px; }
+.home-dialog-head h2 { font-size: 22px; }
+.home-dialog-close { flex-shrink: 0; font-size: 26px; }
+.home-stats-dialog {
+  position: fixed; inset: 0 0 0 auto; margin: 0; border-radius: 18px 0 0 18px;
+  width: min(540px, 100%); max-width: 100%; height: 100dvh; max-height: 100dvh;
+}
+.home-stats-dialog .stats-section { display: block; }
+.home-stats-dialog .stats-grid { grid-auto-rows: minmax(150px, auto); gap: 14px; }
+.home-stats-dialog .stat-num { font-size: clamp(26px, 3vw, 38px) !important; overflow-wrap: anywhere; }
+.home-panel-status { padding: 12px 0; color: #6b7d70; font-size: 14px; }
+.home-panel-status:empty { display: none; }
+.home-panel-status.error { color: #a12727; }
+.home-promo-editor { display: grid; gap: 14px; margin-top: 18px; }
+.home-promo-editor label { display: grid; gap: 6px; font-size: 14px; font-weight: 600; }
+.home-promo-editor input { min-width: 0; width: 100%; border: 1px solid var(--sf-product-frame); border-radius: 8px; padding: 10px; background: #fff; color: #04361b; }
+.home-promo-editor small { font-weight: 400; color: #6b7d70; }
+.home-promo-editor .home-promo-visible { display: flex; align-items: center; gap: 8px; }
+.home-promo-visible input { width: 18px; height: 18px; }
+.home-promo-preview { width: 100%; max-height: 180px; object-fit: contain; border-radius: 8px; }
+.home-panel-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.home-panel-button { border: 1px solid #386641; background: #fff; color: #386641; border-radius: 999px; padding: 10px 18px; font-weight: 700; cursor: pointer; }
+.home-panel-button.primary { background: #386641; color: #fff; }
+.home-panel-button:disabled { opacity: .55; cursor: wait; }
+.home-promo-list { display: grid; gap: 8px; }
+.home-promo-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 10px; border: 1px solid var(--sf-product-frame); border-radius: 10px; }
+.home-promo-row > span { flex: 1; min-width: 140px; overflow-wrap: anywhere; }
+.home-promo-row small { display: block; color: #6b7d70; margin-top: 4px; }
+.home-promo-row .home-panel-button { padding: 7px 12px; font-size: 12px; }
+body.home-modal-open { overflow: hidden; }
+@media (max-width: 780px) {
+  .home-page .content { grid-template-columns: minmax(0, 1fr); }
+  .home-page .home-promotions { grid-column: 1; grid-row: 2; min-height: 250px; }
+  .home-page .bestsellers-section { grid-row: 3; }
+  .home-stats-dialog .stats-grid { grid-template-columns: minmax(0, 1fr); }
+  .home-promo-stage { min-height: 250px; }
+  .home-dialog { padding: 18px; }
+}
+@media (max-width: 540px) {
+  .home-promo-stage { grid-template-columns: minmax(0, 1fr); }
+  .home-promo-card-image { min-height: 300px; }
+  .home-promo-empty, .home-promo-placeholder { min-height: 220px; }
+}

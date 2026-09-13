@@ -1,0 +1,77 @@
+/* Both columns end together; the version label sits outside their shared row. */
+body.account-page.settings-page {
+  max-width: 1180px !important;
+  padding: 20px 24px 28px !important;
+  grid-template-columns: 250px minmax(0, 1fr);
+  grid-template-areas: "logo logo" "sidebar content" ". footer";
+  gap: 20px 24px;
+  align-content: start;
+}
+.settings-page > .page-logo { grid-area: logo; margin: 0; }
+.settings-page > .dash-side {
+  grid-area: sidebar;
+  margin-top: 0;
+  min-width: 0;
+  align-self: stretch;
+  position: static;
+  display: flex;
+  flex-direction: column;
+}
+.settings-page > .dash-side > .dash-group:nth-of-type(2) { margin-top: auto; }
+.settings-page .dash-side-head > div { min-width: 0; }
+.settings-page .dash-name { overflow-wrap: anywhere; }
+.settings-page .settings-content {
+  grid-area: content;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-self: stretch;
+}
+.settings-page .settings-content > .account-section:last-child { margin-top: auto !important; }
+.settings-page .page-header h1 { font-size: 22px; line-height: 1.3; }
+.settings-page .account-section .section-title {
+  font-size: 13px;
+  line-height: 1.4;
+  margin: 0 2px 7px !important;
+}
+.settings-page .account-list {
+  border: 1px solid #d8e4db;
+  border-radius: 14px;
+  box-shadow: 0 2px 8px rgb(25 57 32 / 3%);
+}
+.settings-page .account-row {
+  min-height: 50px;
+  padding: 11px 16px;
+}
+.settings-page .account-row .row-label { min-width: 0; line-height: 1.5; }
+.settings-page .account-row .row-label > span { overflow-wrap: anywhere; }
+.settings-page .account-row .row-end { flex: none; }
+.settings-page .account-row .chevron { transform: none; }
+html[dir="rtl"] .settings-page .account-row .chevron { transform: rotate(180deg); }
+.settings-page > .app-version { grid-area: footer; font-size: 12px; line-height: 1.5; }
+.settings-page a:focus-visible,
+.settings-page button:focus-visible,
+.settings-page .switch input:focus-visible + .track {
+  outline: 2px solid #3b6947;
+  outline-offset: -3px;
+}
+@media (max-width: 760px) {
+  body.account-page.settings-page {
+    padding: 16px max(16px, env(safe-area-inset-right)) 24px max(16px, env(safe-area-inset-left)) !important;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "logo" "content" "footer" "sidebar";
+    gap: 20px;
+  }
+  .settings-page > .dash-side { position: static; }
+  .settings-page .dash-sub {
+    display: none;
+    position: static;
+    width: auto;
+    margin: 0 12px 8px;
+    box-shadow: none;
+    transform: none;
+  }
+  .settings-page .dash-item:hover .dash-sub,
+  .settings-page .dash-item:focus-within .dash-sub { display: block; }
+}

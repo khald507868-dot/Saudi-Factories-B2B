@@ -9,7 +9,11 @@
 //  شاشة تقرّر بنفسها هل تتطلّب حساباً (عبر requireLogin).
 // ============================================================
 
+import 'dart:async';
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../core/supabase_config.dart';
@@ -66,70 +70,132 @@ class SFProfile {
 class AuthService extends ChangeNotifier {
   AuthService._();
 
+  @visibleForTesting
+  AuthService.forTesting(this._client, [this._settingsClient]);
+
   static final AuthService instance = AuthService._();
+  SupabaseClient? _client;
+  http.Client? _settingsClient;
+  SupabaseClient get _supabase => _client ?? sb;
+  StreamSubscription<AuthState>? _subscription;
 
   User? _user;
   SFProfile? _profile;
   bool _ready = false;
+  String _accessState = 'checking';
+  String? rejectionReason;
+  int _accessRequest = 0;
+  String get accessState => _accessState;
 
   User? get user => _user;
   SFProfile? get profile => _profile;
-  bool get isSignedIn => _user != null;
+  bool get isSignedIn => _user != null && _accessState == 'ready';
 
   /// اكتمل الفحص الأول للجلسة — مقابل SF_AUTH_READY.
   bool get ready => _ready;
 
   /// يُستدعى مرة واحدة عند الإقلاع، ثم يتابع تغيّرات الجلسة.
   Future<void> start() async {
-    _user = sb.auth.currentUser;
+    _user = _supabase.auth.currentUser;
     if (_user != null) {
       await _loadProfile();
+    } else {
+      _accessState = 'signed_out';
     }
     _ready = true;
     notifyListeners();
 
-    sb.auth.onAuthStateChange.listen((data) async {
+    await _subscription?.cancel();
+    _subscription = _supabase.auth.onAuthStateChange.listen((data) async {
       final next = data.session?.user;
-      final changed = next?.id != _user?.id;
       _user = next;
       if (next == null) {
+        _accessRequest++;
+        _accessState = 'signed_out';
         _profile = null;
-      } else if (changed) {
+        rejectionReason = null;
+      } else {
         await _loadProfile();
       }
       notifyListeners();
     });
   }
 
-  Future<void> _loadProfile() async {
+  Future<void> _loadProfile({bool silent = false}) async {
     final id = _user?.id;
     if (id == null) return;
+    final request = ++_accessRequest;
     // Never retain another session's privileges/details if this request fails.
     _profile = null;
+    rejectionReason = null;
+    if (!silent) {
+      _accessState = 'checking';
+      notifyListeners();
+    }
     try {
-      final row = await sb
+      final verified = await _supabase.auth.getUser().timeout(
+        const Duration(seconds: 15),
+      );
+      if (request != _accessRequest || _user?.id != id) return;
+      if (verified.user == null || verified.user!.id != id) {
+        throw const AuthException('Session unavailable');
+      }
+      _user = verified.user;
+      if (verified.user!.emailConfirmedAt == null) {
+        _accessState = 'email_required';
+        return;
+      }
+      final row = await _supabase
           .from('profiles')
           .select(
             'account_type, full_name, phone, email, is_admin, company_image, gender, country_code, country_flag, birthdate',
           )
           .eq('id', id)
-          .maybeSingle();
-      if (row != null && _user?.id == id) {
+          .maybeSingle()
+          .timeout(const Duration(seconds: 15));
+      if (request != _accessRequest || _user?.id != id) return;
+      if (row != null) {
+        if (row['account_type'] != 'individual' &&
+            row['account_type'] != 'factory') {
+          throw const AuthException('Invalid account type');
+        }
         _profile = SFProfile.fromMap(id, row);
+      } else {
+        throw const AuthException('Profile unavailable');
+      }
+      rejectionReason = null;
+      if (_profile!.isFactory && !_profile!.isAdmin) {
+        final factory = await _supabase
+            .from('factories')
+            .select('status,rejection_reason')
+            .eq('owner_id', id)
+            .order('id')
+            .limit(1)
+            .maybeSingle()
+            .timeout(const Duration(seconds: 15));
+        if (request != _accessRequest || _user?.id != id) return;
+        rejectionReason = factory?['rejection_reason'] as String?;
+        _accessState = factory?['status'] == 'approved'
+            ? 'ready'
+            : factory?['status'] == 'rejected'
+            ? 'rejected'
+            : 'pending';
+      } else {
+        _accessState = 'ready';
       }
     } catch (_) {
-      // انقطاع الشبكة لا يُخرج المستخدم — الجلسة قد تكون سليمة.
+      if (request == _accessRequest && _user?.id == id) _accessState = 'error';
     }
   }
 
   /// إعادة قراءة الملف الشخصي بعد تعديله.
-  Future<void> refreshProfile() async {
-    await _loadProfile();
+  Future<void> refreshProfile({bool silent = false}) async {
+    await _loadProfile(silent: silent);
     notifyListeners();
   }
 
   Future<AuthResponse> signIn(String email, String password) async {
-    final res = await sb.auth.signInWithPassword(
+    final res = await _supabase.auth.signInWithPassword(
       email: email.trim(),
       password: password,
     );
@@ -151,28 +217,69 @@ class AuthService extends ChangeNotifier {
     required String password,
     required Map<String, dynamic> data,
   }) async {
-    final res = await sb.auth.signUp(
+    final settings = await (_settingsClient?.get ?? http.get)(
+      Uri.parse('$kSupabaseUrl/auth/v1/settings'),
+      headers: {'apikey': kSupabaseKey},
+    ).timeout(const Duration(seconds: 15));
+    if (settings.statusCode != 200 ||
+        (jsonDecode(settings.body) as Map)['mailer_autoconfirm'] != false) {
+      throw const AuthException('Email verification is currently unavailable.');
+    }
+    await signOut(scope: SignOutScope.local);
+    final res = await _supabase.auth.signUp(
       email: email.trim(),
       password: password,
       data: data,
     );
+    if (res.session != null) {
+      await signOut(scope: SignOutScope.local);
+      throw const AuthException('Email verification is currently unavailable.');
+    }
     // With email confirmation enabled Supabase returns a User but no Session.
     // Such a user is not authenticated yet and must not pass client-side guards.
     _user = res.session?.user;
     _profile = null;
+    _accessState = 'signed_out';
     if (_user != null) await _loadProfile();
     notifyListeners();
     return res;
   }
 
-  Future<void> resetPassword(String email) async {
-    await sb.auth.resetPasswordForEmail(email.trim());
+  Future<void> verifyEmail(String email, String token) async {
+    final res = await _supabase.auth.verifyOTP(
+      email: email.trim(),
+      token: token.trim(),
+      type: OtpType.email,
+    );
+    if (res.session == null || res.user?.emailConfirmedAt == null) {
+      throw const AuthException('Invalid verification');
+    }
+    _user = res.user;
+    await _loadProfile();
+    notifyListeners();
   }
 
-  Future<void> signOut() async {
-    await sb.auth.signOut();
+  Future<void> resendCode(String email) =>
+      _supabase.auth.resend(email: email.trim(), type: OtpType.signup);
+
+  Future<void> resetPassword(String email) async {
+    await _supabase.auth.resetPasswordForEmail(email.trim());
+  }
+
+  Future<void> signOut({SignOutScope scope = SignOutScope.global}) async {
+    await _supabase.auth.signOut(scope: scope);
     _user = null;
     _profile = null;
+    _accessRequest++;
+    _accessState = 'signed_out';
+    rejectionReason = null;
     notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _accessRequest++;
+    _subscription?.cancel();
+    super.dispose();
   }
 }

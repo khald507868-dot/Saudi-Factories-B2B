@@ -17,8 +17,11 @@
 <script src="i18n.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase-config.js"></script>
+<script src="account-access.js"></script>
 <script src="auth-guard.js"></script>
 <script src="messages-badge.js"></script>
+<link rel="stylesheet" href="account-deletion.css">
+<script src="account-deletion.js" defer></script>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -205,8 +208,9 @@
 <link rel="stylesheet" href="mobile.css">
 <link rel="stylesheet" href="desktop.css">
 <link rel="stylesheet" href="green-frames.css">
+<link rel="stylesheet" href="settings-layout.css">
 </head>
-<body class="account-page">
+<body class="account-page settings-page">
 
   <!-- الشعار — سطح المكتب فقط (مخفي على الجوال عبر desktop.css) -->
   <a class="page-logo" href="index.html">
@@ -295,18 +299,20 @@
     </nav>
   </aside>
 
+  <main class="settings-content" aria-labelledby="settings-title">
   <!-- رأس الصفحة -->
   <header class="page-header">
     <button type="button" class="back-btn" id="back-btn" aria-label="رجوع">
       <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"></path></svg>
     </button>
-    <h1 data-i18n="row_settings">الإعدادات</h1>
+    <h1 id="settings-title" data-i18n="row_settings">الإعدادات</h1>
   </header>
 
   <!-- الحساب -->
   <section class="account-section">
     <p class="section-title" data-i18n="section_account">الحساب</p>
     <div class="account-list">
+
       <a href="#" class="account-row">
         <span class="row-label">
           <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"></path><path d="M22 2 15 22l-4-9-9-4z"></path></svg>
@@ -324,10 +330,10 @@
       <div class="account-row">
         <span class="row-label">
           <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.7 21a2 2 0 0 1-3.4 0"></path></svg>
-          <span data-i18n="row_notifications">الإشعارات</span>
+          <span id="notifications-label" data-i18n="row_notifications">الإشعارات</span>
         </span>
         <label class="switch">
-          <input type="checkbox" checked>
+          <input type="checkbox" aria-labelledby="notifications-label" checked>
           <span class="track"></span>
         </label>
       </div>
@@ -352,18 +358,36 @@
         </span>
         <span class="row-end"><svg class="chevron" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"></path></svg></span>
       </a>
-      <a href="#" class="account-row" id="logout-row" style="border-bottom:none;">
+      <a href="#" class="account-row" id="logout-row">
         <span class="row-label" style="color:#b3402f;">
           <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" style="stroke:#b3402f;"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><path d="M16 17l5-5-5-5"></path><path d="M21 12H9"></path></svg>
           <span data-i18n="row_logout">تسجيل الخروج</span>
         </span>
       </a>
+      <button type="button" class="account-row delete-account-row" id="delete-account-row">
+        <span class="row-label">
+          <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M5 6l1 14a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1l1-14M10 10v7M14 10v7"></path></svg>
+          <span data-i18n="account_delete">حذف الحساب</span>
+        </span>
+      </button>
     </div>
   </section>
+  </main>
 
   <p class="app-version" data-i18n="app_version">دليل المصانع السعودية · الإصدار 1.0.0</p>
 
-  </div>
+  <dialog id="delete-account-dialog" aria-labelledby="delete-account-title">
+    <form id="delete-account-form">
+      <h2 id="delete-account-title" data-i18n="account_delete">حذف الحساب</h2>
+      <p data-i18n="account_delete_warning">سيُحذف حسابك وبيانات ملفك ومنتجات مصنعك نهائيًا. لا يمكن التراجع عن هذه العملية.</p>
+      <label class="delete-account-confirm"><input type="checkbox" id="delete-account-confirm" required><span data-i18n="account_delete_confirm">أفهم أن الحذف نهائي وأريد حذف حسابي.</span></label>
+      <p id="delete-account-error" role="alert" hidden></p>
+      <div class="delete-account-actions">
+        <button type="button" id="delete-account-cancel" data-i18n="msg_cancel">إلغاء</button>
+        <button type="submit" id="delete-account-submit" data-i18n="account_delete" disabled>حذف الحساب</button>
+      </div>
+    </form>
+  </dialog>
 
   <script>
 

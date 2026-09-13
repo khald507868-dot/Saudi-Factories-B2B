@@ -13,5 +13,8 @@ desktop.ini
 *.pem
 *.key
 
+# Local Supabase CLI connection/cache files
+supabase/.temp/
+
 # مهارات UI/UX — أداة محلية للمساعد، ليست جزءاً من كود الموقع
 .claude/skills/

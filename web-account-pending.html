@@ -1,0 +1,10 @@
+<!doctype html>
+<html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title data-i18n="auth_pending_title">بانتظار اعتماد المصنع</title><link rel="stylesheet" href="account-gate.css">
+<script src="i18n.js"></script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="supabase-config.js"></script><script src="account-access.js"></script><script src="account-gate.js" defer></script>
+</head><body data-account-gate="pending"><main class="account-gate">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 6v6l4 2"/></svg>
+<h1 id="pending-title" data-i18n="auth_pending_title">بانتظار اعتماد المصنع</h1><p id="pending-hint" data-i18n="auth_pending_hint">طلب تسجيل مصنعك قيد المراجعة لدى مدير التطبيق. ستتمكن من استخدام حساب المصنع بعد اعتماده.</p>
+<p id="rejection-reason" hidden></p><p id="gate-status" role="status" aria-live="polite"></p>
+<button id="check-approval" type="button" data-i18n="auth_check_approval">التحقق من حالة الطلب</button><button id="gate-signout" type="button" class="secondary" data-i18n="auth_signout">تسجيل الخروج</button>
+</main></body></html>

@@ -16,6 +16,7 @@ import 'core/currency.dart';
 import 'core/supabase_config.dart';
 import 'core/theme.dart';
 import 'pages/splash_page.dart';
+import 'pages/account_gate.dart';
 import 'services/auth_service.dart';
 
 Future<void> main() async {
@@ -61,7 +62,9 @@ class SaudiFactoriesApp extends StatelessWidget {
               // اتجاه الكتابة يتبع اللغة المختارة، لا لغة الجهاز.
               return Directionality(
                 textDirection: i18n.direction,
-                child: PhoneColumn(child: child ?? const SizedBox.shrink()),
+                child: PhoneColumn(
+                  child: AccountGate(child: child ?? const SizedBox.shrink()),
+                ),
               );
             },
             home: const SplashPage(),

@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title data-i18n="auth_verify_title">تأكيد البريد الإلكتروني</title>
+<link rel="stylesheet" href="account-gate.css">
+<script src="i18n.js"></script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="supabase-config.js"></script><script src="account-access.js"></script><script src="account-gate.js" defer></script>
+</head><body data-account-gate="verify"><main class="account-gate">
+<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="3"/><path d="m3 6 9 7 9-7"/></svg>
+<h1 data-i18n="auth_verify_title">تأكيد البريد الإلكتروني</h1><p data-i18n="auth_verify_hint">أدخل رمز التأكيد المرسل إلى بريدك لإكمال التسجيل.</p>
+<form id="verification-form"><label><span data-i18n="field_email">البريد الإلكتروني</span><input id="verification-email" type="email" dir="ltr" autocomplete="email" required></label>
+<label><span data-i18n="auth_code_label">رمز التأكيد</span><input id="verification-code" dir="ltr" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6,10}" minlength="6" maxlength="10" required></label>
+<button id="verify-submit" type="submit" data-i18n="auth_verify_action">تأكيد البريد</button></form>
+<p id="gate-status" role="status" aria-live="polite"></p><button id="resend-code" class="secondary" type="button" data-i18n="auth_resend">إعادة إرسال الرمز</button>
+<a href="web-login.html" data-i18n="splash_login_btn">تسجيل الدخول</a>
+</main></body></html>

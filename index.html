@@ -26,10 +26,14 @@
 <script src="supabase-config.js"></script>
 <script src="favorites-service.js"></script>
 <script>var SF_PUBLIC_PAGE = true;</script>
+<script src="account-access.js"></script>
 <script src="auth-guard.js"></script>
 <script src="messages-badge.js"></script>
 <script src="regions-geo.js"></script>
 <script src="geo-location.js"></script>
+<script src="media-upload.js"></script>
+<script src="promotions-service.js"></script>
+<script src="home-panels.js" defer></script>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -1054,8 +1058,9 @@
 <link rel="stylesheet" href="mobile.css">
 <link rel="stylesheet" href="desktop.css">
 <link rel="stylesheet" href="green-frames.css">
+<link rel="stylesheet" href="home-panels.css">
 </head>
-<body>
+<body class="home-page">
   <!-- خريطة المملكة كعلامة مائية في الخلف: شكل فقط، بلا أسماء مناطق وبلا تفاعل -->
   <div class="map-watermark" aria-hidden="true">
     <svg viewBox="-14 -14 758 628" xmlns="http://www.w3.org/2000/svg">
@@ -1252,14 +1257,31 @@
 
     </section>
 
-    <!-- أكثر المنتجات مبيعاً: 1000 قالب، قالبان في كل صف -->
-    <!-- ===== المنصّة بالأرقام =====
-         أرقام حقيقية من get_public_stats، لا قيم مكتوبة في
-         الصفحة. تُخفى البطاقة كاملةً إن تعذّر جلبها فلا يظهر
-         هيكل بأصفار. -->
-    <section class="stats-section" id="stats-section" hidden>
-      <h2 class="stats-title" data-i18n="stats_title">المنصّة بالأرقام</h2>
-      <div class="stats-grid">
+    <!-- الإعلانات مكان الإحصائيات، وإدارتها للمدير وحده. -->
+    <section class="home-promotions" id="home-promotions" hidden aria-label="Advertisements">
+      <button class="home-promo-manage" id="home-promo-manage" type="button" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M12 8v8m-4-4h8"/></svg><span data-i18n="promo_manage">إدارة الإعلانات</span></button>
+      <div class="home-promo-stage" id="home-promo-stage" hidden></div>
+      <template id="home-promo-empty-template"><button class="home-promo-empty" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M12 8v8m-4-4h8"/></svg><strong data-i18n="promo_add">إضافة إعلان</strong><span data-i18n="promo_empty_hint">صورة إعلانك تظهر هنا للزوار</span></button></template>
+      <div class="home-promo-controls" id="home-promo-controls" hidden>
+        <button id="home-promo-prev" type="button" aria-label="الإعلان السابق">&#8249;</button>
+        <span id="home-promo-position"></span>
+        <button id="home-promo-next" type="button" aria-label="الإعلان التالي">&#8250;</button>
+      </div>
+    </section>
+
+    <section class="bestsellers-section">
+      <h2 class="bestsellers-title" data-i18n="home_bestsellers">أكثر المنتجات مبيعاً</h2>
+      <div class="bestsellers-grid" id="bestsellers-grid"></div>
+    </section>
+  </main>
+
+  <button class="home-stats-toggle" id="home-stats-toggle" type="button" aria-haspopup="dialog" aria-controls="home-stats-dialog" aria-expanded="false" aria-label="المنصة بالأرقام"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 5-7 7 7 7"/></svg></button>
+  <dialog class="home-dialog home-stats-dialog" id="home-stats-dialog" aria-labelledby="home-stats-title">
+    <header class="home-dialog-head"><h2 id="home-stats-title" data-i18n="stats_title">المنصة بالأرقام</h2><button class="home-dialog-close" type="button" data-close-dialog aria-label="إغلاق">&times;</button></header>
+    <p class="home-panel-status" id="home-stats-status" role="status"></p>
+    <button class="home-panel-button" id="home-stats-retry" type="button" data-i18n="app_retry" hidden>إعادة المحاولة</button>
+    <section class="stats-section" id="stats-section">
+      <div class="stats-grid" id="stats-grid" hidden>
         <div class="stat-box">
           <span class="stat-num" id="stat-factories">—</span>
           <span class="stat-label" data-i18n="stats_factories">مصنع معتمد</span>
@@ -1279,11 +1301,22 @@
       </div>
     </section>
 
-    <section class="bestsellers-section">
-      <h2 class="bestsellers-title" data-i18n="home_bestsellers">أكثر المنتجات مبيعاً</h2>
-      <div class="bestsellers-grid" id="bestsellers-grid"></div>
-    </section>
-  </main>
+  </dialog>
+  <dialog class="home-dialog" id="home-promo-dialog" aria-labelledby="home-promo-title">
+    <header class="home-dialog-head"><h2 id="home-promo-title" data-i18n="promo_manage">إدارة الإعلانات</h2><button class="home-dialog-close" type="button" data-close-dialog aria-label="إغلاق">&times;</button></header>
+    <div class="home-promo-list" id="home-promo-list"></div>
+    <p class="home-panel-status" id="home-promo-status" role="status"></p>
+    <div class="home-panel-actions"><button class="home-panel-button" id="home-promo-new" type="button" data-i18n="promo_add">إضافة إعلان</button><button class="home-panel-button" id="home-promo-retry" type="button" data-i18n="app_retry" hidden>إعادة المحاولة</button></div>
+    <form class="home-promo-editor" id="home-promo-form">
+      <label><span data-i18n="promo_title">عنوان الإعلان</span><input id="promo-title" maxlength="120" required></label>
+      <label><span data-i18n="promo_image">صورة الإعلان</span><input id="promo-file" type="file" accept="image/jpeg,image/png,image/webp,image/gif"><small data-i18n="promo_image_hint">حتى 5 ميجابايت</small></label>
+      <img class="home-promo-preview" id="promo-preview" alt="" hidden>
+      <label><span data-i18n="promo_target">رابط الإعلان (اختياري)</span><input id="promo-link" type="url" maxlength="2048" dir="ltr" placeholder="https://"></label>
+      <label><span data-i18n="promo_order">ترتيب العرض</span><input id="promo-order" type="number" min="0" max="9999" step="1" value="0" required></label>
+      <label class="home-promo-visible"><input id="promo-active" type="checkbox" checked><span data-i18n="promo_visible">ظاهر للزوار</span></label>
+      <div class="home-panel-actions"><button class="home-panel-button primary" id="promo-save" type="submit" data-i18n="promo_save">حفظ الإعلان</button></div>
+    </form>
+  </dialog>
 
   <!-- نافذة خريطة المنطقة المختارة -->
   <div class="map-modal-overlay" id="map-modal-overlay">
@@ -1968,48 +2001,6 @@
           card.addEventListener('pointercancel', stop);
         });
       }
-
-      /* ===== المنصّة بالأرقام =====
-         الأرقام من get_public_stats على الخادم لا من استعلام
-         مباشر: سياسة orders_select_party تحجب الطلبات عن
-         الزائر، فأي جمع من المتصفح يعطي صفراً. الدالة تُرجع
-         مجاميع فقط فلا تكشف بيانات أحد.
-
-         البطاقة تبقى مخفيّة إن فشل الجلب — هيكل بأصفار أسوأ
-         من لا شيء، وهو ما طلب المالك تجنّبه: "ماتكون شكل فقط". */
-      (function loadStats() {
-        var box = document.getElementById('stats-section');
-        if (!box || !window.sb) return;
-
-        function fmt(v) {
-          var num = Number(v || 0);
-          if (!isFinite(num)) return '0';
-          /* بلا كسور للأعداد الصحيحة، وخانتان للمبالغ */
-          return num % 1 === 0
-            ? num.toLocaleString('en-US')
-            : num.toLocaleString('en-US', { minimumFractionDigits: 2,
-                                            maximumFractionDigits: 2 });
-        }
-
-        sb.rpc('get_public_stats').then(function (res) {
-          if (res.error || !res.data) return;
-
-          var row = Array.isArray(res.data) ? res.data[0] : res.data;
-          if (!row) return;
-
-          var f = document.getElementById('stat-factories');
-          var p = document.getElementById('stat-products');
-          var u = document.getElementById('stat-units');
-          var r = document.getElementById('stat-revenue');
-
-          if (f) f.textContent = fmt(row.factories_count);
-          if (p) p.textContent = fmt(row.products_count);
-          if (u) u.textContent = fmt(row.units_sold);
-          if (r) r.innerHTML = I18N.money(fmt(row.revenue));
-
-          box.hidden = false;
-        }).catch(function () { /* تبقى مخفيّة */ });
-      })();
 
       /* ===== المفضّلة =====
          تُلوَّن القلوب بعد رسم الشبكة، ثم يبدّلها النقر.

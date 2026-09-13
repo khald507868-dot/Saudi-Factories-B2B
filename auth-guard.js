@@ -62,40 +62,39 @@
     return false;
   };
 
-  global.SF_AUTH_READY = sb.auth.getSession().then(function (res) {
+  var gateStyle = document.createElement("style");
+  gateStyle.textContent = "html.sf-access-checking body{visibility:hidden}";
+  document.head.appendChild(gateStyle);
+  document.documentElement.classList.add("sf-access-checking");
+  function reveal() { document.documentElement.classList.remove("sf-access-checking"); }
+  global.SF_AUTH_READY = sb.auth.getSession().then(async function (res) {
     var session = res && res.data ? res.data.session : null;
-
     if (!session) {
-      /* لا جلسة: تُسجَّل "زائر" صراحةً — لا تُمحى، وإلا عاد
-         الزائر إلى حالة "لا علامة" فانتظر الشبكة بلا داعٍ */
-      try { localStorage.setItem("sf_signed_in", "0"); } catch (e) {}
-      if (!isPublic) redirect();
+      try { localStorage.setItem("sf_signed_in", "0"); } catch (_) {}
+      if (!isPublic) redirect(); else reveal();
       return null;
     }
-
-    global.SF_USER = session.user;
-
-    /* علامة عرض فقط، لا صلاحية: تتيح للصفحة أن ترسم الحالة
-       الصحيحة فوراً بدل انتظار الشبكة. الخادم يبقى الحكم،
-       ولو زُوّرت فأقصى أثرها إخفاء زرّ دخول عن زائر — ثم
-       يصحّحها الجواب بعد أجزاء من الثانية. */
-    try { localStorage.setItem("sf_signed_in", "1"); } catch (e) {}
-
-    /* نوع الحساب من الخادم — لا من localStorage القابل للتزوير */
-    return sb.from("profiles")
-      .select("account_type, full_name, gender, country_flag, country_code, phone, email, birthdate, is_admin, company_image")
-      .eq("id", session.user.id).single()
-      .then(function (p) {
-        if (p.data) {
-          global.SF_PROFILE = p.data;
-          try {
-            localStorage.setItem("sf_account_type", p.data.account_type);
-          } catch (e) {}
-        }
-        return session.user;
-      });
+    var access = await global.SFAccountAccess.check();
+    if (!global.SFAccountAccess.route(access, currentPage())) return null;
+    global.SF_USER = access.user;
+    global.SF_PROFILE = access.profile;
+    try {
+      localStorage.setItem("sf_signed_in", "1");
+      localStorage.setItem("sf_account_type", access.profile.account_type);
+    } catch (_) {}
+    reveal();
+    return access.user;
   }).catch(function () {
-    /* انقطاع الشبكة: لا نطرد المستخدم، فقد تكون الجلسة سليمة */
+    global.SF_USER = null;
+    global.SF_PROFILE = null;
+    function failure() {
+      var box = document.createElement("div");
+      box.style.cssText = "position:fixed;inset:0;z-index:2147483647;background:#f4f8f5;display:grid;place-content:center;gap:20px;text-align:center;padding:24px";
+      var message = document.createElement("p"); message.textContent = I18N.t("auth_check_failed");
+      var retry = document.createElement("button"); retry.textContent = I18N.t("app_retry"); retry.onclick = function () { location.reload(); };
+      box.append(message, retry); document.body.appendChild(box); reveal();
+    }
+    if (document.body) failure(); else document.addEventListener("DOMContentLoaded", failure, {once:true});
     return null;
   });
 
