@@ -17933,13 +17933,22 @@
       .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   }
 
+  function formatSarNumber(value) {
+    var raw = String(value == null ? "" : value);
+    var n = Number(raw.replace(/,/g, ""));
+    if (!raw.trim() || !isFinite(n)) return raw;
+    return n.toLocaleString("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+  }
+
   function money(value) {
     var cur = global.SFCurrency;
 
-    /* بلا الخدمة أو بالريال: السلوك الأوّل كما هو. */
+    /* مبالغ الريال تظهر دائماً بمنزلتين عشريتين. */
     if (!cur || !cur.isForeign()) {
-      var num = String(value == null ? "" : value)
-        .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      var num = esc(formatSarNumber(value));
       return num + ' <span class="sar">' + t("currency_sar") + '</span>';
     }
 
@@ -17967,7 +17976,7 @@
   function moneyRange(lo, hi) {
     var cur = global.SFCurrency;
     if (!cur || !cur.isForeign()) {
-      return esc(lo) + ' - ' + esc(hi)
+      return esc(formatSarNumber(lo)) + ' - ' + esc(formatSarNumber(hi))
         + ' <span class="sar">' + t("currency_sar") + '</span>';
     }
     var a = parseFloat(String(lo).replace(/,/g, ""));
@@ -17983,7 +17992,8 @@
   function convertNum(value) {
     var cur = global.SFCurrency;
     var n = parseFloat(String(value == null ? "" : value).replace(/,/g, ""));
-    if (!cur || !cur.isForeign() || !isFinite(n)) return String(value == null ? "" : value);
+    if (!cur || !cur.isForeign()) return formatSarNumber(value);
+    if (!isFinite(n)) return String(value == null ? "" : value);
     return cur.formatNumber(cur.convert(n));
   }
 
