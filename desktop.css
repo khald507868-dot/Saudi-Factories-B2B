@@ -1555,7 +1555,7 @@
     overflow-y: auto;
     min-height: 0;
     padding: 16px !important;
-    scroll-behavior: smooth;
+    scroll-behavior: auto;
   }
 
   /* المُنشئ يلتصق بأسفل بطاقة المحادثة بدل تثبيته بالنافذة */

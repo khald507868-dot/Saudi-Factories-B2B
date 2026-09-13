@@ -1225,10 +1225,10 @@
 
       /* ===== شاشة المحادثة ===== */
       function scrollToLatest() {
-        window.requestAnimationFrame(function () {
-          messagesArea.scrollTop = messagesArea.scrollHeight;
-          if (window.innerWidth < 1024) window.scrollTo(0, document.body.scrollHeight);
-        });
+        /* نضبط الموضع قبل أن يرسم المتصفح الرسائل، حتى تبدأ
+           المحادثة عند أحدث رسالة بلا رحلة من أول السجل. */
+        messagesArea.scrollTop = messagesArea.scrollHeight;
+        if (window.innerWidth < 1024) window.scrollTo(0, document.body.scrollHeight);
       }
 
       function renderMessageLoading() {
@@ -1475,7 +1475,7 @@
         if (t.messagesLoaded) renderMessages();
         else renderMessageLoading();
         loadConversationMessages(id, false);
-        msgInput.focus();
+        msgInput.focus({ preventScroll: true });
       }
 
       function closeChat() {
