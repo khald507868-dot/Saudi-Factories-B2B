@@ -749,7 +749,7 @@
   .bestsellers-pause svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; }
   .bestsellers-pause:focus-visible { outline: 2px solid #3d6947; outline-offset: 2px; }
 
-  .bestsellers-grid .product-card {
+  :is(.bestsellers-grid, .all-products-grid) .product-card {
     transition: box-shadow .15s, transform .15s;
     display: flex;
     flex-direction: column;
@@ -757,14 +757,14 @@
     box-shadow: none;
   }
 
-  .bestsellers-grid .product-cell {
+  :is(.bestsellers-grid, .all-products-grid) .product-cell {
     flex: 0 0 clamp(168px, 13.2vw, 250px);
     display: flex;
     flex-direction: column;
     min-width: 0;
   }
 
-  .bestsellers-grid .product-body {
+  :is(.bestsellers-grid, .all-products-grid) .product-body {
     flex: 1;
     display: flex;
     flex-direction: column;
@@ -773,21 +773,21 @@
     text-align: start;
   }
 
-  .bestsellers-grid .product-image {
+  :is(.bestsellers-grid, .all-products-grid) .product-image {
     background: #f6f7f7;
     flex-shrink: 0;
   }
 
-  .bestsellers-grid .product-image img { object-fit: contain; }
-  .bestsellers-grid .product-image svg {
+  :is(.bestsellers-grid, .all-products-grid) .product-image img { object-fit: contain; }
+  :is(.bestsellers-grid, .all-products-grid) .product-image svg {
     width: 28px;
     height: 28px;
     stroke: #b6c0ba;
     stroke-width: 1.4;
   }
 
-  .bestsellers-grid .pc-rate,
-  .bestsellers-grid .product-meta {
+  :is(.bestsellers-grid, .all-products-grid) .pc-rate,
+  :is(.bestsellers-grid, .all-products-grid) .product-meta {
     margin-top: 4px;
     padding-top: 0;
     gap: 4px;
@@ -796,19 +796,19 @@
     flex-shrink: 0;
     white-space: nowrap;
   }
-  .bestsellers-grid .product-meta:empty { display: none; }
-  .bestsellers-grid .product-verified { gap: 4px; }
-  .bestsellers-grid .product-verified svg,
-  .bestsellers-grid .pc-star { width: 1em; height: 1em; }
+  :is(.bestsellers-grid, .all-products-grid) .product-meta:empty { display: none; }
+  :is(.bestsellers-grid, .all-products-grid) .product-verified { gap: 4px; }
+  :is(.bestsellers-grid, .all-products-grid) .product-verified svg,
+  :is(.bestsellers-grid, .all-products-grid) .pc-star { width: 1em; height: 1em; }
 
-  .bestsellers-grid .product-price {
+  :is(.bestsellers-grid, .all-products-grid) .product-price {
     margin-top: auto;
     padding-top: 4px;
     line-height: 1.2;
     color: #1f6b42;
   }
 
-  .bestsellers-grid .product-card:hover {
+  :is(.bestsellers-grid, .all-products-grid) .product-card:hover {
     box-shadow: 0 4px 14px rgba(0, 0, 0, 0.16);
     transform: translateY(-2px);
   }
@@ -2151,14 +2151,14 @@
   .product-page .similar-track { gap: 8px; }
   /* بطاقات طويلة وصور مربّعة مثل المرجع، مع الحفاظ
      على عدد البطاقات الظاهرة عند تغيير عرض الشاشة. */
-  .bestsellers-grid .product-card,
+  :is(.bestsellers-grid, .all-products-grid) .product-card,
   .product-page .similar-card {
     width: clamp(168px, 13.2vw, 250px);
     aspect-ratio: 250 / 396;
   }
-  .bestsellers-grid .product-image,
+  :is(.bestsellers-grid, .all-products-grid) .product-image,
   .product-page .similar-thumb { height: auto; aspect-ratio: 1; }
-  .bestsellers-grid .product-name,
+  :is(.bestsellers-grid, .all-products-grid) .product-name,
   .product-page .similar-name {
     font-size: clamp(14px, 1.1vw, 20px);
     height: 1.4em;
@@ -2172,7 +2172,7 @@
     text-overflow: ellipsis;
     font-weight: 500;
   }
-  .bestsellers-grid .product-price,
+  :is(.bestsellers-grid, .all-products-grid) .product-price,
   .product-page .similar-price { font-size: var(--sf-price-font-size); }
   .product-page .similar-price.on-request { font-size: clamp(12px, 1vw, 16px); }
 
@@ -2227,8 +2227,6 @@
     width: 320px;
     right: 28px;
   }
-
-  html[dir="ltr"] .store-page .msg-dock { right: auto; left: 28px; }
 
   /* ============================================================
      صفحات الدخول للموقع: login • register
@@ -2433,4 +2431,39 @@
   .dt-supplier,
   .dash-stats { display: none !important; }
   .dash-chart { display: none !important; }
+}
+
+/* Full catalogue below the moving bestsellers strip, using the same cards. */
+.all-products-section {
+  grid-column: 1 / -1;
+  grid-row: 3;
+  min-width: 0;
+  margin-top: 18px;
+}
+.all-products-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, clamp(168px, 13.2vw, 250px));
+  justify-content: center;
+  gap: 16px 8px;
+  padding: 4px 0 12px;
+}
+.all-products-more {
+  display: block;
+  margin: 16px auto 8px;
+  padding: 12px 30px;
+  border: 1px solid #c7dfce;
+  border-radius: 12px;
+  background: #fff;
+  color: #3d6947;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.all-products-more[hidden] { display: none; }
+.all-products-more:disabled { opacity: .6; cursor: wait; }
+.all-products-more:hover { background: #eef5ef; }
+.all-products-more:focus-visible { outline: 2px solid #3d6947; outline-offset: 3px; }
+@media (max-width: 420px) {
+  .all-products-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .all-products-grid .product-card { width: 100%; }
 }

@@ -1278,6 +1278,12 @@
       </div>
       <div class="bestsellers-grid" id="bestsellers-grid"></div>
     </section>
+    <section class="all-products-section" aria-labelledby="all-products-title">
+      <h2 class="bestsellers-title" id="all-products-title" data-i18n="home_all_products">كل المنتجات</h2>
+      <div class="all-products-grid" id="all-products-grid"></div>
+      <p class="grid-state" id="all-products-status" role="status" hidden></p>
+      <button class="all-products-more" id="all-products-more" type="button" hidden data-i18n="home_more_products">عرض المزيد</button>
+    </section>
   </main>
 
   <button class="home-stats-toggle" id="home-stats-toggle" type="button" aria-haspopup="dialog" aria-controls="home-stats-dialog" aria-expanded="false" aria-label="المنصة بالأرقام"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 5-7 7 7 7"/></svg></button>
@@ -1780,9 +1786,12 @@
       });
     })();
 
-    /* ===== أكثر المنتجات مبيعاً: بناء 1000 قالب بسلسلة واحدة ===== */
+    /* Shared cards for the bestsellers strip and the paginated catalogue. */
     (function () {
       var grid = document.getElementById('bestsellers-grid');
+      var allGrid = document.getElementById('all-products-grid');
+      var allStatus = document.getElementById('all-products-status');
+      var moreButton = document.getElementById('all-products-more');
       if (!grid) return;
 
       /* المنتجات الحقيقية من قاعدة البيانات.
@@ -1814,8 +1823,6 @@
         '<svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">' +
         '<path d="M20 6L9 17l-5-5"/></svg>';
 
-      /* 6.00 ← 6 و 6.50 يبقى، فلا تزدحم البطاقة
-         بأصفار لا تعني شيئاً. */
       /* خريطة تقييمات المنتجات: تُملأ بنداء واحد
          للبطاقات جميعاً لا نداء لكلّ بطاقة. */
       var RATINGS = {};
@@ -1855,9 +1862,10 @@
 
       showState(I18N.t('fx_loading'));
 
-      function render(rows) {
+      function render(rows, target, append) {
+        target = target || grid;
         if (!rows.length) {
-          showState(I18N.t('fx_empty'));
+          if (target === grid) showState(I18N.t('home_products_empty'));
           return;
         }
 
@@ -1899,7 +1907,7 @@
                     gallery.map(function (u) {
                       var safe = sfSafeHttpUrl(u);
                       return safe
-                        ? '<img class="ps-slide" alt="" src="' + escapeHTML(safe) + '">'
+                        ? '<img class="ps-slide" alt="" loading="lazy" src="' + escapeHTML(safe) + '">'
                         : '';
                     }).join('') +
                     '</span>' +
@@ -1909,7 +1917,7 @@
                       }).join('') +
                     '</span>'
                   : (sfSafeHttpUrl(image)
-                      ? '<img alt="" src="' + escapeHTML(sfSafeHttpUrl(image)) + '">'
+                      ? '<img alt="" loading="lazy" src="' + escapeHTML(sfSafeHttpUrl(image)) + '">'
                       : imageIcon)) +
               '</div>' +
               '<div class="product-body">' +
@@ -1928,14 +1936,15 @@
             '</a>' +
             '</div>';
         });
-        if (grid.sfStopScroll) grid.sfStopScroll();
-        grid.innerHTML = html;
-        SFBestsellersScroll.mount(grid);
-        wireFavorites(grid);
-        startCardSliders(grid);
+        if (target.sfStopScroll) target.sfStopScroll();
+        if (append) target.insertAdjacentHTML('beforeend', html);
+        else target.innerHTML = html;
+        if (target === grid) SFBestsellersScroll.mount(grid);
+        wireFavorites(target);
+        startCardSliders(target);
         /* أسماء المنتجات تُترجم بعد الرسم، والخدمة
            تعود بالأصل إن تعذّرت — فلا شيء ينكسر. */
-        if (window.SFTranslate) SFTranslate.translateAll(grid);
+        if (window.SFTranslate) SFTranslate.translateAll(target);
       }
 
       /* ===== تبديل صور البطاقات عند مرور المؤشّر =====
@@ -1971,15 +1980,12 @@
       }
 
       function startCardSliders(grid) {
-        /* تُلغى مؤقّتات الرسم السابق حتى لا تتراكم عند تبديل
-           اللغة أو الفئة وتبقى تحرّك عناصر محذوفة. */
-        cardSlideTimers.forEach(clearInterval);
-        cardSlideTimers = [];
-
         var boxes = grid.querySelectorAll('.product-image[data-slides]');
         if (!boxes.length) return;
 
         boxes.forEach(function (box) {
+          if (box.sfSliderReady) return;
+          box.sfSliderReady = true;
           var card = box.closest('.product-cell') || box;
           var timer = null;
 
@@ -2040,7 +2046,7 @@
         var id = btn.getAttribute('data-fav');
         var on = btn.classList.contains('on');
         /* تفاؤلي: القلب يتبدّل فوراً ويرتدّ إن رفض الخادم. */
-        var matches = Array.from(grid.querySelectorAll('[data-fav]')).filter(function (item) {
+        var matches = Array.from(document.querySelectorAll('[data-fav]')).filter(function (item) {
           return item.getAttribute('data-fav') === id;
         });
         function setFavorite(value, busy) {
@@ -2061,9 +2067,65 @@
         });
       });
 
-      if (!window.sb) { showState(I18N.t('fx_failed')); return; }
+      if (!window.sb) {
+        showState(I18N.t('home_products_failed'));
+        allStatus.hidden = false;
+        allStatus.textContent = I18N.t('home_products_failed');
+        return;
+      }
 
       var ready = window.SF_AUTH_READY || Promise.resolve(null);
+
+      // Fetch one extra row to know whether more products remain. No fixed
+      // catalogue limit; each page is ordered consistently and public only.
+      var offset = 0;
+      var loadingAll = false;
+      var seenProducts = new Set();
+      function loadAllProducts() {
+        if (loadingAll) return;
+        loadingAll = true;
+        moreButton.disabled = true;
+        allGrid.setAttribute('aria-busy', 'true');
+        allStatus.hidden = false;
+        allStatus.textContent = I18N.t('fx_loading');
+        return ready.then(function () {
+          return sb.from('products')
+            .select('id, factory_id, name, price, tiers, image, images, factories!inner(name, status)')
+            .eq('factories.status', 'approved')
+            .order('sort_order').order('id')
+            .range(offset, offset + LIMIT);
+        }).then(function (res) {
+          if (!res || res.error) throw new Error('Products unavailable');
+          var page = res.data || [];
+          var rows = page.slice(0, LIMIT).filter(function (row) {
+            return !seenProducts.has(String(row.id));
+          });
+          var ratings = window.SFReviews
+            ? SFReviews.loadRatings(rows.map(function (row) { return row.id; })).catch(function () { return {}; })
+            : Promise.resolve({});
+          return ratings.then(function (map) {
+            Object.assign(RATINGS, map || {});
+            render(rows, allGrid, true);
+            rows.forEach(function (row) { seenProducts.add(String(row.id)); });
+            offset += Math.min(page.length, LIMIT);
+            moreButton.hidden = page.length <= LIMIT;
+            moreButton.textContent = I18N.t('home_more_products');
+            allStatus.hidden = seenProducts.size > 0;
+            allStatus.textContent = seenProducts.size ? '' : I18N.t('home_products_empty');
+          });
+        }).catch(function () {
+          allStatus.hidden = false;
+          allStatus.textContent = I18N.t('home_products_failed');
+          moreButton.hidden = false;
+          moreButton.textContent = I18N.t('app_retry');
+        }).finally(function () {
+          loadingAll = false;
+          moreButton.disabled = false;
+          allGrid.setAttribute('aria-busy', 'false');
+        });
+      }
+      moreButton.addEventListener('click', loadAllProducts);
+      loadAllProducts();
 
       ready.then(function () {
         return sb.from('products')
@@ -2071,7 +2133,7 @@
           .order('sort_order')
           .limit(LIMIT);
       }).then(function (res) {
-        if (!res || res.error) { showState(I18N.t('fx_failed')); return; }
+        if (!res || res.error) { showState(I18N.t('home_products_failed')); return; }
         var rows = res.data || [];
         /* التقييمات قبل الرسم لا بعده: لو رُسمت البطاقات
            أوّلاً لقفزت النجوم فيها بعد حين. وفشلها لا
@@ -2079,11 +2141,11 @@
         if (!window.SFReviews) { render(rows); return null; }
         var ids = rows.map(function (r) { return r.id; });
         return SFReviews.loadRatings(ids).then(function (map) {
-          RATINGS = map || {};
+          Object.assign(RATINGS, map || {});
           render(rows);
         });
       }).catch(function () {
-        showState(I18N.t('fx_failed'));
+        showState(I18N.t('home_products_failed'));
       });
     })();
 

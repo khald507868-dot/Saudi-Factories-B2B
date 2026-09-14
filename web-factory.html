@@ -475,6 +475,7 @@
     position: fixed;
     bottom: 0;
     right: 18px;
+    left: auto;
     z-index: 70;
     width: 288px;
     max-width: calc(100vw - 36px);
@@ -485,8 +486,6 @@
     box-shadow: 0 -2px 14px rgba(4, 54, 27, 0.13);
     overflow: hidden;
   }
-
-  html[dir="ltr"] .msg-dock { right: auto; left: 18px; }
 
   .msg-dock-head {
     display: flex;
@@ -615,6 +614,14 @@
   .msg-dock-item-text {
     flex: 1;
     min-width: 0;
+    overflow: hidden;
+    text-align: start;
+  }
+
+  .msg-dock-item-name,
+  .msg-dock-item-last {
+    display: block;
+    line-height: 1.4;
   }
 
   .msg-dock-item-name {
@@ -637,6 +644,8 @@
 
   .msg-dock-item-date {
     flex: none;
+    white-space: nowrap;
+    direction: ltr;
     font-size: 10.5px;
     color: #93a399;
   }
@@ -1595,7 +1604,7 @@
     <button type="button" class="msg-dock-head" id="msg-dock-head" aria-expanded="false">
       <span class="msg-dock-avatar" id="msg-dock-avatar"></span>
       <span class="msg-dock-title" data-i18n="msg_panel_title">المراسلات</span>
-      <span class="msg-dock-count" id="msg-dock-count"></span>
+      <span class="msg-dock-count" id="msg-dock-count" aria-live="polite" aria-atomic="true"></span>
       <svg class="msg-dock-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 15l6-6 6 6"></path></svg>
     </button>
     <div class="msg-dock-body" id="msg-dock-body">
@@ -2587,8 +2596,14 @@
 
         dockListEl.innerHTML = "";
         dockEmptyEl.style.display = ids.length ? "none" : "";
-        dockCountEl.classList.toggle("is-on", ids.length > 0);
-        dockCountEl.textContent = ids.length ? String(ids.length) : "";
+        // Keep every conversation in the list, including already-read ones.
+        // The badge counts incoming unread messages, not people or threads.
+        var unreadTotal = ids.reduce(function (total, id) {
+          var unread = Number(threads[id].unread || 0);
+          return total + (Number.isFinite(unread) ? Math.max(0, Math.floor(unread)) : 0);
+        }, 0);
+        dockCountEl.classList.toggle("is-on", unreadTotal > 0);
+        dockCountEl.textContent = unreadTotal ? String(unreadTotal) : "";
 
         ids.forEach(function (id) {
           var t = threads[id] || {};
@@ -2617,9 +2632,9 @@
           var last = document.createElement("span");
           last.className = "msg-dock-item-last";
           var msgs = t.messages || [];
-          var lastMsg = msgs.length ? msgs[msgs.length - 1] : null;
+          var lastMsg = t.lastMessage || (msgs.length ? msgs[msgs.length - 1] : null);
           last.textContent = lastMsg
-            ? (lastMsg.type === "image" ? "صورة" : lastMsg.type === "video" ? "مقطع فيديو" : (lastMsg.text || ""))
+            ? (lastMsg.type === "image" ? I18N.t("msg_photo") : lastMsg.type === "video" ? I18N.t("msg_video") : (lastMsg.text || ""))
             : "";
 
           txt.appendChild(nm);
@@ -2637,23 +2652,56 @@
       }
 
       if (dockHeadEl && dockEl) {
+        var dockChannel = null;
+        var dockRefreshTimer = null;
+        var dockRequest = 0;
+        var dockReady = false;
+
+        function refreshDock() {
+          if (!dockReady || !window.SF_USER) return Promise.resolve();
+          var request = ++dockRequest;
+          return SFMessages.load().then(function (threads) {
+            if (request === dockRequest) renderDock(threads);
+          }).catch(function (err) {
+            if (request !== dockRequest) return;
+            // Retain the list on a temporary failure, but hide a stale total.
+            dockCountEl.classList.remove("is-on");
+            dockCountEl.textContent = "";
+            console.warn("message dock:", err && err.message);
+          });
+        }
+
+        function scheduleDockRefresh() {
+          clearTimeout(dockRefreshTimer);
+          dockRefreshTimer = setTimeout(refreshDock, 80);
+        }
+
         dockAvatarEl.textContent = firstLetter(I18N.t("msg_panel_title"));
         dockHeadEl.addEventListener("click", function () {
           var open = dockEl.classList.toggle("is-open");
           dockHeadEl.setAttribute("aria-expanded", open ? "true" : "false");
+          if (open) refreshDock();
         });
         renderDock({});
 
         if (window.SF_AUTH_READY && window.SFMessages) {
           SF_AUTH_READY.then(function () {
             if (!window.SF_USER) return null;
-            return SFMessages.load().then(function (serverThreads) {
-              renderDock(serverThreads);
-              SFMessages.subscribe(function () {
-                SFMessages.load().then(renderDock).catch(function () {});
-              });
-              return null;
+            dockReady = true;
+            dockChannel = SFMessages.subscribe(scheduleDockRefresh);
+            // Refresh after reading a chat in another tab, or returning via Back.
+            window.addEventListener("focus", scheduleDockRefresh);
+            window.addEventListener("pageshow", scheduleDockRefresh);
+            document.addEventListener("visibilitychange", function () {
+              if (!document.hidden) scheduleDockRefresh();
             });
+            window.addEventListener("beforeunload", function () {
+              dockReady = false;
+              ++dockRequest;
+              clearTimeout(dockRefreshTimer);
+              if (dockChannel && window.sb) sb.removeChannel(dockChannel);
+            });
+            return refreshDock();
           }).catch(function (err) {
             console.warn("message dock:", err && err.message);
           });
