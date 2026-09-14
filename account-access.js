@@ -55,6 +55,12 @@
       await root.sb.auth.signOut();
       throw new Error(root.I18N.t("auth_verification_unavailable"));
     }
+    // Supabase can return an obfuscated user for an existing confirmed email.
+    // That response must not start a new email-confirmation flow.
+    var user = result.data && result.data.user;
+    if (!result.error && user && Array.isArray(user.identities) && user.identities.length === 0) {
+      throw new Error(root.I18N.t("auth_existing_account"));
+    }
     return result;
   }
   root.SFAccountAccess = { check: check, route: route, finish: finish, verifyEmail: verifyEmail, signUp: signUp };

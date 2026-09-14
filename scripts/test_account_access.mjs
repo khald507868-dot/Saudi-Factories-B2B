@@ -37,6 +37,10 @@ profile = null; await assert.rejects(api.check);
 failure = new Error('offline'); await assert.rejects(api.check); failure = null;
 autoConfirm = true; calls = []; await assert.rejects(() => api.signUp({})); assert.equal(calls.length, 0);
 autoConfirm = false; await api.signUp({}); assert.deepEqual(calls, ['signOut', 'signUp']);
+user.identities = [];
+await assert.rejects(() => api.signUp({}), /auth_existing_account/);
+user.identities = [{ id: 'email-identity' }];
+assert.ok((await api.signUp({})).data.user);
 console.log('PASS email gate, pending/rejected/missing/approved factories, administrator, failure closed, confirmation configuration, previous session cleared');
 
 // Every guarded HTML entry loads the gate before auth-guard, and both signup

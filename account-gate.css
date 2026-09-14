@@ -14,4 +14,10 @@ body { margin: 0; min-height: 100vh; background: #f4f8f5; color: #183c24; font-f
 .account-gate [hidden] { display: none !important; }
 .account-gate .error { color: #a12727; }
 .account-gate a { color: #386641; display: inline-block; margin-top: 18px; }
+.account-gate.editing-application { width: min(100%, 680px); }
+#application-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+#application-fields label:first-child { grid-column: 1 / -1; }
+#application-status:empty { display: none; }
+#rejection-reason:not([hidden]) { padding: 12px; background: #fff4ef; border-radius: 10px; color: #a12727; }
+@media(max-width:540px) { #application-fields { grid-template-columns: 1fr; } }
 @media(max-width:540px) { .account-gate { padding: 26px 20px; } }

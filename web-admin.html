@@ -228,30 +228,28 @@
   @keyframes spin { to { transform: rotate(360deg); } }
 
   /* ===== نافذة سبب الرفض ===== */
-  .modal-overlay {
+  #reject-modal {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.45);
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.25s;
-    z-index: 30;
-    display: flex;
-    align-items: flex-end;
+    margin: auto;
+    width: min(480px, calc(100% - 32px));
+    max-height: calc(100dvh - 32px);
+    overflow: auto;
+    padding: 0;
+    border: 1px solid #c7dfce;
+    border-radius: 18px;
+    background: #fff;
+    color: #04361b;
+    box-shadow: 0 18px 60px rgba(4, 54, 27, .2);
   }
 
-  .modal-overlay.open { opacity: 1; pointer-events: auto; }
+  #reject-modal::backdrop { background: rgba(0, 0, 0, .45); }
 
-  .sheet {
+  #reject-modal .sheet {
     background: #ffffff;
     width: 100%;
-    border-radius: 18px 18px 0 0;
-    padding: 18px 16px calc(20px + env(safe-area-inset-bottom));
-    transform: translateY(100%);
-    transition: transform 0.28s;
+    padding: 24px;
   }
-
-  .modal-overlay.open .sheet { transform: translateY(0); }
 
   .sheet h3 { font-size: 16px; margin-bottom: 4px; }
   .sheet p { font-size: 12.5px; color: #6b7d70; margin-bottom: 13px; }
@@ -481,17 +479,17 @@
 </div>
 
 <!-- نافذة سبب الرفض -->
-<div class="modal-overlay" id="reject-modal">
+<dialog id="reject-modal" aria-labelledby="reject-title" aria-describedby="reject-hint">
   <div class="sheet">
-    <h3 data-i18n="admin_reject_title">سبب الرفض</h3>
-    <p data-i18n="admin_reject_hint">سيظهر هذا السبب لصاحب المصنع.</p>
-    <textarea id="reject-reason" data-i18n-placeholder="admin_reject_ph" placeholder="مثال: رقم السجل التجاري غير مطابق"></textarea>
+    <h3 id="reject-title" data-i18n="admin_reject_title">سبب الرفض</h3>
+    <p id="reject-hint" data-i18n="admin_reject_hint">سيظهر هذا السبب لصاحب المصنع.</p>
+    <textarea id="reject-reason" aria-labelledby="reject-title" aria-describedby="reject-hint" autofocus data-i18n-placeholder="admin_reject_ph" placeholder="مثال: رقم السجل التجاري غير مطابق"></textarea>
     <div class="sheet-actions">
       <button class="act revert" id="reject-cancel" data-i18n="msg_cancel">إلغاء</button>
       <button class="act reject" id="reject-confirm" data-i18n="admin_btn_reject">رفض</button>
     </div>
   </div>
-</div>
+</dialog>
 
 <script>
 (function () {
@@ -501,6 +499,8 @@
   var current   = "pending";
   var factories = [];
   var rejectId  = null;
+  var rejectTrigger = null;
+  var previousOverflow = "";
 
   /* ===== أدوات ===== */
   function esc(s) {
@@ -788,9 +788,11 @@
     if (act === "reject") {
       rejectId = id;
       reasonEl.value = "";
-      modal.classList.add("open");
+      rejectTrigger = btn;
+      previousOverflow = document.body.style.overflow;
+      modal.showModal();
       document.body.style.overflow = "hidden";
-      setTimeout(function () { reasonEl.focus(); }, 300);
+      reasonEl.focus({ preventScroll: true });
       return;
     }
 
@@ -804,9 +806,11 @@
 
   /* ===== نافذة الرفض ===== */
   function closeModal() {
-    modal.classList.remove("open");
-    document.body.style.overflow = "";
+    modal.close();
+    document.body.style.overflow = previousOverflow;
     rejectId = null;
+    if (rejectTrigger && rejectTrigger.isConnected) rejectTrigger.focus({ preventScroll: true });
+    rejectTrigger = null;
   }
 
   document.getElementById("reject-cancel").addEventListener("click", closeModal);
@@ -819,11 +823,14 @@
   });
 
   modal.addEventListener("click", function (e) {
-    if (e.target === modal) closeModal();
+    var bounds = modal.getBoundingClientRect();
+    if (e.target === modal && (e.clientX < bounds.left || e.clientX > bounds.right ||
+        e.clientY < bounds.top || e.clientY > bounds.bottom)) closeModal();
   });
 
-  document.addEventListener("keydown", function (e) {
-    if (e.key === "Escape" && modal.classList.contains("open")) closeModal();
+  modal.addEventListener("cancel", function (e) {
+    e.preventDefault();
+    closeModal();
   });
 
   /* ===== البدء: تحقّق أن المستخدم مدير ===== */
