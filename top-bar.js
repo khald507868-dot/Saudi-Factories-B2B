@@ -45,11 +45,39 @@
   }
 
   function start() {
-    if (!inject()) return;
+    var injected = inject();
+    enhanceActions();
+    if (!injected) return;
     /* الترجمة بعد الحقن: applyTranslations جرت على
        DOMContentLoaded قبل أن يوجد الشريط. */
     if (global.I18N && I18N.applyTranslations) I18N.applyTranslations();
     wire();
+  }
+
+  function enhanceActions() {
+    var actions = document.getElementById("dt-actions");
+    if (!actions || !global.I18N) return;
+    var labels = {
+      "web-account.html": "nav_account",
+      "web-cart.html": "nav_cart",
+      "web-messages.html": "nav_messages",
+      "web-help.html": "app_contact_support"
+    };
+    var currentPage = global.location.pathname.split("/").pop();
+    actions.querySelectorAll(".dt-icon").forEach(function (button) {
+      var target = (button.getAttribute("href") || "").split("?")[0];
+      var key = button.id === "geo-btn" ? "geo_title" : labels[target];
+      if (key) {
+        var label = I18N.t(key);
+        button.setAttribute("aria-label", label);
+        button.title = label;
+      }
+      if (target && target === currentPage) button.setAttribute("aria-current", "page");
+      button.querySelectorAll("svg").forEach(function (svg) {
+        svg.setAttribute("aria-hidden", "true");
+        svg.setAttribute("focusable", "false");
+      });
+    });
   }
 
   function wire() {

@@ -694,6 +694,7 @@
   /* الأكثر مبيعاً ينزل تحت الخريطة والإحصائية ويمتدّ بعرض
      الصفحة كاملاً (بطلب المالك)، بدل عمود جانبي ضيّق. */
   .bestsellers-section {
+    min-width: 0;
     grid-column: 1 / -1;
     grid-row: 2;
     padding: 0 !important;
@@ -715,11 +716,38 @@
   /* نفس عرض بطاقات المنتجات المشابهة، دون تمديد البطاقة
      لملء ما يتبقّى من الصفّ. */
   .bestsellers-grid {
-    display: grid !important;
-    grid-template-columns: repeat(auto-fill, minmax(0, clamp(168px, 13.2vw, 250px))) !important;
+    display: flex !important;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    scroll-behavior: auto;
+    overflow-anchor: none;
+    padding: 4px 0 12px;
     gap: 8px !important;
-    justify-content: center;
+    justify-content: flex-start;
   }
+  .bestsellers-grid::-webkit-scrollbar { display: none; }
+  .bestsellers-grid .grid-state { width: 100%; }
+  .bestsellers-grid .bestsellers-copy[hidden] { display: none; }
+  .bestsellers-heading { position: relative; }
+  .bestsellers-pause {
+    position: absolute;
+    inset-inline-end: 0;
+    top: -4px;
+    width: 32px;
+    height: 32px;
+    display: grid;
+    place-items: center;
+    border: 1px solid #c7dfce;
+    border-radius: 10px;
+    background: #f4f8f5;
+    color: #3d6947;
+    cursor: pointer;
+  }
+  .bestsellers-pause[hidden] { display: none; }
+  .bestsellers-pause svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; }
+  .bestsellers-pause:focus-visible { outline: 2px solid #3d6947; outline-offset: 2px; }
 
   .bestsellers-grid .product-card {
     transition: box-shadow .15s, transform .15s;
@@ -730,6 +758,7 @@
   }
 
   .bestsellers-grid .product-cell {
+    flex: 0 0 clamp(168px, 13.2vw, 250px);
     display: flex;
     flex-direction: column;
     min-width: 0;
@@ -2331,6 +2360,63 @@
      (app-) لا يتأثر — وهو المطلوب: الجوّال بلا أسهم متصفح
      ظاهرة، فحذف الزر هناك يحبس المستخدم. */
   .back-btn { display: none !important; }
+}
+
+/* Shared toolbar: consistent symbols, focus and selected states. */
+#dt-actions :is(.dt-icon, .sf-lang-btn, .sf-cur-btn) {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  border: 1px solid #c7dfce;
+  border-radius: 11px;
+  color: #193923;
+  background: #f4f8f5 !important;
+  box-shadow: 0 2px 5px rgba(25, 57, 35, .04);
+}
+#dt-actions :is(.dt-icon, .sf-cur-btn) svg {
+  width: 20px;
+  height: 20px;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+}
+#dt-actions .sf-lang-code {
+  color: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+#dt-actions .sf-cur-btn .sar {
+  width: 20px;
+  height: 20px;
+  color: inherit;
+  flex-shrink: 0;
+}
+#dt-actions .sf-cur-selected-symbol {
+  color: inherit;
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1;
+}
+#dt-actions :is(.dt-icon, .sf-lang-btn, .sf-cur-btn):hover {
+  background: #e6f0e9 !important;
+  border-color: #87a990;
+  box-shadow: 0 3px 8px rgba(25, 57, 35, .09);
+}
+#dt-actions :is(.dt-icon, .sf-lang-btn, .sf-cur-btn):is([aria-current="page"], [aria-expanded="true"], :active) {
+  color: #fff;
+  background: #3d6947 !important;
+  border-color: #3d6947;
+}
+#dt-actions :is(.dt-icon, .sf-lang-btn, .sf-cur-btn):focus-visible {
+  outline: 2px solid #3d6947;
+  outline-offset: 3px;
+}
+@media (prefers-reduced-motion: reduce) {
+  #dt-actions :is(.dt-icon, .sf-lang-btn, .sf-cur-btn) { transition: none; }
 }
 
 /* كان يخفي عناصر سطح المكتب تحت 1024px. وبعد أن صار

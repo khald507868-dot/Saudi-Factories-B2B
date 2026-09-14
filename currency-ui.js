@@ -190,13 +190,13 @@
   function open() {
     render();
     panel.classList.add("open");
-    if (theBtn) theBtn.classList.add("open");
+    if (theBtn) { theBtn.classList.add("open"); theBtn.setAttribute("aria-expanded", "true"); }
   }
 
   function close() {
     if (!panel) return;
     panel.classList.remove("open");
-    if (theBtn) theBtn.classList.remove("open");
+    if (theBtn) { theBtn.classList.remove("open"); theBtn.setAttribute("aria-expanded", "false"); }
   }
 
   function toggle() {
@@ -217,7 +217,8 @@
     var code = global.SFCurrency ? SFCurrency.getCode() : "SAR";
     btn.setAttribute("aria-label", t("currency_pick", "اختر العملة") + " (" + code + ")");
     btn.setAttribute("aria-haspopup", "true");
-    btn.title = code;
+    btn.setAttribute("aria-expanded", "false");
+    btn.title = btn.getAttribute("aria-label");
 
     var NS = "http://www.w3.org/2000/svg";
     var svg = doc.createElementNS(NS, "svg");
@@ -240,7 +241,16 @@
     svg.appendChild(circle);
     svg.appendChild(curve);
     svg.appendChild(bar);
-    btn.appendChild(svg);
+    if (code === "USD") {
+      svg.setAttribute("aria-hidden", "true");
+      btn.appendChild(svg);
+    } else {
+      var symbol = doc.createElement("span");
+      symbol.className = code === "SAR" ? "sar" : "sf-cur-selected-symbol";
+      symbol.setAttribute("aria-hidden", "true");
+      symbol.textContent = global.SFCurrency ? SFCurrency.info(code).sym : "SAR";
+      btn.appendChild(symbol);
+    }
 
     btn.addEventListener("click", toggle);
     theBtn = btn;

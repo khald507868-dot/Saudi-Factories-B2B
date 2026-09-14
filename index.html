@@ -19,6 +19,7 @@
 <script src="reviews-service.js"></script>
 <script src="i18n.js"></script>
 <script src="product-card-data.js"></script>
+<script src="bestsellers-scroll.js"></script>
 <script src="currency-ui.js"></script>
 <!-- زر اللغة بجانب السلة — في هذه الصفحة وحدها بطلب المالك -->
 <script src="lang-switch.js"></script>
@@ -34,6 +35,7 @@
 <script src="media-upload.js"></script>
 <script src="promotions-service.js"></script>
 <script src="home-panels.js" defer></script>
+<script src="top-bar.js" defer></script>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -1270,7 +1272,10 @@
     </section>
 
     <section class="bestsellers-section">
-      <h2 class="bestsellers-title" data-i18n="home_bestsellers">أكثر المنتجات مبيعاً</h2>
+      <div class="bestsellers-heading">
+        <h2 class="bestsellers-title" data-i18n="home_bestsellers">أكثر المنتجات مبيعاً</h2>
+        <button type="button" class="bestsellers-pause" hidden></button>
+      </div>
       <div class="bestsellers-grid" id="bestsellers-grid"></div>
     </section>
   </main>
@@ -1844,6 +1849,7 @@
       var verified = I18N.t('product_verified');
 
       function showState(msg) {
+        if (grid.sfStopScroll) grid.sfStopScroll();
         grid.innerHTML = '<p class="grid-state">' + escapeHTML(msg) + '</p>';
       }
 
@@ -1922,7 +1928,9 @@
             '</a>' +
             '</div>';
         });
+        if (grid.sfStopScroll) grid.sfStopScroll();
         grid.innerHTML = html;
+        SFBestsellersScroll.mount(grid);
         wireFavorites(grid);
         startCardSliders(grid);
         /* أسماء المنتجات تُترجم بعد الرسم، والخدمة
@@ -2032,13 +2040,21 @@
         var id = btn.getAttribute('data-fav');
         var on = btn.classList.contains('on');
         /* تفاؤلي: القلب يتبدّل فوراً ويرتدّ إن رفض الخادم. */
-        btn.classList.toggle('on', !on);
-        btn.disabled = true;
+        var matches = Array.from(grid.querySelectorAll('[data-fav]')).filter(function (item) {
+          return item.getAttribute('data-fav') === id;
+        });
+        function setFavorite(value, busy) {
+          matches.forEach(function (item) {
+            item.classList.toggle('on', value);
+            item.disabled = busy;
+          });
+        }
+        setFavorite(!on, true);
 
         SFFavorites.toggle(id, on).then(function (nowFav) {
-          btn.classList.toggle('on', nowFav);
+          setFavorite(nowFav, false);
         }).catch(function (err) {
-          btn.classList.toggle('on', on);
+          setFavorite(on, false);
           alert(err && err.message ? err.message : String(err));
         }).then(function () {
           btn.disabled = false;

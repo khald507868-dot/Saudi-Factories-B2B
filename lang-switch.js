@@ -193,14 +193,14 @@
   function open() {
     render();
     panel.classList.add("open");
-    if (theBtn) theBtn.classList.add("open");
+    if (theBtn) { theBtn.classList.add("open"); theBtn.setAttribute("aria-expanded", "true"); }
   }
 
   function close() {
     if (!panel) return;
     expanded = false;
     panel.classList.remove("open");
-    if (theBtn) theBtn.classList.remove("open");
+    if (theBtn) { theBtn.classList.remove("open"); theBtn.setAttribute("aria-expanded", "false"); }
   }
 
   function toggle() {
@@ -228,7 +228,10 @@
     btn.className = "sf-lang-btn";
     btn.id = "sf-lang-btn";
     btn.setAttribute("aria-label", t("row_language", "\u0627\u0644\u0644\u063a\u0629"));
-    btn.title = currentEntry()[0];
+    var nameIndex = global.I18N && I18N.getLang() === "ar" ? 0 : 1;
+    btn.title = btn.getAttribute("aria-label") + " (" + currentEntry()[nameIndex] + ")";
+    btn.setAttribute("aria-haspopup", "true");
+    btn.setAttribute("aria-expanded", "false");
 
     /* حرفان لا كرة أرضية (بطلب المالك): زرّ العملة
        يحمل كرة أرضية، فلو حملها هذا أيضاً لما فُرّق
