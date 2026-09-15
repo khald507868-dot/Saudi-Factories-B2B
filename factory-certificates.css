@@ -1,0 +1,40 @@
+#card-certificates { grid-column: 1 / -1; grid-row: auto; padding: 20px; min-width: 0; }
+/* On the factory home tab, certificates and posts share a continuous frame. */
+body.store-page:not([class*="tab-"]) #card-certificates {
+  margin-bottom: 0 !important;
+  border-radius: 0;
+  border-bottom: 0;
+  box-shadow: none;
+}
+body.store-page:not([class*="tab-"]) #card-certificates:not([hidden]) + #card-posts {
+  margin-top: 0 !important;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+#card-certificates[hidden], .certificates-section [hidden] { display: none !important; }
+body.tab-posts #card-certificates, body.tab-products #card-certificates { display: none !important; }
+.certificates-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 16px; }
+.certificates-heading h2 { color: #183c24; font-size: 20px; margin: 0; }
+.certificates-tools { display: flex; align-items: center; gap: 10px; }
+.certificates-add, .certificates-retry, .certificates-pause {
+  padding: 9px 16px; border: 1px solid #c7dfce; border-radius: 12px; font: inherit;
+  font-size: 14px; font-weight: 700; cursor: pointer; background: #fff; color: #3d6947;
+}
+.certificates-add { background: #183c24; color: #fff; border-color: #183c24; }
+.certificates-add:disabled { opacity: .6; cursor: wait; }
+.certificates-pause { width: 36px; height: 36px; display: grid; place-items: center; padding: 8px; }
+.certificates-pause svg { width: 18px; height: 18px; stroke: currentColor; stroke-width: 2; fill: none; }
+.certificates-view { display: flex; gap: 16px; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; padding: 4px 0 10px; overflow-anchor: none; scroll-behavior: auto; }
+.certificates-view::-webkit-scrollbar { display: none; }
+.certificate-item { flex: 0 0 clamp(180px, 22vw, 300px); position: relative; min-width: 0; }
+.certificate-open { display: block; width: 100%; height: 280px; padding: 8px; background: #f8faf8; border: 1px solid #d7e3d9; border-radius: 12px; cursor: zoom-in; overflow: hidden; }
+.certificate-open img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.certificate-delete { position: absolute; top: 8px; inset-inline-end: 8px; width: 30px; height: 30px; border: 1px solid #ead5d0; border-radius: 50%; background: #fff; color: #b43c30; font-size: 22px; line-height: 1; cursor: pointer; }
+.certificates-status { color: #718077; font-size: 14px; line-height: 1.6; margin: 12px 0; }
+.certificates-status.is-error { color: #b43c30; }
+.certificate-viewer { position: fixed; inset: 0; margin: auto; padding: 48px 12px 12px; border: 0; border-radius: 16px; width: min(1000px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); box-sizing: border-box; background: #fff; overflow: auto; }
+.certificate-viewer::backdrop { background: #000b; }
+.certificate-viewer img { display: block; width: 100%; height: calc(100dvh - 100px); object-fit: contain; }
+.certificate-viewer-close { position: absolute; top: 8px; inset-inline-end: 12px; width: 32px; height: 32px; border: 0; border-radius: 50%; background: #edf3ee; color: #183c24; font-size: 24px; cursor: pointer; }
+.certificates-section :focus-visible, .certificate-viewer :focus-visible { outline: 2px solid #3d6947; outline-offset: 2px; }
+@media(max-width: 480px) { #card-certificates { padding: 16px; } .certificate-open { height: 230px; } }

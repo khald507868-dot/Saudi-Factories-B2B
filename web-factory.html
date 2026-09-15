@@ -21,6 +21,8 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase-config.js"></script>
 <script src="media-upload.js"></script>
+<script src="bestsellers-scroll.js"></script>
+<script src="factory-certificates.js"></script>
 <script src="favorites-service.js"></script>
 <script src="messages-service.js"></script>
 <script>var SF_PUBLIC_PAGE = true;</script>
@@ -1582,6 +1584,7 @@
 <link rel="stylesheet" href="mobile.css">
 <link rel="stylesheet" href="desktop.css">
 <link rel="stylesheet" href="green-frames.css">
+<link rel="stylesheet" href="factory-certificates.css">
 </head>
 <body class="store-page factory-page">
   <!-- شعار الصفحة — متحرّك، موحّد في كل صفحات الموقع -->
@@ -1708,6 +1711,20 @@
         <svg class="about-more-arrow" viewBox="0 0 24 24" aria-hidden="true" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
       </button>
     </div>
+
+    <section class="card certificates-section" id="card-certificates" hidden aria-labelledby="certificates-title">
+      <div class="certificates-heading">
+        <h2 id="certificates-title" data-i18n="cert_title">الشهادات والتراخيص</h2>
+        <div class="certificates-tools">
+          <button class="certificates-pause" type="button" hidden></button>
+          <button class="certificates-add" id="certificates-add" type="button" hidden><span aria-hidden="true">+</span> <span data-i18n="cert_add">إضافة صور</span></button>
+        </div>
+      </div>
+      <p class="certificates-status" id="certificates-status" role="status" hidden></p>
+      <button class="certificates-retry" id="certificates-retry" type="button" data-i18n="app_retry" hidden>إعادة المحاولة</button>
+      <div class="certificates-view" id="certificates-view"></div>
+      <input id="certificates-input" type="file" accept="image/jpeg,image/png,image/webp" multiple hidden>
+    </section>
 
     <!-- المنشورات — تظهر في تبويب الرئيسية وتبويب المنشورات -->
     <div class="card" id="card-posts">
@@ -3614,6 +3631,7 @@
           if (!res || res.error) return null;
           if (!res.data) { showMissingFactory(); return null; }
           var row = res.data;
+          if (window.SFCertificates) SFCertificates.mount(row);
 
           return Promise.all([
             sb.from("products").select("*").eq("factory_id", row.id).order("sort_order"),

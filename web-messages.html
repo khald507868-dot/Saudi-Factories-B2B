@@ -18,6 +18,8 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase-config.js"></script>
 <script src="messages-service.js"></script>
+<script src="product-card-data.js"></script>
+<script src="private-offers.js"></script>
 <script src="account-access.js"></script>
 <script src="auth-guard.js"></script>
 <script src="messages-badge.js"></script>
@@ -889,6 +891,7 @@
 <link rel="stylesheet" href="mobile.css">
 <link rel="stylesheet" href="desktop.css">
 <link rel="stylesheet" href="green-frames.css">
+<link rel="stylesheet" href="private-offers.css">
 </head>
 <body class="chat-page">
   <!-- شعار الصفحة — متحرّك، موحّد في كل صفحات الموقع -->
@@ -997,6 +1000,9 @@
         </svg>
       </button>
 
+      <button type="button" class="composer-btn" id="private-offer-btn" hidden aria-haspopup="dialog" aria-label="عرض سعر خاص">
+        <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13 11 22 2 13V3h10l8 8a1.4 1.4 0 0 1 0 2Z"></path><circle cx="7" cy="8" r="1.5"></circle><path d="m12 10 4 4m-4 0 4-4"></path></svg>
+      </button>
       <textarea id="msg-input" rows="1" data-i18n-placeholder="msg_input_placeholder"
                 placeholder="اكتب رسالة..."></textarea>
 
@@ -1362,10 +1368,12 @@
              ولا تُرسم بطاقة جوفاء. */
           var cardMarkup = (m.type === "product" && m.productId)
             ? cardHTML(m.productId, side) : "";
+          if (m.offer && window.SFPrivateOffers) cardMarkup = SFPrivateOffers.cardHTML(m.offer);
           var isCard = !!cardMarkup;
 
           html += '<div class="bubble ' + side +
             (isMedia ? ' bubble-media' : '') +
+            (m.offer ? ' bubble-private-offer' : '') +
             (isCard ? ' bubble-card' : '') + '">';
 
           if (m.type === "image") {
@@ -1376,7 +1384,7 @@
             html += cardMarkup;
           }
 
-          if (m.text) {
+          if (m.text && !m.offer) {
             html += (isMedia || isCard)
               ? '<div class="bubble-caption">' + escapeHTML(m.text) + '</div>'
               : escapeHTML(m.text);
@@ -1399,7 +1407,7 @@
         t.unread = 0;
         renderThreadList();
 
-        var messagesJob = (!force && t.messagesLoaded)
+        var messagesJob = (!force && t.messagesLoaded && !window.SFPrivateOffers)
           ? Promise.resolve(t.messages || [])
           : SFMessages.loadMessages(Number(id));
         var readJob = previousUnread > 0
@@ -1458,6 +1466,7 @@
         var t = threads[id];
         if (!t) return;
 
+        SFPrivateOffers.updateThread(t);
         document.body.classList.add("in-chat");
         chatView.classList.add("chat-ready");
         listTitle.style.display = "none";
@@ -1482,6 +1491,7 @@
       function closeChat() {
         loadToken++;
         activeId = null;
+        SFPrivateOffers.updateThread(null);
         document.body.classList.remove("in-chat");
         chatView.classList.remove("chat-ready");
         listTitle.style.display = "";
@@ -2058,6 +2068,11 @@
         if (messageChannel && window.sb) sb.removeChannel(messageChannel);
       });
 
+      SFPrivateOffers.init({
+        getThread: function () { return threads[activeId] || null; },
+        refresh: function () { scheduleRealtimeRefresh(); }
+      });
+      window.addEventListener('focus', function () { if (activeId) scheduleRealtimeRefresh(); });
       if (window.SF_AUTH_READY) SF_AUTH_READY.then(bootstrapMessages);
       else bootstrapMessages();
     })();

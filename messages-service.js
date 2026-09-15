@@ -222,8 +222,13 @@
         if (res.error) throw res.error;
         return signMessages(res.data || []);
       }).then(function (rows) {
-        return rows.map(function (message) {
+        var messages = rows.map(function (message) {
           return mapMessage(message, root.SF_USER.id);
+        });
+        if (!root.SFPrivateOffers) return messages;
+        return root.SFPrivateOffers.load(conversationId).then(function (offers) {
+          messages.forEach(function (message) { message.offer = offers[String(message.id)] || null; });
+          return messages;
         });
       });
     },
@@ -403,9 +408,10 @@
 
     subscribe: function (onChange) {
       if (!root.sb || !root.SF_USER) return null;
-      return root.sb.channel("sf-messages-" + root.SF_USER.id)
-        .on("postgres_changes", { event: "*", schema: "public", table: "messages" }, onChange)
-        .subscribe();
+      var channel = root.sb.channel("sf-messages-" + root.SF_USER.id)
+        .on("postgres_changes", { event: "*", schema: "public", table: "messages" }, onChange);
+      if (root.SFPrivateOffers) channel.on("postgres_changes", { event: "*", schema: "public", table: "private_chat_offers" }, onChange);
+      return channel.subscribe();
     }
   };
 }(window));

@@ -2,12 +2,13 @@
 (function (global) {
   'use strict';
 
-  function mount(view) {
+  function mount(view, options) {
+    options = options || {};
     if (view.sfStopScroll) view.sfStopScroll();
-    var originals = Array.from(view.querySelectorAll('.product-cell'));
+    var originals = Array.from(view.querySelectorAll(options.itemSelector || '.product-cell'));
     if (!originals.length) return;
-    var section = view.closest('.bestsellers-section');
-    var control = section.querySelector('.bestsellers-pause');
+    var section = view.closest(options.sectionSelector || '.bestsellers-section');
+    var control = section.querySelector(options.controlSelector || '.bestsellers-pause');
     var motion = global.matchMedia('(prefers-reduced-motion: reduce)');
     var paused = motion.matches;
     var hover = false, touching = false, visible = true;
@@ -16,6 +17,7 @@
     var manualUntil = 0;
     var disposers = [];
     var clones = [];
+    var fillClones = [];
 
     function listen(target, event, handler, options) {
       target.addEventListener(event, handler, options);
@@ -23,7 +25,7 @@
     }
     function copy(card) {
       var clone = card.cloneNode(true);
-      clone.classList.add('bestsellers-copy');
+      clone.classList.add(options.copyClass || 'bestsellers-copy');
       clone.setAttribute('aria-hidden', 'true');
       clone.querySelectorAll('a,button,[tabindex]').forEach(function (el) { el.tabIndex = -1; });
       clones.push(clone);
@@ -45,9 +47,20 @@
         : '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5v14M15 5v14"/></svg>';
     }
     function measure() {
+      sign = getComputedStyle(view).direction === 'rtl' ? -1 : 1;
       var gap = parseFloat(getComputedStyle(view).columnGap) || 0;
       span = originals.reduce(function (sum, card) { return sum + card.getBoundingClientRect().width + gap; }, 0);
-      looping = originals.length > 1 && span - gap > view.clientWidth;
+      looping = originals.length > 1 && span > 0 && (options.repeatToFill || span - gap > view.clientWidth);
+      // A short image gallery still moves without leaving blank space on wide screens.
+      if (options.repeatToFill) {
+        fillClones.forEach(function (card) { card.remove(); });
+        clones = clones.filter(function (card) { return fillClones.indexOf(card) === -1; });
+        fillClones = [];
+        var extra = looping ? Math.max(0, Math.ceil(view.clientWidth / span) - 1) : 0;
+        for (var i = 0; i < extra; i++) originals.forEach(function (card) {
+          var clone = copy(card); fillClones.push(clone); view.appendChild(clone);
+        });
+      }
       clones.forEach(function (card) { card.hidden = !looping; });
       position = looping ? span : 0;
       view.scrollLeft = sign * position;
@@ -66,6 +79,7 @@
       var elapsed = last ? Math.min((now - last) / 1000, .05) : 0;
       last = now;
       if (looping && visible && !document.hidden && !paused && !hover && !touching &&
+          !(options.isPaused && options.isPaused()) &&
           !view.contains(document.activeElement) && now > manualUntil) {
         position += elapsed * 26;
         if (position >= span * 2) position -= span;
@@ -92,6 +106,8 @@
     var size = new ResizeObserver(measure);
     size.observe(view);
     size.observe(originals[0]);
+    var direction = new MutationObserver(measure);
+    direction.observe(document.documentElement, { attributes: true, attributeFilter: ['dir'] });
     var visibility = new IntersectionObserver(function (entries) { visible = entries[0].isIntersecting; last = 0; });
     visibility.observe(view);
     measure();
@@ -99,6 +115,7 @@
     view.sfStopScroll = function () {
       cancelAnimationFrame(frame);
       size.disconnect();
+      direction.disconnect();
       visibility.disconnect();
       disposers.forEach(function (dispose) { dispose(); });
       clones.forEach(function (card) { card.remove(); });
