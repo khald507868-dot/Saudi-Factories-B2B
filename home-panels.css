@@ -9,8 +9,10 @@
   position: relative;
   gap: 10px;
 }
-.home-promo-stage { flex: 1; min-height: 280px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
-.home-promo-card { position: relative; min-width: 0; display: flex; flex-direction: column; overflow: hidden; border: 1px solid var(--sf-product-frame); border-radius: 20px; background: #fff; }
+.home-promo-stage { flex: 1; min-width: 0; min-height: 280px; display: flex; gap: 12px; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; scroll-behavior: auto; overflow-anchor: none; }
+.home-promo-stage::-webkit-scrollbar { display: none; }
+.home-promo-card { position: relative; flex: 0 0 calc((100% - 24px) / 3); min-width: 0; display: flex; flex-direction: column; overflow: hidden; border: 1px solid var(--sf-product-frame); border-radius: 20px; background: #fff; }
+.home-promo-stage.is-single .home-promo-card { flex-basis: 100%; }
 .home-promo-card-head { position: absolute; top: 12px; left: 12px; right: 12px; z-index: 1; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; pointer-events: none; }
 .home-promo-card-head > * { pointer-events: auto; }
 .home-promo-card-head h3 { flex: 1; min-width: 0; margin: 0; padding: 6px 10px; border-radius: 8px; background: #fffffff0; font-size: clamp(16px, 1.4vw, 22px); line-height: 1.4; overflow-wrap: anywhere; }
@@ -94,7 +96,7 @@ body.home-modal-open { overflow: hidden; }
   .home-dialog { padding: 18px; }
 }
 @media (max-width: 540px) {
-  .home-promo-stage { grid-template-columns: minmax(0, 1fr); }
+  .home-promo-card { flex-basis: 100%; }
   .home-promo-card-image { min-height: 300px; }
   .home-promo-empty, .home-promo-placeholder { min-height: 220px; }
 }

@@ -50,6 +50,7 @@ const tests=async function(){
 };
 const homeTests=async function(){
  const result={},check=(name,ok)=>{if(!ok)throw Error(name);result[name]=true;};
+ const wait=()=>new Promise(r=>setTimeout(r,120));
  try{await new Promise(r=>setTimeout(r,120));
  check('public_banners',document.querySelectorAll('.home-promo-card-image img').length===1);
  check('no_home_management',!document.querySelector('#home-promo-manage,#home-promo-form,.home-promo-card-edit,.home-promo-empty'));
@@ -57,14 +58,34 @@ const homeTests=async function(){
  check('stats_still_work',document.getElementById('home-stats-dialog').open&&document.getElementById('stat-products').textContent==='3');
  document.querySelector('#home-stats-dialog [data-close-dialog]').click();
  check('stats_close',!document.getElementById('home-stats-dialog').open);
+ const frames=new Map();let frameId=0,now=performance.now();
+ window.requestAnimationFrame=cb=>{frames.set(++frameId,cb);return frameId;};
+ window.cancelAnimationFrame=id=>frames.delete(id);
+ const step=()=>{now+=50;const pending=Array.from(frames.values());frames.clear();pending.forEach(cb=>cb(now));};
+ const refresh=async()=>{window.dispatchEvent(new PageTransitionEvent('pageshow',{persisted:true}));await wait();};
+ const sample=rows[0];rows=Array.from({length:4},(_,i)=>({...sample,id:String(i),target_url:'https://example.com/'+i}));
+ await refresh();const stage=document.getElementById('home-promo-stage');stage.scrollIntoView();await wait();
+ check('all_banners_no_placeholders',stage.querySelectorAll('.home-promo-card:not(.home-promo-copy)').length===4&&!stage.querySelector('.home-promo-vacant'));
+ check('no_pagination',!document.getElementById('home-promo-controls'));
+ const start=stage.scrollLeft;for(let i=0;i<20;i++)step();check('continuous_motion',Math.abs(stage.scrollLeft-start)>10);
+ stage.dispatchEvent(new MouseEvent('mouseenter'));const paused=stage.scrollLeft;for(let i=0;i<20;i++)step();check('hover_pauses',stage.scrollLeft===paused);
+ stage.dispatchEvent(new MouseEvent('mouseleave'));
+ let wraps=0,previous=Math.abs(stage.scrollLeft);
+ for(let i=0;i<1600;i++){step();const pos=Math.abs(stage.scrollLeft);if(pos<previous-50)wraps++;previous=pos;}
+ check('seamless_wrap',wraps>0&&Math.abs(stage.scrollLeft)>0);
+ check('links_preserved',stage.querySelector('a').href.startsWith('https://example.com/'));
+ rows=rows.slice(0,2);await refresh();check('short_gallery_fills',stage.scrollWidth>=stage.clientWidth*2&&!stage.querySelector('.home-promo-vacant'));
+ rows=[sample];await refresh();check('single_banner_static',!stage.sfStopScroll&&stage.children.length===1);
+ rows=[];await refresh();check('empty_state',stage.children.length===1&&!!stage.querySelector('.home-promo-vacant'));
+ rows=Array.from({length:4},(_,i)=>({...sample,id:String(i)}));await refresh();
  check('no_browser_errors',testErrors.length===0);
  }catch(e){result.error=e.stack;}document.getElementById('result').textContent=JSON.stringify(result);
 };
-for(const [lang,admin,width,home] of [['en',true,1440,false],['ar',true,1024,false],['en',false,1440,false],['en',true,1440,true]]) {
+for(const [lang,admin,width,home] of [['en',true,1440,false],['ar',true,1024,false],['en',false,1440,false],['en',true,1440,true],['ar',false,1440,true]]) {
  const key=(home?'home-':'')+lang+'-'+admin+'-'+width;
  let html=(home?read('index.html'):original).replace(/<script\b[^>]*>[\s\S]*?<\/script>/g,'').replace(/href="([^":]+\.css)"/g,(_,p)=>'href="'+pathToFileURL(join(root,p)).href+'"');
  const init='<script>const IS_ADMIN='+admin+';'+mock+'</script>';
- const scripts=['i18n.js',home?'home-panels.js':'promotion-admin.js'].map(f=>'<script src="'+pathToFileURL(join(root,f)).href+'"></script>').join('');
+ const scripts=['i18n.js','bestsellers-scroll.js',home?'home-panels.js':'promotion-admin.js'].map(f=>'<script src="'+pathToFileURL(join(root,f)).href+'"></script>').join('');
  html=html.replace('</body>','<pre id="result" hidden></pre>'+init+scripts+'<script>I18N.setLang('+JSON.stringify(lang)+');'+(home?'':main)+';('+(home?homeTests:tests).toString()+')();</script></body>');
  const file=join(dir,key+'.html');writeFileSync(file,html);
   const profile=join(dir,'profile-'+key),portFile=join(profile,'DevToolsActivePort');

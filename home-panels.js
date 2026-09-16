@@ -4,7 +4,7 @@
   var t = function (key) { return root.I18N.t(key); };
   var service = root.SFPromotions;
   var statsDialog = $("home-stats-dialog");
-  var publicRows = [], current = 0, statsBusy = false;
+  var publicRows = [], statsBusy = false;
 
   function status(id, message, failed) {
     $(id).textContent = message || "";
@@ -80,17 +80,18 @@
     $("home-promotions").hidden = false;
     $("home-promotions").setAttribute("aria-label", t("promo_admin_title"));
     $("home-promo-stage").hidden = false;
-    var pages = Math.max(1, Math.ceil(publicRows.length / 3));
-    $("home-promo-controls").hidden = pages < 2;
     var stage = $("home-promo-stage");
+    if (stage.sfStopScroll) stage.sfStopScroll();
     stage.replaceChildren();
-    current = (current + pages) % pages;
-    for (var slot = 0; slot < 3; slot++) {
-      var row = publicRows[current * 3 + slot];
-      stage.appendChild(promotionCard(row));
+    stage.classList.toggle("is-single", publicRows.length <= 1);
+    if (!publicRows.length) stage.appendChild(promotionCard(null));
+    publicRows.forEach(function (row) { stage.appendChild(promotionCard(row)); });
+    if (publicRows.length > 1) {
+      root.SFBestsellersScroll.mount(stage, {
+        itemSelector: ".home-promo-card", sectionSelector: ".home-promotions",
+        copyClass: "home-promo-copy", repeatToFill: true
+      });
     }
-    $("home-promo-position").textContent = t("promo_position")
-      .replace("{current}", String(current + 1)).replace("{total}", String(pages));
   }
   function promotionCard(row) {
     var card = document.createElement("article");
@@ -138,11 +139,6 @@
     } catch (_) { publicRows = []; }
     renderPublic();
   }
-  $("home-promo-prev").setAttribute("aria-label", t("promo_previous"));
-  $("home-promo-next").setAttribute("aria-label", t("promo_next"));
-  $("home-promo-prev").addEventListener("click", function () { current--; renderPublic(); });
-  $("home-promo-next").addEventListener("click", function () { current++; renderPublic(); });
-
   (root.SF_AUTH_READY || Promise.resolve()).then(refreshPublic).catch(function () { renderPublic(); });
   root.addEventListener("pageshow", function (event) { if (event.persisted) refreshPublic(); });
 })(window);
