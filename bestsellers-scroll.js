@@ -38,6 +38,7 @@
     originals.forEach(function (card) { view.appendChild(copy(card)); });
 
     function updateControl() {
+      if (!control) return;
       control.hidden = !looping;
       control.setAttribute('aria-label', I18N.t(paused ? 'video_ads_play' : 'video_ads_pause'));
       control.title = control.getAttribute('aria-label');
@@ -100,7 +101,7 @@
       }
     }, { passive: true });
     listen(view, 'focusout', function () { position = sign * view.scrollLeft; });
-    listen(control, 'click', function () { paused = !paused; updateControl(); });
+    if (control) listen(control, 'click', function () { paused = !paused; updateControl(); });
     listen(motion, 'change', function () { paused = motion.matches; updateControl(); });
     listen(document, 'visibilitychange', function () { last = 0; });
     var size = new ResizeObserver(measure);
@@ -119,7 +120,7 @@
       visibility.disconnect();
       disposers.forEach(function (dispose) { dispose(); });
       clones.forEach(function (card) { card.remove(); });
-      control.hidden = true;
+      if (control) control.hidden = true;
       delete view.sfStopScroll;
     };
   }

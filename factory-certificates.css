@@ -1,4 +1,15 @@
 #card-certificates { grid-column: 1 / -1; grid-row: auto; padding: 20px; min-width: 0; }
+body.store-page.tab-about #card-about:has(+ #card-certificates:not([hidden])) {
+  margin-bottom: 0 !important;
+  border-bottom: 0;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+body.store-page.tab-about #card-certificates {
+  margin-top: 0 !important;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
 /* On the factory home tab, certificates and posts share a continuous frame. */
 body.store-page:not([class*="tab-"]) #card-certificates {
   margin-bottom: 0 !important;
