@@ -73,6 +73,15 @@ flutter:
   uses-material-design: true
   assets:
     - assets/saudi_regions.json
+    - assets/promotions/cleaning-landscape.png
+    - assets/promotions/plastics-landscape.png
+    - assets/promotions/packaging-landscape.png
+    - assets/promotions/food-drinks-landscape.png
+    - assets/promotions/clothing-textiles-landscape.png
+    - assets/promotions/electronics-landscape.png
+    - assets/promotions/personal-care-landscape.png
+    - assets/promotions/building-materials-landscape.png
+    - assets/promotions/furniture-landscape.png
 
   # To add assets to your application, add an assets section, like this:
   # assets:

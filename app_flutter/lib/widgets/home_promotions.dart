@@ -5,6 +5,7 @@ import '../core/i18n.dart';
 import '../core/theme.dart';
 import '../services/promotion_service.dart';
 import 'common.dart';
+import 'promotion_artwork.dart';
 import 'promotion_image_appearance.dart';
 
 /// مكان الإعلانات ثابت في ترتيب الرئيسية، والإضافة من المساحة الفارغة للمشرف وحده.
@@ -115,7 +116,7 @@ class _HomePromotionsState extends State<HomePromotions> {
   );
 }
 
-/// بانر بعرض الصفحة وارتفاع محدود، مع إظهار أسفل الصور الطويلة.
+/// بنر قصير للجوال يعرض الصورة كاملة داخل مساحة العرض.
 /// السحب يدوي، فلا يختفي الإعلان أثناء قراءته.
 class PromotionCarousel extends StatefulWidget {
   const PromotionCarousel({
@@ -135,9 +136,10 @@ class PromotionCarousel extends StatefulWidget {
 
 class _PromotionCarouselState extends State<PromotionCarousel> {
   static const double _minimumAspectRatio = 2.5;
+  static const double _loadingAspectRatio = 2.5;
   final _controller = PageController();
   int _page = 0;
-  double _aspectRatio = _minimumAspectRatio;
+  double _aspectRatio = _loadingAspectRatio;
   String? _imageUrl;
   ImageStream? _imageStream;
   ImageStreamListener? _imageListener;
@@ -165,7 +167,7 @@ class _PromotionCarouselState extends State<PromotionCarousel> {
       _stopWatchingImage();
       ++_imageVersion;
       _imageUrl = null;
-      _aspectRatio = _minimumAspectRatio;
+      _aspectRatio = _loadingAspectRatio;
       return;
     }
     final url = widget.promotions[_page].imageUrl;
@@ -179,14 +181,20 @@ class _PromotionCarouselState extends State<PromotionCarousel> {
       _reportBackgroundColor(cached.color);
       return;
     }
-    _aspectRatio = _minimumAspectRatio;
+    _aspectRatio = _loadingAspectRatio;
     _reportBackgroundColor(SFColors.surfaceAlt);
-    final stream = NetworkImage(url)
-        .resolve(createLocalImageConfiguration(context));
+    final imageProvider = promotionImageProvider(url);
+    final stream = imageProvider.resolve(
+      createLocalImageConfiguration(context),
+    );
     _imageStream = stream;
     _imageListener = ImageStreamListener(
       (info, synchronousCall) {
-        final ratio = info.image.width / info.image.height;
+        // Designed app artwork shares one frame; tiny export-ratio differences
+        // trim only the outer background, outside the text/product safe area.
+        final ratio = imageProvider is AssetImage
+            ? _minimumAspectRatio
+            : info.image.width / info.image.height;
         // The cached image may resolve while the carousel is building.
         WidgetsBinding.instance.addPostFrameCallback((_) async {
           if (!mounted || _imageStream != stream) {
@@ -306,6 +314,9 @@ class _PromotionCarouselState extends State<PromotionCarousel> {
               }),
               itemBuilder: (context, index) {
                 final promotion = widget.promotions[index];
+                final imageProvider = promotionImageProvider(
+                  promotion.imageUrl,
+                );
                 final hasLink = promotion.targetUrl.isNotEmpty;
                 return Semantics(
                   label: promotion.title,
@@ -318,12 +329,14 @@ class _PromotionCarouselState extends State<PromotionCarousel> {
                     color: SFColors.surfaceAlt,
                     child: InkWell(
                       onTap: hasLink ? () => _open(promotion) : null,
-                      child: Image.network(
-                        promotion.imageUrl,
+                      child: Image(
+                        image: imageProvider,
                         width: double.infinity,
                         height: double.infinity,
-                        fit: BoxFit.cover,
-                        alignment: Alignment.bottomCenter,
+                        fit: imageProvider is AssetImage
+                            ? BoxFit.cover
+                            : BoxFit.contain,
+                        alignment: Alignment.center,
                         loadingBuilder: (context, child, progress) =>
                             progress == null
                             ? child

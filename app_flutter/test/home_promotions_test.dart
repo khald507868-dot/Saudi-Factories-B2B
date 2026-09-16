@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:saudi_factories/core/i18n.dart';
 import 'package:saudi_factories/services/promotion_service.dart';
 import 'package:saudi_factories/widgets/home_promotions.dart';
+import 'package:saudi_factories/widgets/promotion_artwork.dart';
 
 const first = SFPromotion(
   id: 'first',
@@ -92,6 +93,67 @@ Future<void> _settleImage(WidgetTester tester) async {
 }
 
 void main() {
+  for (final campaign in const {
+    'https://yhofxryhlrrwzztfowpa.supabase.co/storage/v1/object/public/promotion-media/b525a57e-7fb9-4cef-be81-ad1fc2695302/promotions/113c9df0-2d9f-440d-8e6d-64d6f94c2548.png':
+        'cleaning',
+    'https://yhofxryhlrrwzztfowpa.supabase.co/storage/v1/object/public/promotion-media/b525a57e-7fb9-4cef-be81-ad1fc2695302/promotions/8936d669-60a2-4e9a-89ab-2fae15085cef.png':
+        'plastics',
+    'https://yhofxryhlrrwzztfowpa.supabase.co/storage/v1/object/public/promotion-media/b525a57e-7fb9-4cef-be81-ad1fc2695302/promotions/cb537159-8914-45fe-99e3-b9a4ef69ac68.png':
+        'packaging',
+    'https://yhofxryhlrrwzztfowpa.supabase.co/storage/v1/object/public/promotion-media/b525a57e-7fb9-4cef-be81-ad1fc2695302/promotions/89d24e90-f9eb-47be-8e96-87435af7f392.png':
+        'food-drinks',
+    'https://yhofxryhlrrwzztfowpa.supabase.co/storage/v1/object/public/promotion-media/b525a57e-7fb9-4cef-be81-ad1fc2695302/promotions/4287fb7c-4d67-41e6-a5b7-600b3e748713.png':
+        'clothing-textiles',
+    'https://yhofxryhlrrwzztfowpa.supabase.co/storage/v1/object/public/promotion-media/b525a57e-7fb9-4cef-be81-ad1fc2695302/promotions/c6d14284-7a8b-45bb-a5f4-4b96c7eb4dad.png':
+        'electronics',
+    'https://yhofxryhlrrwzztfowpa.supabase.co/storage/v1/object/public/promotion-media/b525a57e-7fb9-4cef-be81-ad1fc2695302/promotions/17fbad53-40f1-422c-b741-3034f9fc0910.png':
+        'personal-care',
+    'https://yhofxryhlrrwzztfowpa.supabase.co/storage/v1/object/public/promotion-media/b525a57e-7fb9-4cef-be81-ad1fc2695302/promotions/db4b5564-4a40-4b59-8c30-06c72e240aba.png':
+        'building-materials',
+    'https://yhofxryhlrrwzztfowpa.supabase.co/storage/v1/object/public/promotion-media/b525a57e-7fb9-4cef-be81-ad1fc2695302/promotions/93887d65-b2c1-4114-9225-8a62488f17ff.png':
+        'furniture',
+  }.entries) {
+    testWidgets('App banner ${campaign.value}: complete image, size and link', (
+      tester,
+    ) async {
+      final promotion = SFPromotion(
+        id: campaign.value,
+        title: 'العناية الشخصية',
+        imageUrl: campaign.key,
+        targetUrl: 'https://example.com/personal-care',
+      );
+      SFPromotion? opened;
+      await tester.pumpWidget(
+        host(
+          PromotionCarousel(
+            promotions: [promotion],
+            onOpen: (item) => opened = item,
+          ),
+          width: 430,
+        ),
+      );
+      await _settleImage(tester);
+      final image = tester.widget<Image>(find.byType(Image));
+      expect(
+        image.image,
+        AssetImage('assets/promotions/${campaign.value}-landscape.png'),
+      );
+      final decoded = tester.widget<RawImage>(find.byType(RawImage)).image;
+      expect(decoded, isNotNull);
+      expect(decoded!.width / decoded.height, closeTo(2.5, .07));
+      expect(image.fit, BoxFit.cover);
+      expect(tester.getSize(find.byType(PageView)).height, closeTo(172, 1));
+      await tester.tap(find.byType(PageView));
+      expect(opened, promotion);
+      // A new uploaded image must not retain the old campaign's artwork.
+      expect(
+        promotionImageProvider('https://example.com/replacement.png'),
+        isA<NetworkImage>(),
+      );
+      expect(tester.takeException(), isNull);
+    });
+  }
+
   testWidgets('الزائر لا يرى مسودات أو أدوات الإدارة أو مساحة إعلان فارغة', (
     tester,
   ) async {
@@ -137,43 +199,42 @@ void main() {
   });
 
   for (final language in ['ar', 'en']) {
-    testWidgets(
-      'التنقّل والروابط والصورة تملأ المساحة على عرض 320: $language',
-      (tester) async {
-        SFPromotion? opened;
-        await tester.pumpWidget(
-          host(
-            PromotionCarousel(
-              promotions: const [first, second],
-              onOpen: (item) => opened = item,
-            ),
-            language: language,
+    testWidgets('التنقّل والروابط والصورة كاملة على عرض 320: $language', (
+      tester,
+    ) async {
+      SFPromotion? opened;
+      await tester.pumpWidget(
+        host(
+          PromotionCarousel(
+            promotions: const [first, second],
+            onOpen: (item) => opened = item,
           ),
-        );
-        await tester.pumpAndSettle();
-        expect(
-          tester.getSize(find.byType(PageView)).width,
-          lessThanOrEqualTo(320),
-        );
-        expect(
-          tester.widget<Image>(find.byType(Image).first).fit,
-          BoxFit.cover,
-        );
-        await tester.tap(find.byType(PageView));
-        expect(opened?.id, first.id);
-        final dots = find.byType(InkResponse);
-        // InkWell ليس InkResponse من حيث نوع runtime الذي يفحصه Finder.
-        expect(dots, findsNWidgets(2));
-        await tester.tap(dots.last);
-        await tester.pumpAndSettle();
-        final pager = tester.widget<PageView>(find.byType(PageView));
-        expect(pager.controller!.page, 1);
-        opened = null;
-        await tester.tap(find.byType(PageView));
-        expect(opened, isNull);
-        expect(tester.takeException(), isNull);
-      },
-    );
+          language: language,
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        tester.getSize(find.byType(PageView)).width,
+        lessThanOrEqualTo(320),
+      );
+      expect(
+        tester.widget<Image>(find.byType(Image).first).fit,
+        BoxFit.contain,
+      );
+      await tester.tap(find.byType(PageView));
+      expect(opened?.id, first.id);
+      final dots = find.byType(InkResponse);
+      // InkWell ليس InkResponse من حيث نوع runtime الذي يفحصه Finder.
+      expect(dots, findsNWidgets(2));
+      await tester.tap(dots.last);
+      await tester.pumpAndSettle();
+      final pager = tester.widget<PageView>(find.byType(PageView));
+      expect(pager.controller!.page, 1);
+      opened = null;
+      await tester.tap(find.byType(PageView));
+      expect(opened, isNull);
+      expect(tester.takeException(), isNull);
+    });
   }
 
   testWidgets('حذف الإعلان الحالي يعيد المؤشر إلى صورة موجودة دون خطأ', (
@@ -193,7 +254,7 @@ void main() {
   });
 
   for (final width in [320.0, 430.0]) {
-    testWidgets('الصورة الطويلة تبقى بعرض الصفحة وارتفاع قصير: $width', (
+    testWidgets('الصورة الطويلة تظهر كاملة داخل مساحة مناسبة للجوال: $width', (
       tester,
     ) async {
       const tall = SFPromotion(
@@ -224,8 +285,8 @@ void main() {
       expect(tester.getSize(page).width, width);
       expect(tester.getSize(page).height, closeTo(width / 2.5, .01));
       final image = tester.widget<Image>(find.byType(Image).first);
-      expect(image.fit, BoxFit.cover);
-      expect(image.alignment, Alignment.bottomCenter);
+      expect(image.fit, BoxFit.contain);
+      expect(image.alignment, Alignment.center);
       await tester.tap(page);
       expect(opened?.id, tall.id);
 
