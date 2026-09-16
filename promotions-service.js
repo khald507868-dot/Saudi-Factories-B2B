@@ -58,7 +58,7 @@
   async function save(values, file) {
     await ready(true);
     var title = String(values.title || "").trim();
-    if (!title || Array.from(title).length > 120) throw error("promo_title_required");
+    if (Array.from(title).length > 120) throw error("promo_title_required");
     var order = Number(values.sort_order);
     if (!Number.isInteger(order) || order < 0 || order > 9999) throw error("promo_order_invalid");
     var link = targetUrl(values.target_url);

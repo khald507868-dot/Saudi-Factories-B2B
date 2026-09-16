@@ -89,6 +89,19 @@ try {
     await db.exec(migration);
     await db.exec(migration);
   });
+  const optionalTitle = await readFile(new URL(
+    '../supabase/migrations/20260916090000_optional_banner_titles.sql', import.meta.url,
+  ), 'utf8');
+  await check('optional-title migration is repeatable and accepts image-only banners', async () => {
+    await db.exec(optionalTitle);
+    await db.exec(optionalTitle);
+    await asRole('authenticated', admin, async (tx) => {
+      const { rows } = await tx.query('insert into public.home_promotions (image_url) values ($1) returning id,title', [image(admin, 'active')]);
+      assert.equal(rows[0].title, '');
+      await tx.query('update public.home_promotions set title=$1 where id=$2', ['', rows[0].id]);
+      await tx.query('delete from public.home_promotions where id=$1', [rows[0].id]);
+    });
+  });
   await check('bucket is public and limits image uploads to 5MB', async () => {
     const { rows } = await db.query("select * from storage.buckets where id = 'promotion-media'");
     assert.equal(rows[0].public, true);
@@ -151,7 +164,7 @@ try {
   });
   await check('SQL rejects invalid title, target URL and ordering even for admin', async () => {
     for (const [column, value] of [
-      ['title', '   '], ['title', 'x'.repeat(121)], ['sort_order', -1], ['sort_order', 10000],
+      ['title', 'x'.repeat(121)], ['sort_order', -1], ['sort_order', 10000],
       ['target_url', 'javascript:alert(1)'], ['target_url', 'https://user:password@example.com'],
     ]) {
       await assert.rejects(() => asRole('authenticated', admin,

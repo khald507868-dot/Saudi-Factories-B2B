@@ -58,7 +58,7 @@ assert.equal((await service.listAdmin()).length, 2);
 for (const url of ['javascript:alert(1)', 'http://example.com', 'https://name:pass@example.com']) {
   await assert.rejects(service.save({ ...values, target_url: url }, file), /promo_target_invalid/);
 }
-await assert.rejects(service.save({ ...values, title: ' ' }, file), /promo_title_required/);
+await assert.rejects(service.save({ ...values, title: 'x'.repeat(121) }, file), /promo_title_required/);
 await assert.rejects(service.save({ ...values, sort_order: -1 }, file), /promo_order_invalid/);
 await assert.rejects(service.save(values, { type: 'image/svg+xml', size: 1024 }), /promo_image_invalid/);
 await assert.rejects(service.save(values, { type: 'image/png', size: 5242881 }), /promo_image_invalid/);
@@ -69,6 +69,8 @@ assert.equal(service.imagePath(image + '?other=1'), null);
 assert.equal(service.imagePath(image.replace('project.example', 'outside.example')), null);
 assert.equal((await service.save(values, file)).title, 'Offer');
 assert.equal(uploads, 1);
+assert.equal((await service.save({ ...values, title: ' ' })).title, '');
+assert.equal((await service.save({ ...values, title: undefined })).title, '');
 assert.equal((await service.save({ ...values, id: 'saved', is_active: false })).is_active, false);
 resultError = new Error('Server denied write');
 await assert.rejects(service.save(values), /Server denied write/);

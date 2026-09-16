@@ -1261,9 +1261,7 @@
 
     <!-- الإعلانات مكان الإحصائيات، وإدارتها للمدير وحده. -->
     <section class="home-promotions" id="home-promotions" hidden aria-label="Advertisements">
-      <button class="home-promo-manage" id="home-promo-manage" type="button" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M12 8v8m-4-4h8"/></svg><span data-i18n="promo_manage">إدارة الإعلانات</span></button>
       <div class="home-promo-stage" id="home-promo-stage" hidden></div>
-      <template id="home-promo-empty-template"><button class="home-promo-empty" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M12 8v8m-4-4h8"/></svg><strong data-i18n="promo_add">إضافة إعلان</strong><span data-i18n="promo_empty_hint">صورة إعلانك تظهر هنا للزوار</span></button></template>
       <div class="home-promo-controls" id="home-promo-controls" hidden>
         <button id="home-promo-prev" type="button" aria-label="الإعلان السابق">&#8249;</button>
         <span id="home-promo-position"></span>
@@ -1313,21 +1311,7 @@
     </section>
 
   </dialog>
-  <dialog class="home-dialog" id="home-promo-dialog" aria-labelledby="home-promo-title">
-    <header class="home-dialog-head"><h2 id="home-promo-title" data-i18n="promo_manage">إدارة الإعلانات</h2><button class="home-dialog-close" type="button" data-close-dialog aria-label="إغلاق">&times;</button></header>
-    <div class="home-promo-list" id="home-promo-list"></div>
-    <p class="home-panel-status" id="home-promo-status" role="status"></p>
-    <div class="home-panel-actions"><button class="home-panel-button" id="home-promo-new" type="button" data-i18n="promo_add">إضافة إعلان</button><button class="home-panel-button" id="home-promo-retry" type="button" data-i18n="app_retry" hidden>إعادة المحاولة</button></div>
-    <form class="home-promo-editor" id="home-promo-form">
-      <label><span data-i18n="promo_title">عنوان الإعلان</span><input id="promo-title" maxlength="120" required></label>
-      <label><span data-i18n="promo_image">صورة الإعلان</span><input id="promo-file" type="file" accept="image/jpeg,image/png,image/webp,image/gif"><small data-i18n="promo_image_hint">حتى 5 ميجابايت</small></label>
-      <img class="home-promo-preview" id="promo-preview" alt="" hidden>
-      <label><span data-i18n="promo_target">رابط الإعلان (اختياري)</span><input id="promo-link" type="url" maxlength="2048" dir="ltr" placeholder="https://"></label>
-      <label><span data-i18n="promo_order">ترتيب العرض</span><input id="promo-order" type="number" min="0" max="9999" step="1" value="0" required></label>
-      <label class="home-promo-visible"><input id="promo-active" type="checkbox" checked><span data-i18n="promo_visible">ظاهر للزوار</span></label>
-      <div class="home-panel-actions"><button class="home-panel-button primary" id="promo-save" type="submit" data-i18n="promo_save">حفظ الإعلان</button></div>
-    </form>
-  </dialog>
+
 
   <!-- نافذة خريطة المنطقة المختارة -->
   <div class="map-modal-overlay" id="map-modal-overlay">

@@ -1,0 +1,13 @@
+.admin-promotions {
+  grid-column: 2;
+  min-width: 0;
+  margin: 0;
+  padding: 20px;
+  background: #fff;
+  border: 1px solid var(--sf-product-frame, #c7dfce);
+  border-radius: 16px;
+}
+.admin-promotions[hidden], .admin-promotions [hidden] { display: none !important; }
+.admin-promotions .home-promo-editor { max-width: 760px; }
+.admin-promo-thumbnail { width: 64px; height: 80px; object-fit: cover; border-radius: 8px; }
+.account-page .tabs { flex-wrap: wrap; }

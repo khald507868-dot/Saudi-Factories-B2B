@@ -10,13 +10,14 @@
   gap: 10px;
 }
 .home-promo-stage { flex: 1; min-height: 280px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
-.home-promo-card { min-width: 0; display: flex; flex-direction: column; overflow: hidden; border: 1px solid var(--sf-product-frame); border-radius: 20px; background: #fff; }
-.home-promo-card-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 16px 14px 10px; }
-.home-promo-card-head h3 { flex: 1; min-width: 0; font-size: clamp(16px, 1.4vw, 22px); line-height: 1.4; overflow-wrap: anywhere; }
+.home-promo-card { position: relative; min-width: 0; display: flex; flex-direction: column; overflow: hidden; border: 1px solid var(--sf-product-frame); border-radius: 20px; background: #fff; }
+.home-promo-card-head { position: absolute; top: 12px; left: 12px; right: 12px; z-index: 1; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; pointer-events: none; }
+.home-promo-card-head > * { pointer-events: auto; }
+.home-promo-card-head h3 { flex: 1; min-width: 0; margin: 0; padding: 6px 10px; border-radius: 8px; background: #fffffff0; font-size: clamp(16px, 1.4vw, 22px); line-height: 1.4; overflow-wrap: anywhere; }
 .home-promo-card .home-promo-card-edit { padding: 6px; width: 32px; height: 32px; flex-shrink: 0; display: grid; place-items: center; }
 .home-promo-card-edit svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; }
-.home-promo-card-image { position: relative; flex: 1; min-height: 260px; display: grid; place-items: center; margin: 0 12px 14px; border-radius: 12px; overflow: hidden; }
-.home-promo-card-image img { width: 100%; height: 100%; object-fit: contain; position: absolute; inset: 0; }
+.home-promo-card-image { position: relative; flex: 1; min-height: 260px; display: grid; place-items: center; margin: 0; overflow: hidden; }
+.home-promo-card-image img { width: 100%; height: 100%; object-fit: cover; object-position: center; position: absolute; inset: 0; }
 .home-promo-placeholder { flex: 1; min-height: 320px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 24px 14px; text-align: center; color: #6b7d70; }
 .home-promo-placeholder svg { width: 48px; height: 48px; fill: none; stroke: #a1b8a7; stroke-width: 1.4; }
 .home-promo-manage {
