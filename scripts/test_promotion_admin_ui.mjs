@@ -68,7 +68,7 @@ const homeTests=async function(){
  check('all_banners_no_placeholders',stage.querySelectorAll('.home-promo-card:not(.home-promo-copy)').length===4&&!stage.querySelector('.home-promo-vacant'));
  check('no_pagination',!document.getElementById('home-promo-controls'));
  const start=stage.scrollLeft;for(let i=0;i<20;i++)step();check('continuous_motion',Math.abs(stage.scrollLeft-start)>10);
- stage.dispatchEvent(new MouseEvent('mouseenter'));const paused=stage.scrollLeft;for(let i=0;i<20;i++)step();check('hover_pauses',stage.scrollLeft===paused);
+ stage.dispatchEvent(new MouseEvent('mouseenter'));const hovered=stage.scrollLeft;for(let i=0;i<20;i++)step();check('hover_keeps_moving',Math.abs(stage.scrollLeft-hovered)>10);
  stage.dispatchEvent(new MouseEvent('mouseleave'));
  let wraps=0,previous=Math.abs(stage.scrollLeft);
  for(let i=0;i<1600;i++){step();const pos=Math.abs(stage.scrollLeft);if(pos<previous-50)wraps++;previous=pos;}

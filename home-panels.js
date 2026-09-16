@@ -89,7 +89,7 @@
     if (publicRows.length > 1) {
       root.SFBestsellersScroll.mount(stage, {
         itemSelector: ".home-promo-card", sectionSelector: ".home-promotions",
-        copyClass: "home-promo-copy", repeatToFill: true
+        copyClass: "home-promo-copy", repeatToFill: true, pauseOnHover: false
       });
     }
   }

@@ -88,8 +88,10 @@
       }
       frame = requestAnimationFrame(tick);
     }
-    listen(view, 'mouseenter', function () { hover = true; });
-    listen(view, 'mouseleave', function () { hover = false; position = sign * view.scrollLeft; });
+    if (options.pauseOnHover !== false) {
+      listen(view, 'mouseenter', function () { hover = true; });
+      listen(view, 'mouseleave', function () { hover = false; position = sign * view.scrollLeft; });
+    }
     listen(view, 'pointerdown', function () { touching = true; });
     listen(global, 'pointerup', function () { touching = false; manualUntil = performance.now() + 2500; });
     listen(global, 'pointercancel', function () { touching = false; });
