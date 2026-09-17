@@ -468,8 +468,14 @@
         ? "dash_account_factory" : "dash_account_individual");
     }
     if (avaEl && SF_PROFILE.company_image) {
-      avaEl.innerHTML = '<img src="' + SF_PROFILE.company_image +
-        '" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">';
+      var avatarUrl = sfSafeHttpUrl(SF_PROFILE.company_image);
+      if (avatarUrl) {
+        var avatarImage = document.createElement("img");
+        avatarImage.src = avatarUrl;
+        avatarImage.alt = "";
+        avatarImage.style.cssText = "width:100%;height:100%;object-fit:cover;border-radius:50%;";
+        avaEl.replaceChildren(avatarImage);
+      }
     }
 
     var adminLink = document.getElementById("dash-admin");
