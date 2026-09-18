@@ -100,7 +100,7 @@
     load: function (statuses) {
       return ready().then(function () {
         var q = root.sb.from("orders")
-          .select("id, status, total, subtotal, shipping, payment_fee, " +
+          .select("id, status, total, subtotal, shipping, shipping_pricing, payment_fee, " +
                   "vat_rate, vat_amount, currency, created_at, factory_id, " +
                   "factories(name), order_items(id, product_name, unit_price, quantity, line_total)")
           .order("created_at", { ascending: false });

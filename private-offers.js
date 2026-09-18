@@ -18,14 +18,14 @@
   function status(q) { return q.status === 'pending' && new Date(q.expires_at).getTime() <= Date.now() ? 'expired' : q.status; }
   function totals(price, quantity) {
     var subtotal = Math.round(Number(price) * 100) * Number(quantity);
-    var fee = Math.round((subtotal + 3000) / 100);
-    var vat = Math.round((subtotal + 3000 + fee) * 15 / 100);
-    return { subtotal: subtotal / 100, shipping: 30, payment_fee: fee / 100,
-      vat_amount: vat / 100, total: (subtotal + 3000 + fee + vat) / 100 };
+    var fee = Math.round(subtotal / 100);
+    var vat = Math.round((subtotal + fee) * 15 / 100);
+    return { subtotal: subtotal / 100, shipping: 0, shipping_pricing: 'quote', payment_fee: fee / 100,
+      vat_amount: vat / 100, total: (subtotal + fee + vat) / 100 };
   }
   function costsHTML(q) {
     return '<dl class="offer-costs">' + ['subtotal','shipping','payment_fee','vat_amount','total'].map(function (key) {
-      return '<div><dt>' + esc(t(key)) + '</dt><dd>' + money(q[key]) + '</dd></div>';
+      return '<div><dt>' + esc(key === 'total' && q.shipping_pricing === 'quote' ? root.I18N.t('shipping_before_total') : t(key)) + '</dt><dd>' + (key === 'shipping' && q.shipping_pricing === 'quote' ? esc(root.I18N.t('shipping_pending')) : money(q[key])) + '</dd></div>';
     }).join('') + '</dl>';
   }
   function cardHTML(q, readonly) {
@@ -38,7 +38,7 @@
         '<button type="button" class="offer-secondary" data-offer-action="declined" data-offer-id="'+esc(q.id)+'">'+esc(t('decline'))+'</button>';
       if (uid === q.seller_id) actions = '<button type="button" class="offer-secondary" data-offer-action="withdrawn" data-offer-id="'+esc(q.id)+'">'+esc(t('withdraw'))+'</button>';
     }
-    if (!readonly && state === 'accepted') actions = '<a class="offer-order-link" href="web-orders.html">'+esc(t('view_order'))+'</a>';
+    if (!readonly && state === 'accepted') actions = '<a class="offer-order-link" href="'+(q.shipping_pricing === 'quote' ? 'web-shipping.html?order='+encodeURIComponent(q.order_id) : 'web-orders.html')+'">'+esc(t('view_order'))+'</a>';
     return '<article class="private-offer-card"><header><strong>'+esc(t('title'))+'</strong><span>'+esc(t(state))+'</span></header>' +
       '<div class="offer-product">'+(image?'<img alt="" src="'+esc(image)+'">':'')+'<strong>'+esc(q.product_name)+'</strong></div>'+
       '<p>'+esc(t('quantity'))+': <b dir="ltr">'+esc(q.quantity)+'</b></p><p>'+esc(t('unit_price'))+': '+money(q.unit_price)+'</p>'+
@@ -53,7 +53,7 @@
   }
   function error(err) {
     var code = err && err.message || '';
-    dialog.querySelector('[role="status"]').textContent = /offer_unavailable/.test(code) ? t('unavailable') : /offer_access_denied/.test(code) ? t('access_denied') : t('failed');
+    dialog.querySelector('[role="status"]').textContent = /offer_shipping_reissue_required/.test(code) ? root.I18N.t('shipping_reissue') : /offer_unavailable/.test(code) ? t('unavailable') : /offer_access_denied/.test(code) ? t('access_denied') : t('failed');
   }
   function shell(title, content) {
     dialog.innerHTML = '<div class="offer-dialog-head"><h2 id="private-offer-title">'+esc(title)+'</h2><button type="button" data-offer-close aria-label="'+esc(t('cancel'))+'">×</button></div>'+content+

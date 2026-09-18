@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-i18n="shipping_title">الشحن — المصانع السعودية</title>
+  <script src="currency.js"></script>
+  <script src="i18n.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-config.js"></script>
+  <script src="account-access.js"></script>
+  <script src="auth-guard.js"></script>
+  <script src="shipping-notifications.js" defer></script>
+  <link rel="stylesheet" href="desktop.css">
+  <link rel="stylesheet" href="shipping.css">
+  <script src="shipping-page.js" defer></script>
+</head>
+<body class="shipping-page">
+  <header class="shipping-header">
+    <a href="index.html" data-i18n="nav_home">الرئيسية</a>
+    <nav aria-label="التنقل"><a href="web-account.html" data-i18n="nav_account">حسابي</a><a href="web-orders.html" data-i18n="dash_my_orders">طلباتي</a>
+          <a href="web-shipping.html" data-shipping-nav data-i18n="shipping_title">الشحن</a></nav>
+  </header>
+  <main class="shipping-main">
+    <h1 data-i18n="shipping_title">الشحن</h1>
+    <p class="shipping-intro" data-i18n="shipping_intro">عرض شحن مستقل لكل مصنع. أكمل الوجهة وبيانات التغليف ليُراجع طلبك، ثم وافق على السعر قبل طلب الحجز.</p>
+    <div id="shipping-notices" aria-live="polite"></div>
+    <p id="shipping-error" role="alert" hidden></p>
+    <div class="shipping-layout">
+      <aside class="shipping-panel"><h2 data-i18n="shipping_requests">طلبات الشحن</h2><button id="shipping-refresh" type="button" data-i18n="shipping_refresh">تحديث</button><div id="shipping-list" aria-live="polite"></div><button id="shipping-more" type="button" hidden data-i18n="shipping_more">عرض المزيد</button></aside>
+      <section id="shipping-detail" class="shipping-panel" aria-live="polite"><p data-i18n="fx_loading">جارٍ التحميل…</p></section>
+    </div>
+  </main>
+</body>
+</html>

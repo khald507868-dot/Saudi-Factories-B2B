@@ -63,7 +63,11 @@ class SFOrder {
   final List<SFOrderItem> items;
 
   static const paidStatuses = {'paid', 'processing', 'shipped', 'completed'};
-  static const unpaidStatuses = {'pending', 'awaiting_payment'};
+  static const unpaidStatuses = {
+    'pending',
+    'awaiting_shipping',
+    'awaiting_payment',
+  };
   static const invoiceStatuses = {'paid', 'completed'};
 
   bool get isPaid => paidStatuses.contains(status);
@@ -71,6 +75,7 @@ class SFOrder {
   bool get hasInvoice => invoiceStatuses.contains(status);
   String get shortId => id.split('-').first.toUpperCase();
   String get statusKey => switch (status) {
+    'awaiting_shipping' => 'shipping_pending',
     'paid' => 'app_order_paid',
     'processing' => 'app_order_processing',
     'shipped' => 'app_order_shipped',
@@ -81,7 +86,9 @@ class SFOrder {
   };
 
   bool canConfirmPayment(Set<int> ownedFactoryIds, {bool isAdmin = false}) =>
-      isUnpaid && (isAdmin || ownedFactoryIds.contains(factoryId));
+      isUnpaid &&
+      status != 'awaiting_shipping' &&
+      (isAdmin || ownedFactoryIds.contains(factoryId));
 
   bool matches(OrderView view) => switch (view) {
     OrderView.all => true,

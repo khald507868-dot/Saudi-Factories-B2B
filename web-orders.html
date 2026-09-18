@@ -21,6 +21,7 @@
 <script src="favorites-service.js"></script>
 <script src="account-access.js"></script>
 <script src="auth-guard.js"></script>
+<script src="shipping-notifications.js" defer></script>
 <script src="messages-badge.js"></script>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -320,6 +321,7 @@
           <p class="dash-sub-title" data-i18n="dash_orders">الطلبات</p>
           <a href="web-cart.html" data-i18n="dash_cart">سلة التسوق</a>
           <a href="web-orders.html" data-i18n="dash_my_orders">طلباتي</a>
+          <a href="web-shipping.html" data-shipping-nav data-i18n="shipping_title">الشحن</a>
           <a href="web-orders.html?status=paid" data-i18n="dash_orders_paid">طلبات مكتملة</a>
           <a href="web-orders.html?status=unpaid" data-i18n="dash_orders_unpaid">بانتظار الدفع</a>
           <a href="web-favorites.html" data-i18n="dash_favorites">المفضّلة</a>
@@ -501,7 +503,7 @@
      الجانبية مكرّرة في سبعة ملفات، فكلّ صفحة جديدة تعني
      نسخة ثامنة من القائمة ومن منطق العرض كلّه. */
   var PAID_VIEW = ["completed", "paid", "shipped", "processing"];
-  var UNPAID_VIEW = ["pending", "awaiting_payment"];
+  var UNPAID_VIEW = ["pending", "awaiting_shipping", "awaiting_payment"];
 
   var view = "";
   try {
@@ -531,7 +533,7 @@
       .then(function () {
         if (view === "paid") return SFOrders.load(PAID_VIEW);
         if (view === "unpaid") return SFOrders.load(UNPAID_VIEW);
-        return SFOrders.loadCompleted();
+        return SFOrders.load();
       });
   }).then(function (rows) {
     if (!rows.length) {
@@ -550,7 +552,7 @@
   function reload() {
     if (view === "paid") return SFOrders.load(PAID_VIEW);
     if (view === "unpaid") return SFOrders.load(UNPAID_VIEW);
-    return SFOrders.loadCompleted();
+    return SFOrders.load();
   }
 
   /* الضغط يُربط على الحاوية لا على كلّ زرّ، فالبطاقات
@@ -603,9 +605,10 @@
         (items ? '<div class="items">' + items + '</div>' : '') +
         breakdown(o) +
         '<div class="card-foot">' +
-          '<span class="total-label">' + esc(I18N.t("cart_total_label")) + '</span>' +
+          '<span class="total-label">' + esc(I18N.t(o.status === "awaiting_shipping" ? "shipping_before_total" : "cart_total_label")) + '</span>' +
           '<span class="total-value">' + money(o.total) + '</span>' +
         '</div>' +
+        (o.shipping_pricing === 'quote' ? '<div class="card-actions"><a href="web-shipping.html?order=' + encodeURIComponent(o.id) + '">' + esc(I18N.t('shipping_title')) + '</a></div>' : '') +
         payButton(o) +
       '</div>';
   }
@@ -626,6 +629,7 @@
     }
 
     rows += line(I18N.t("order_subtotal"), o.subtotal);
+    if (o.status === 'awaiting_shipping') rows += '<div class="sum-row"><span>' + esc(I18N.t('order_shipping')) + '</span><span>' + esc(I18N.t('shipping_pending')) + '</span></div>';
     if (Number(o.shipping) > 0) rows += line(I18N.t("order_shipping"), o.shipping);
     if (Number(o.payment_fee) > 0) {
       rows += line(I18N.t("order_payment_fee"), o.payment_fee);
@@ -660,6 +664,7 @@
   /* حالات الطلب تشترك في مفاتيح fs_* المستخدمة لحالة المصنع
      حيث تتطابق المعاني، وما لا مفتاح له يظهر كما هو من الخادم. */
   function statusLabel(s) {
+    if (s === 'awaiting_shipping') return I18N.t('shipping_pending');
     var map = { completed: "fs_approved", paid: "fs_approved",
                 pending: "fs_pending", awaiting_payment: "fs_pending",
                 cancelled: "fs_rejected", payment_failed: "fs_rejected" };

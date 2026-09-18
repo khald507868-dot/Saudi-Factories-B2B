@@ -22,6 +22,7 @@
 <script src="qr-code.js"></script>
 <script src="account-access.js"></script>
 <script src="auth-guard.js"></script>
+<script src="shipping-notifications.js" defer></script>
 <link rel="stylesheet" href="green-frames.css">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -325,7 +326,7 @@
     /* RLS تتكفّل بالحماية: المشتري وصاحب المصنع والمدير وحدهم
        يقرؤون الطلب، فلا حاجة لفحص إضافي في الصفحة. */
     return sb.from("orders")
-      .select("id, status, subtotal, shipping, payment_fee, vat_rate, " +
+      .select("id, status, subtotal, shipping, shipping_pricing, payment_fee, vat_rate, " +
               "vat_amount, total, created_at, factories(name), " +
               "order_items(product_name, unit_price, quantity, line_total)")
       .eq("id", orderId)
@@ -334,12 +335,16 @@
     if (res.error) throw res.error;
     var o = (res.data || [])[0];
     if (!o) throw new Error(I18N.t("inv_not_found"));
-    render(o);
+    if (o.shipping_pricing !== 'quote') return render(o, null);
+    return sb.from('shipping_quotes').select('freight, additional_fees, taxes, total').eq('order_id',o.id).not('accepted_at','is',null).limit(1).then(function (r) {
+      if (r.error) throw r.error;
+      render(o, (r.data || [])[0] || null);
+    });
   }).catch(function (err) {
     fail((err && err.message) || String(err));
   });
 
-  function render(o) {
+  function render(o, shippingQuote) {
     var factory = (o.factories && o.factories.name) || "";
     var when = stamp(o.created_at);
 
@@ -371,8 +376,8 @@
             '<span class="w-dark">Factories</span> ' +
             '<span class="w-b2b">B2B</span>' +
           "</div>" +
-          '<div class="doc-title">' + esc(I18N.t("inv_tax_invoice")) +
-            '<span class="en">Simplified Tax Invoice</span>' +
+          '<div class="doc-title">' + esc(I18N.t(o.status === "awaiting_shipping" ? "order_details" : "inv_tax_invoice")) +
+            '<span class="en">' + (o.status === 'awaiting_shipping' ? 'Order estimate before shipping' : 'Simplified Tax Invoice') + '</span>' +
           "</div>" +
           '<div class="seller-name">' + esc(SELLER_NAME_AR) + "</div>" +
           '<div class="seller-name">' + esc(SELLER_NAME_EN) + "</div>" +
@@ -395,8 +400,9 @@
         '<hr class="divider">' +
 
         row(I18N.t("order_subtotal"), "Subtotal", money(o.subtotal)) +
+        (o.status === 'awaiting_shipping' ? row(I18N.t('order_shipping'), 'Shipping', esc(I18N.t('shipping_pending'))) : '') +
         (Number(o.shipping) > 0
-          ? row(I18N.t("order_shipping"), "Delivery Fees", money(o.shipping))
+          ? row(I18N.t(o.shipping_pricing === "quote" ? "shipping_inclusive" : "order_shipping"), "Shipping", money(o.shipping))
           : "") +
         (Number(o.payment_fee) > 0
           ? row(I18N.t("order_payment_fee"), "Service Fees", money(o.payment_fee))
@@ -405,11 +411,12 @@
         '<hr class="divider">' +
 
         row(I18N.t("inv_vat_rate"), "VAT", vatPct) +
-        row(I18N.t("inv_total_vat_collected"), "Total VAT Collected",
+        (shippingQuote ? row(I18N.t('shipping_taxes'), 'Included in shipping total', money(shippingQuote.taxes)) : '') +
+        row(I18N.t("inv_total_vat_collected"), "Products / platform VAT",
             money(o.vat_amount)) +
 
         '<div class="grand">' +
-          "<span>" + esc(I18N.t("inv_subtotal_incl_vat")) + "</span>" +
+          "<span>" + esc(I18N.t(o.status === "awaiting_shipping" ? "shipping_before_total" : "inv_subtotal_incl_vat")) + "</span>" +
           '<span class="value">' + money(o.total) + "</span>" +
         "</div>" +
 
@@ -422,6 +429,7 @@
       "</div>" +
 
       '<div class="actions">' +
+        (o.shipping_pricing === 'quote' ? '<a class="btn ghost" href="web-shipping.html?order=' + encodeURIComponent(o.id) + '">' + esc(I18N.t('shipping_title')) + '</a>' : '') +
         '<button type="button" class="btn primary" id="print-btn">' +
           esc(I18N.t("invoice_print")) +
         "</button>" +

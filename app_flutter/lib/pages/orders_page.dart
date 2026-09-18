@@ -233,7 +233,11 @@ class _OrdersPageState extends State<OrdersPage> {
               ),
             const Divider(),
             OrderAmounts(order: order, useStoredCurrency: true),
-            if (order.isUnpaid && !canConfirm) ...[
+            if (order.status == 'awaiting_shipping')
+              Text(context.t('shipping_no_quote')),
+            if (order.isUnpaid &&
+                order.status != 'awaiting_shipping' &&
+                !canConfirm) ...[
               const SizedBox(height: 12),
               Text(
                 context.t('app_order_manual_payment'),

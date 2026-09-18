@@ -370,7 +370,11 @@ class CartPageState extends State<CartPage> {
                   children: [
                     Expanded(
                       child: Text(
-                        i18n.t(entry.key),
+                        i18n.t(
+                          entry.key == 'cart_total_label'
+                              ? 'shipping_before_total'
+                              : entry.key,
+                        ),
                         style: TextStyle(
                           fontSize: 13,
                           color: entry.key == 'cart_total_label'
@@ -385,7 +389,9 @@ class CartPageState extends State<CartPage> {
                     const SizedBox(width: 12),
                     Flexible(
                       child: SFPriceText(
-                        SFCurrency.instance.format(entry.value),
+                        entry.key == 'order_shipping'
+                            ? i18n.t('shipping_pending')
+                            : SFCurrency.instance.format(entry.value),
                         textAlign:
                             Directionality.of(context) == TextDirection.rtl
                             ? TextAlign.left

@@ -33,6 +33,7 @@
 <script>var SF_PUBLIC_PAGE = true;</script>
 <script src="account-access.js"></script>
 <script src="auth-guard.js"></script>
+<script src="shipping-notifications.js" defer></script>
 <script src="messages-badge.js"></script>
 <script src="regions-geo.js"></script>
 <script src="geo-location.js"></script>
@@ -1600,7 +1601,7 @@
               '<div class="buy-sums" id="buy-sums" hidden></div>' +
               '<div class="buy-total" id="buy-total" hidden>' +
                 '<span class="buy-total-label">' +
-                  escapeHTML(I18N.t("prod_total")) + '</span>' +
+                  escapeHTML(I18N.t("shipping_before_total")) + '</span>' +
                 '<span class="buy-total-value"></span>' +
               '</div>' +
               '<div class="act-row">' +
@@ -1815,7 +1816,7 @@
             amountHTML = I18N.money((u * q).toFixed(2));
           }
           priceRow.innerHTML =
-            '<span>' + escapeHTML(I18N.t("prod_total")) + '</span>' +
+            '<span>' + escapeHTML(I18N.t("shipping_before_total")) + '</span>' +
             '<b>' + amountHTML + '</b>';
           priceRow.hidden = false;
         } else {
@@ -2013,7 +2014,7 @@
          وهذا عرض لا حساب ملزِم: الخادم يعيد
          الحساب عند إنشاء الطلب ولا يقبل من
          المتصفّح مبلغاً. */
-      var BUY_SHIPPING = 30, BUY_FEE_RATE = 0.01, BUY_VAT_RATE = 0.15;
+      var BUY_SHIPPING = 0, BUY_FEE_RATE = 0.01, BUY_VAT_RATE = 0.15;
 
       /* مبلغ محوّلاً ومنسّقاً مع رمزه. والتقريب
          هنا بعد الحساب لا قبله، لأنّ الرسوم
@@ -2120,7 +2121,7 @@
           if (el) el.innerHTML = buyMoney(sar);
         }
         put("bs-subtotal", subtotal);
-        put("bs-shipping", BUY_SHIPPING);
+        document.getElementById("bs-shipping").textContent = I18N.t("shipping_pending");
         put("bs-fee", fee);
         put("bs-vat", vat);
 
@@ -2149,7 +2150,7 @@
 
         var lbl = document.createElement("span");
         lbl.className = "buy-total-label";
-        lbl.textContent = I18N.t("prod_total");
+        lbl.textContent = I18N.t("shipping_before_total");
         box.appendChild(lbl);
 
         var val = document.createElement("span");

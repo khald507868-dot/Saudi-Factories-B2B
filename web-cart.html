@@ -22,6 +22,7 @@
 <script src="commerce-service.js"></script>
 <script src="account-access.js"></script>
 <script src="auth-guard.js"></script>
+<script src="shipping-notifications.js" defer></script>
 <script src="messages-badge.js"></script>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -786,7 +787,7 @@
       </div>
       <div class="sum-row">
         <span data-i18n="order_shipping">التوصيل</span>
-        <span id="sum-shipping">0</span>
+        <span id="sum-shipping" data-i18n="shipping_pending">بانتظار عرض الشحن</span>
       </div>
       <div class="sum-row">
         <span data-i18n="order_payment_fee">رسوم بوابة الدفع</span>
@@ -798,7 +799,7 @@
       </div>
     </div>
     <span class="total">
-      <span class="total-label" data-i18n="cart_total_label">الإجمالي</span>
+      <span class="total-label" data-i18n="shipping_before_total">الإجمالي</span>
       <span class="total-value">0</span>
     </span>
     <button type="button" class="checkout-btn" disabled data-i18n="cart_checkout_btn">الانتقال للدفع</button>
@@ -1010,7 +1011,7 @@
             /* عبر paintSums لا كتابةً مباشرةً، وإلا أظهرت الزيادة
                والنقصان مجموعاً بلا ضريبة ثم عاد الرقم الكامل
                عند أوّل إعادة تحميل — فيبدو المبلغ متقلّباً. */
-            paintSums(sum);
+            paintSums(sum, items.length > 0);
             minus.disabled = q <= 1;
           }
 
@@ -1126,7 +1127,7 @@
         var hasItems = items.length > 0;
         cartItemsEl.style.display = hasItems ? "block" : "none";
         emptyCartEl.style.display = hasItems ? "none" : "flex";
-        paintSums(total);
+        paintSums(total, hasItems);
         checkoutBtn.disabled = !hasItems;
         /* يُربط هنا لا في loadCart: بعد حذف منتج أو تغيير كمية
            كان الزرّ يحتجز قائمة قديمة تشمل المحذوف. */
@@ -1147,21 +1148,20 @@
             factories[p.factory_id] = true;
           });
           var ids = Object.keys(factories);
-          if (ids.length !== 1) {
-            alert("قسّم السلة إلى طلب مستقل لكل مصنع");
-            return;
-          }
           /* يُنتظر وصول كلّ كمية معلّقة قبل إنشاء الطلب.
              إرسالها بلا انتظار يجعل الخادم يحسب الإجمالي من كمية قديمة. */
           checkoutBtn.disabled = true;
           Promise.all(pending.map(function (f) { return f(); })).then(function () {
-            return SFCommerce.createOrder(ids[0]);
-          }).then(function (order) {
-            alert("تم إرسال الطلب رقم " + order.id + " بنجاح. سيتواصل معك المصنع لتنسيق الدفع.");
-            return SFCommerce.loadCart();
-          }).then(renderCart).catch(function (err) {
+            var created = [];
+            return ids.reduce(function (chain, id) {
+              return chain.then(function () { return SFCommerce.createOrder(id); }).then(function (order) { created.push(order); });
+            }, Promise.resolve()).then(function () { return created; });
+          }).then(function (orders) {
+            window.location.href = orders.length === 1 ? 'web-shipping.html?order=' + encodeURIComponent(orders[0].id) : 'web-shipping.html';
+          }).catch(function (err) {
             checkoutBtn.disabled = false;
             alert((err && err.message) || "تعذّر إنشاء الطلب");
+            SFCommerce.loadCart().then(renderCart);
           });
         };
       }
@@ -1186,19 +1186,13 @@
         return (shownUnit * qty) / rate;
       }
 
-      /* نفس معادلة create_order_from_cart حرفيّاً.
-         وهذا عرض لا حساب ملزِم: الخادم يعيد الحساب عند
-         إنشاء الطلب ولا يقبل من الصفحة مبلغاً — فالعبث بهذه
-         الأرقام في المتصفّح لا يغيّر ما يُدفع.
+      /* تقدير المنتجات فقط؛ الشحن بعرض مستقل لكل مصنع. */
+      var SHIPPING = 0, FEE_RATE = 0.01, VAT_RATE = 0.15;
 
-         وتبقى القيم متطابقة مع الهجرة: 30 ريالاً توصيلاً،
-         واحد بالمئة بوابة، وخمسة عشر بالمئة ضريبة. */
-      var SHIPPING = 30, FEE_RATE = 0.01, VAT_RATE = 0.15;
-
-      function paintSums(subtotal) {
+      function paintSums(subtotal, hasItems) {
         var box = document.getElementById("cart-sums");
 
-        if (!subtotal) {
+        if (!hasItems) {
           if (box) box.hidden = true;
           totalEl.innerHTML = I18N.money((0).toFixed(2));
           return;
@@ -1213,7 +1207,7 @@
           if (el) el.innerHTML = I18N.money(v.toFixed(2));
         }
         put("sum-subtotal", subtotal);
-        put("sum-shipping", SHIPPING);
+        document.getElementById("sum-shipping").textContent = I18N.t("shipping_pending");
         put("sum-fee", fee);
         put("sum-vat", vat);
 

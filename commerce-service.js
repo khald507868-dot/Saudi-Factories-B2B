@@ -1,6 +1,7 @@
 /* Cart/order client facade. Totals are calculated only in PostgreSQL RPCs. */
 (function (root) {
   "use strict";
+  var orderKeys = {};
   function ready() {
     if (!root.sb || !root.SF_USER) return Promise.reject(new Error("يجب تسجيل الدخول للتسوق"));
     return Promise.resolve();
@@ -51,13 +52,20 @@
       });
     },
     createOrder: function (factoryId) {
+      var slot;
       return ready().then(function () {
+        slot = 'sf_order_request:' + root.SF_USER.id + ':' + Number(factoryId);
+        try { orderKeys[slot] = orderKeys[slot] || root.sessionStorage.getItem(slot); } catch (_) {}
+        if (!orderKeys[slot]) orderKeys[slot] = root.crypto.randomUUID();
+        try { root.sessionStorage.setItem(slot, orderKeys[slot]); } catch (_) {}
         return root.sb.rpc("create_order_from_cart", {
           p_factory_id: Number(factoryId),
-          p_idempotency_key: root.crypto && root.crypto.randomUUID ? root.crypto.randomUUID() : undefined
+          p_idempotency_key: orderKeys[slot]
         });
       }).then(function (res) {
         if (res.error) throw res.error;
+        delete orderKeys[slot];
+        try { root.sessionStorage.removeItem(slot); } catch (_) {}
         return res.data;
       });
     }

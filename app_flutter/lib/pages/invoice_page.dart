@@ -274,6 +274,8 @@ class OrderAmounts extends StatelessWidget {
     return Column(
       children: [
         line(context.t('order_subtotal'), order.subtotal),
+        if (order.status == 'awaiting_shipping')
+          Text(context.t('shipping_pending')),
         if (order.shipping > 0)
           line(context.t('order_shipping'), order.shipping),
         if (order.paymentFee > 0)
@@ -282,7 +284,15 @@ class OrderAmounts extends StatelessWidget {
           '${context.t('inv_vat_rate')} (${(order.vatRate * 100).toStringAsFixed(1)}%)',
           order.vatAmount,
         ),
-        line(context.t('cart_total_label'), order.total, total: true),
+        line(
+          context.t(
+            order.status == 'awaiting_shipping'
+                ? 'shipping_before_total'
+                : 'cart_total_label',
+          ),
+          order.total,
+          total: true,
+        ),
       ],
     );
   }

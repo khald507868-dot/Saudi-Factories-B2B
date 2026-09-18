@@ -37,12 +37,12 @@ void main() {
     expect(SFPriceCalculation.unitPrice(15, tiers.take(2).toList(), 20), 15);
   });
 
-  test('تقدير الطلب يطابق رسوم التوصيل والدفع وضريبة الخادم', () {
+  test('تقدير المنتجات لا يضيف شحناً ثابتاً قبل عرض الشركة', () {
     final estimate = SFOrderEstimate(100);
-    expect(estimate.shipping, 30);
-    expect(estimate.paymentFee, 1.3);
-    expect(estimate.vat, 19.7);
-    expect(estimate.total, 151);
+    expect(estimate.shipping, 0);
+    expect(estimate.paymentFee, 1);
+    expect(estimate.vat, 15.15);
+    expect(estimate.total, 116.15);
   });
 
   test('إجمالي العرض يساوي سعر الوحدة الظاهر في العملات المختلفة', () async {
@@ -115,6 +115,15 @@ void main() {
       'status': 'paid',
     });
     expect(paid.canConfirmPayment({3}), isFalse);
+    final waitingForShipping = SFOrder.fromRow({
+      'id': 'shipping',
+      'factory_id': 3,
+      'status': 'awaiting_shipping',
+    });
+    expect(waitingForShipping.matches(OrderView.unpaid), isTrue);
+    expect(waitingForShipping.canConfirmPayment({3}), isFalse);
+    expect(waitingForShipping.canConfirmPayment({}, isAdmin: true), isFalse);
+    expect(waitingForShipping.statusKey, 'shipping_pending');
   });
 
   test('بطاقة المنتج تبقى مرتبطة برسالة المحادثة بعد التطبيع', () {

@@ -620,7 +620,7 @@ class _PurchaseAmounts extends StatelessWidget {
             context.t('order_shipping'): estimate.shipping,
             context.t('order_payment_fee'): estimate.paymentFee,
             context.t('order_vat'): estimate.vat,
-            context.t('cart_total_label'): estimate.total,
+            context.t('shipping_before_total'): estimate.total,
           }.entries)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 5),
@@ -634,7 +634,9 @@ class _PurchaseAmounts extends StatelessWidget {
                   const SizedBox(width: 12),
                   Flexible(
                     child: SFPriceText(
-                      currency.format(row.value),
+                      row.key == context.t('order_shipping')
+                          ? context.t('shipping_pending')
+                          : currency.format(row.value),
                       textAlign: TextAlign.end,
                       style: TextStyle(
                         fontSize: row.key == context.t('cart_total_label')

@@ -61,7 +61,7 @@ class SFPriceCalculation {
 /// التوصيل والرسوم والضريبة مطابقة لهجرة الأسعار في Supabase.
 /// هذه معاينة؛ الفاتورة النهائية تُقرأ من الطلب الذي أنشأه الخادم.
 class SFOrderEstimate {
-  SFOrderEstimate(double subtotal, {this.shipping = 30})
+  SFOrderEstimate(double subtotal, {this.shipping = 0})
     : subtotal = SFPriceCalculation.roundMoney(subtotal);
 
   final double subtotal;
