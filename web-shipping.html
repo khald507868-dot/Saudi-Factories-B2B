@@ -12,8 +12,9 @@
   <script src="auth-guard.js"></script>
   <script src="shipping-notifications.js" defer></script>
   <link rel="stylesheet" href="desktop.css">
-  <link rel="stylesheet" href="shipping.css">
-  <script src="shipping-page.js?v=20260921-saved-address" defer></script>
+  <link rel="stylesheet" href="shipping.css?v=20260921-images">
+  <script src="shipping-images.js?v=20260921-images" defer></script>
+  <script src="shipping-page.js?v=20260921-images" defer></script>
 </head>
 <body class="shipping-page">
   <header class="shipping-header">
@@ -26,6 +27,7 @@
     <p class="shipping-intro" data-i18n="shipping_intro">عرض شحن مستقل لكل مصنع. أكمل الوجهة وبيانات التغليف ليُراجع طلبك، ثم وافق على السعر قبل طلب الحجز.</p>
     <div id="shipping-notices" aria-live="polite"></div>
     <p id="shipping-error" role="alert" hidden></p>
+    <section id="shipping-workflow" class="shipping-panel shipping-workflow" aria-live="polite" hidden></section>
     <div class="shipping-layout">
       <aside class="shipping-panel"><h2 data-i18n="shipping_requests">طلبات الشحن</h2><button id="shipping-refresh" type="button" data-i18n="shipping_refresh">تحديث</button><div id="shipping-list" aria-live="polite"></div><button id="shipping-more" type="button" hidden data-i18n="shipping_more">عرض المزيد</button></aside>
       <section id="shipping-detail" class="shipping-panel" aria-live="polite"><p data-i18n="fx_loading">جارٍ التحميل…</p></section>

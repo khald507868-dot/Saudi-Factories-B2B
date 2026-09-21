@@ -30,6 +30,7 @@ jobs:
         run: |
           node scripts/test_avatar_security.mjs
           node scripts/test_manual_shipping_client.mjs
+          node scripts/test_shipping_images_client.mjs
           node scripts/test_delivery_addresses_client.mjs
           node scripts/test_delivery_geocoding.mjs
           for check in account_access account_approval account_deletion delivery_addresses factory_resubmission factory_certificates private_offers message_product_security internal_function_permissions tier_price_permissions storage_listing checkout_security profile_factory_privacy manual_shipping; do

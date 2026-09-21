@@ -29,11 +29,11 @@ console.log('PASS lost-response retries reuse the request key across reload; pri
 
 // تشغيل منطق بناء الصفحة على DOM محدود للتحقق من اختيار نماذج الأدوار والنصوص.
 // لا يعد هذا فحصاً بصرياً أو اختبار تفاعل كامل للمتصفح.
-async function renderAs(role,state='quoted',expired=false){
+async function renderAs(role,state='quoted',expired=false,overrides={}){
   const elements=new Map();
   const element=id=>{if(!elements.has(id))elements.set(id,{innerHTML:'',textContent:'',hidden:false,addEventListener(){},setAttribute(){},removeAttribute(){},querySelectorAll(){return [];},children:[]});return elements.get(id);};
   const buyer=role==='buyer',seller=role==='seller';
-  const shipment={order_id:'order',status:state,revision:2,current_quote_id:state==='quoted'?'q':null,orders:{buyer_id:'buyer',subtotal:100,payment_fee:1,vat_amount:15.15,total:116.15,status:'awaiting_shipping',factories:{name:'Factory',owner_id:'seller'}}};
+  const shipment={order_id:'order',status:state,revision:2,current_quote_id:state==='quoted'?'q':null,buyer_confirmed_at:'2026-09-21',factory_confirmed_at:'2026-09-21',orders:{buyer_id:'buyer',subtotal:100,payment_fee:1,vat_amount:15.15,total:116.15,status:state==='booking_requested'?'paid':'awaiting_shipping',factories:{name:'Factory',owner_id:'seller'}},...overrides};
   const quote={id:'q',carrier:'<script>bad()</script>',carrier_quote_reference:'REF',freight:100,additional_fees:20,taxes:5,total:125,estimated_days_min:3,estimated_days_max:7,expires_at:expired?'2000-01-01':'2099-01-01',inclusions:'Pickup',exclusions:'Import duty excluded'};
   let complete;
   const done=new Promise(resolve=>{complete=resolve;});
@@ -59,7 +59,7 @@ const addressCalls=[];
 const testWindow={I18N:window.I18N,SF_AUTH_READY:{then(){return {catch(){}};}},sb:{rpc:async(name,args)=>{
   addressCalls.push(name);assert(['get_domestic_shipping_destination','get_saved_shipping_destination'].includes(name));assert.equal(args.p_order_id,'my-order');return {data:savedAddress,error:addressError};
 }}};
-const sourceWithHooks=read('shipping-page.js').replace('})(window);','root.shippingTest = {destinationScope, destinationChoice, syncDestinationScope, loadDomesticDestination};\n})(window);');
+const sourceWithHooks=read('shipping-page.js').replace('})(window);','root.shippingTest = {destinationScope, destinationChoice, syncDestinationScope, loadDomesticDestination, workflow};\n})(window);');
 vm.runInNewContext(sourceWithHooks,{window:testWindow,document:uiDocument});
 const helpers=testWindow.shippingTest;
 assert.equal(helpers.destinationScope({country:'المملكة العربية السعودية'}),'domestic');
@@ -91,10 +91,34 @@ const loading=helpers.loadDomesticDestination(form,{order_id:'my-order',destinat
 assert(submit.disabled);assert(savedButton.disabled);assert.equal(form._domesticDestination,null);
 await loading;assert.equal(addressCalls.at(-1),'get_saved_shipping_destination');
 assert.equal(form._domesticDestination.saved_address_id,'saved-id');assert(note.textContent.includes('review, then confirm linking'));
-assert(!submit.disabled);assert(submit.textContent.includes('Link address'));assert(!savedButton.hidden);
+assert(!submit.disabled);assert(submit.textContent.includes('Confirm order'));assert(!savedButton.hidden);
 addressError={message:'shipping_saved_address_missing'};
 await helpers.loadDomesticDestination(form,{order_id:'my-order'},true);assert(submit.disabled);assert.equal(form._domesticDestination,null);
 assert(!savedButton.disabled);assert(uiElements.get('shipping-error').textContent.includes('No saved Saudi'));
 assert(buyer.includes('data-use-saved-address'));assert(!seller.includes('data-use-saved-address'));
 assert(!(await renderAs('buyer','booking_requested')).includes('data-use-saved-address'));
 console.log('PASS explicit saved-address preview, loading guard, retry after failure and editable buyer-only control');
+assert(!(await renderAs('seller','awaiting_details',false,{buyer_confirmed_at:null,factory_confirmed_at:null})).includes('data-action="packing"'));
+assert((await renderAs('seller','awaiting_details',false,{factory_confirmed_at:null})).includes('data-action="packing"'));
+assert(!(await renderAs('admin','awaiting_quote',false,{factory_confirmed_at:null})).includes('data-action="quote"'));
+const unpaidOrders={buyer_id:'buyer',status:'awaiting_payment',total:241.15,subtotal:100,payment_fee:1,vat_amount:15.15,factories:{owner_id:'seller'}};
+assert(!(await renderAs('admin','booking_requested',false,{orders:unpaidOrders})).includes('data-action="book"'));
+assert((await renderAs('buyer','booking_requested',false,{orders:unpaidOrders})).includes('outside the platform'));
+assert(!(await renderAs('buyer','booking_requested',false,{orders:unpaidOrders})).includes('data-action="payment"'));
+assert((await renderAs('seller','booking_requested',false,{orders:unpaidOrders})).includes('data-action="payment"'));
+assert((await renderAs('admin','booking_requested',false,{orders:unpaidOrders})).includes('data-action="payment"'));
+assert(!(await renderAs('seller','booking_requested')).includes('data-action="payment"'));
+const sample={order_id:'sample',status:'awaiting_details',buyer_confirmed_at:null,factory_confirmed_at:null,orders:{status:'awaiting_shipping'}};
+const currentStep=markup=>[...markup.matchAll(/<li data-step-state="([^"]+)"/g)].map(m=>m[1]);
+assert.deepEqual(currentStep(helpers.workflow(sample,null,[])),['current','waiting','waiting','waiting']);
+sample.buyer_confirmed_at='2026-09-21';assert.deepEqual(currentStep(helpers.workflow(sample,null,[])),['done','current','waiting','waiting']);
+sample.factory_confirmed_at='2026-09-21';assert.deepEqual(currentStep(helpers.workflow(sample,null,[])),['done','done','current','waiting']);
+const readyQuote={expires_at:'2099-01-01',created_at:'2026-09-21'};
+assert.deepEqual(currentStep(helpers.workflow(sample,readyQuote,[])),['done','done','done','current']);
+assert.deepEqual(currentStep(helpers.workflow(sample,{...readyQuote,expires_at:'2000-01-01'},[])),['done','done','current','waiting']);
+sample.orders.status='awaiting_payment';assert(helpers.workflow(sample,{...readyQuote,accepted_at:'2026-09-21'},[]).includes('Awaiting buyer payment'));
+sample.orders.status='paid';assert.deepEqual(currentStep(helpers.workflow(sample,readyQuote,[])),['done','done','done','done']);
+sample.orders.status='cancelled';assert.deepEqual(currentStep(helpers.workflow(sample,null,[])),['stopped','stopped','stopped','stopped']);
+assert(helpers.workflow(sample,null,[{kind:'payment',created_at:'2026-09-21',note:'<img src=x>'}]).includes('&lt;img'));
+const shippingHtml=read('web-shipping.html');assert(shippingHtml.indexOf('id="shipping-workflow"')<shippingHtml.indexOf('class="shipping-layout"'));
+console.log('PASS approval stages, expiry/cancellation/payment states, sequential role forms and safe history above shipment details');

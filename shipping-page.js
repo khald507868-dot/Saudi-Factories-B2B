@@ -13,10 +13,13 @@
     awaiting_details:['بانتظار الوجهة والتغليف','Awaiting destination and packing'],awaiting_quote:['بانتظار عرض الشحن','Awaiting shipping quote'],
     quoted:['عرض الشحن جاهز','Shipping quote ready'],booking_requested:['بانتظار تأكيد الحجز','Booking requested'],booked:['تم تأكيد الحجز','Booking confirmed'],
     collected:['تم الاستلام من المصنع','Collected from factory'],departed:['غادرت الشحنة','Departed'],arrived:['وصلت الشحنة','Arrived'],delivered:['تم التسليم','Delivered'],cancelled:['ملغي','Cancelled'],
-    destination:['تم تحديث الوجهة وطلب التسعير','Destination submitted for pricing'],packing:['تم تحديث التغليف','Packing updated'],quote:['عرض شحن جديد','New shipping quote'],
-    accept:['وافق العميل؛ طُلب الحجز','Buyer accepted; booking requested'],decline:['طُلب عرض بديل','Replacement quote requested'],book:['تأكيد حجز الشركة','Carrier booking confirmed'],cancel:['أُلغي الطلب','Order cancelled'],packing_needed:['طلب جديد يحتاج بيانات التغليف','New order needs packing details']
+    destination:['أكد المشتري الطلب وعنوان التوصيل','Buyer confirmed the order and delivery address'],packing:['أكد المصنع بيانات الشحنة','Factory confirmed shipment details'],quote:['تم تقديم عرض شركة الشحن','Carrier quote submitted'],
+    buyer_details_needed:['بانتظار تأكيد المشتري للطلب والعنوان','Awaiting buyer order and address confirmation'],payment:['تم تأكيد استلام الدفع','Payment receipt confirmed'],
+    accept:['وافق المشتري على العرض؛ بانتظار الدفع','Buyer accepted the quote; awaiting payment'],decline:['طُلب عرض بديل','Replacement quote requested'],book:['تأكيد حجز الشركة','Carrier booking confirmed'],cancel:['أُلغي الطلب','Order cancelled'],packing_needed:['طلب جديد يحتاج بيانات التغليف','New order needs packing details']
   };
   function label(key) { var pair=states[key]; return pair?say(pair[0],pair[1]):key; }
+  function uploading() { return !!(root.SFShippingImages&&root.SFShippingImages.isBusy()); }
+  function photosMarkup(paths,editable) { return '<div class="wide shipping-package-photos" data-shipping-photos data-editable="'+String(editable)+'" data-paths="'+esc(JSON.stringify(Array.isArray(paths)?paths:[]))+'"></div>'; }
   async function query(job) { var r=await job; if(r.error) throw r.error; return r.data; }
   function showError(err) {
     if(err&&['PGRST202','42883'].includes(err.code))err={message:'shipping_domestic_setup_required'};
@@ -25,6 +28,12 @@
       shipping_quote_expired:['انتهت صلاحية العرض. اطلب عرضاً بديلاً.','This quote expired. Request a replacement.'],
       shipping_access_denied:['لا يملك هذا الحساب صلاحية هذا الإجراء.','This account cannot perform this action.'],
       shipping_locked:['لا يمكن تعديل البيانات في هذه المرحلة.','These details are locked at this stage.'],
+      shipping_buyer_confirmation_required:['يلزم تأكيد المشتري للطلب والعنوان أولًا.','The buyer must confirm the order and address first.'],
+      shipping_factory_confirmation_required:['يلزم تأكيد المصنع لبيانات الشحنة قبل التسعير.','The factory must confirm shipment details before pricing.'],
+      shipping_payment_required:['يلزم تأكيد استلام الدفع قبل حجز الشحنة.','Payment receipt must be confirmed before booking.'],
+      shipping_invalid_images:['تعذّر حفظ صور التغليف. أعد رفع الصور وتأكد أنها تخص هذه الشحنة.','Unable to save packing images. Upload images belonging to this shipment.'],
+      shipping_images_unavailable:['لم يكتمل تحميل خدمة الصور. حدّث الصفحة قبل حفظ بيانات التغليف.','The image service has not loaded. Refresh before saving packing details.'],
+      shipping_image_limit:['الحد 5 صور لكل مجموعة تغليف و20 صورة للشحنة.','Limit: 5 images per package group and 20 per shipment.'],
       shipping_saved_address_missing:['لا يوجد عنوان سعودي محفوظ. أضف عنوان توصيل من صفحة «العنوان» في حسابك ثم حدّث هذه الصفحة.','No saved Saudi delivery address. Add an address from the Address page in your account, then refresh this page.'],
       shipping_saved_address_not_domestic:['العنوان الافتراضي خارج السعودية أو يحتاج مراجعة. اختر عنوانًا داخل السعودية من صفحة «العنوان».','Your default address is outside Saudi Arabia or needs review. Select a domestic address from the Address page.'],
       shipping_contact_missing:['أكمل اسمك ورقم هاتفك في ملفك الشخصي لاستخدام العنوان المحفوظ.','Complete your name and phone in your profile to use the saved address.'],
@@ -64,7 +73,7 @@
     savedButton.hidden=scope!=='domestic'; savedButton.disabled=busy||!!el._domesticLoading;
     var submit=el.querySelector('button[type="submit"]');
     submit.disabled=busy||!scope||(scope==='domestic'&&(!el._domesticDestination||el._domesticLoading));
-    submit.textContent=scope==='domestic'?say('ربط العنوان وطلب عرض الشحن','Link address and request shipping quote'):say('احسب الشحن — طلب عرض يدوي','Calculate shipping — request manual quote');
+    submit.textContent=say('تأكيد الطلب والعنوان وإرساله للمصنع','Confirm order and address; send to factory');
     el.elements.country.setCustomValidity(scope==='international'&&isSaudiCountry(el.elements.country.value)?say('للشحن إلى السعودية اختر «داخل السعودية».','For Saudi delivery, select Inside Saudi Arabia.'):'');
     el.elements.port.required=scope==='international'&&el.elements.delivery_type.value==='port';
   }
@@ -95,18 +104,49 @@
   }
   function form(action,title,fields,button) { return '<form data-action="'+action+'"><h3>'+title+'</h3><div class="shipping-fields">'+fields+'</div><button type="submit">'+button+'</button></form>'; }
   function line(ar,en,value,isTotal) { return '<div'+(isTotal?' class="total"':'')+'><dt>'+text(ar,en)+'</dt><dd>'+esc(value)+'</dd></div>'; }
+  function approvals(s) {
+    return {buyer:s.buyer_confirmed_at===undefined?!!s.destination:!!s.buyer_confirmed_at,
+      factory:s.factory_confirmed_at===undefined?!!s.packing:!!s.factory_confirmed_at};
+  }
+  function isPaid(o) { return ['paid','processing','shipped','completed'].includes(o.status); }
+  function shipmentLabel(s) {
+    if(s.orders&&s.orders.status==='awaiting_payment')return say('بانتظار الدفع','Awaiting payment');
+    if(s.status==='awaiting_details')return approvals(s).buyer?say('بانتظار تأكيد المصنع','Awaiting factory confirmation'):say('بانتظار تأكيد المشتري','Awaiting buyer confirmation');
+    return label(s.status);
+  }
+  function workflow(s,q,events) {
+    var a=approvals(s), paid=isPaid(s.orders), stopped=['cancelled','payment_failed'].includes(s.orders.status)||s.status==='cancelled';
+    var quoted=!!q&&(!!q.accepted_at||new Date(q.expires_at)>new Date());
+    var current=!a.buyer?0:!a.factory?1:!quoted?2:3;
+    if(paid)current=4;
+    var steps=[['المشتري','Buyer','تأكيد الطلب وعنوان التوصيل','Confirm order and delivery address',s.buyer_confirmed_at],
+      ['المصنع','Factory','تأكيد عنوان الاستلام والتغليف والوزن','Confirm pickup address, packing and weight',s.factory_confirmed_at],
+      ['شركة الشحن','Shipping company','تقييم التكلفة وإصدار العرض — تسجّله الإدارة حاليًا','Price the shipment and submit a quote — entered by the team for now',q&&q.created_at],
+      ['المشتري والدفع','Buyer and payment','مراجعة الإجمالي والموافقة ثم سداد المبلغ','Review the total, approve and pay',null]];
+    var html='<h2>'+text('مراحل الموافقة على الشحنة','Shipment approval stages')+' · '+esc(s.order_id.slice(0,8))+'</h2><ol class="shipping-steps">';
+    html+=steps.map(function(step,i){var state=stopped?'stopped':i<current?'done':i===current?'current':'waiting';return '<li data-step-state="'+state+'"'+(state==='current'?' aria-current="step"':'')+'><span class="shipping-step-number" aria-hidden="true">'+(state==='done'?'✓':i+1)+'</span><div><strong>'+text(step[0],step[1])+'</strong><p>'+text(step[2],step[3])+'</p><small>'+text(state==='done'?'مكتمل':state==='current'?'المرحلة الحالية':state==='stopped'?'متوقف':'بانتظار المرحلة السابقة',state==='done'?'Complete':state==='current'?'Current stage':state==='stopped'?'Stopped':'Waiting for previous stage')+'</small>'+(state==='done'&&step[4]?'<time>'+esc(date(step[4]))+'</time>':'')+'</div></li>';}).join('')+'</ol>';
+    var next=stopped?say('الطلب متوقف.','This order is stopped.'):paid?say('تم تأكيد استلام الدفع. تابع تفاصيل الحجز والشحنة أدناه.','Payment receipt confirmed. Follow booking and shipment details below.'):
+      current===0?say('الخطوة المطلوبة: يؤكد المشتري طلبه وعنوانه لإرساله إلى المصنع.','Next: the buyer confirms the order and address for the factory.'):
+      current===1?say('الخطوة المطلوبة: يراجع المصنع عنوان الاستلام ومواصفات الشحنة ويؤكدها.','Next: the factory reviews and confirms pickup and shipment details.'):
+      current===2?say('الخطوة المطلوبة: الحصول على عرض شركة الشحن وتسجيله بواسطة الإدارة.','Next: obtain the shipping company quote and have the team record it.'):
+      q&&q.accepted_at?say('تم اعتماد الإجمالي. بانتظار سداد المشتري وتأكيد استلام الدفع.','Total approved. Awaiting buyer payment and confirmation of receipt.'):
+      say('عرض الشحن جاهز. على المشتري مراجعة السعر والشروط والموافقة قبل الدفع.','Shipping quote ready. The buyer reviews the price and terms and approves before payment.');
+    html+='<p class="shipping-next">'+esc(next)+'</p>';
+    html+='<details class="shipping-history"><summary>'+text('سجل تحديثات الشحنة','Shipment updates')+' ('+events.length+')</summary><ol class="shipping-timeline">'+events.map(function(e){return '<li>'+esc(label(e.kind))+'<time>'+esc(date(e.created_at))+'</time>'+(e.note?'<p class="shipping-note">'+esc(e.note)+'</p>':'')+'</li>';}).join('')+'</ol></details>';
+    return html;
+  }
   function packageFields(p,index) {
     return '<fieldset data-package><legend>'+text('مجموعة تغليف','Package group')+' '+(index+1)+'</legend><div class="shipping-fields">'+
       '<label>'+text('نوع التغليف','Package type')+'<select name="type">'+option('carton','كراتين','Cartons',p.type)+option('pallet','طبليات','Pallets',p.type)+'</select></label>'+
       field('count','عدد القطع المتطابقة','Identical package count',p.count||1,'number','required min="1" max="100000" step="1"')+
       ['length_cm','width_cm','height_cm','weight_kg'].map(function(k,i){return field(k,['الطول للقطعة (سم)','العرض للقطعة (سم)','الارتفاع للقطعة (سم)','الوزن بعد التغليف للقطعة (كجم)'][i],['Length per package (cm)','Width per package (cm)','Height per package (cm)','Packed weight per package (kg)'][i],p[k],'number','required min="0.001" max="100000" step="0.001"');}).join('')+
-      '</div><button type="button" class="secondary" data-remove-package>'+text('حذف المجموعة','Remove group')+'</button></fieldset>';
+      photosMarkup(p.photos,true)+'</div><button type="button" class="secondary" data-remove-package>'+text('حذف المجموعة','Remove group')+'</button></fieldset>';
   }
   async function loadList(append) {
     if(!append) offset=0;
     var data=await query(root.sb.from('order_shipments').select('*,orders(buyer_id,factory_id,subtotal,payment_fee,vat_amount,total,status,factories(name,owner_id))').order('updated_at',{ascending:false}).order('order_id').range(offset,offset+49));
     rows=append?rows.concat(data):data; offset+=data.length; $('shipping-more').hidden=data.length<50;
-    $('shipping-list').innerHTML=rows.length?rows.map(function(s){var f=s.orders&&s.orders.factories;return '<a class="shipment-link" href="?order='+encodeURIComponent(s.order_id)+'" data-shipment="'+esc(s.order_id)+'"'+(selected===s.order_id?' aria-current="page"':'')+'>'+esc(f&&f.name||s.order_id.slice(0,8))+'<small>'+esc(s.order_id.slice(0,8))+' · '+esc(label(s.status))+'</small></a>';}).join(''):'<p class="shipping-empty">'+text('لا توجد طلبات شحن بعد. أنشئ طلباً من السلة أولاً.','No shipping requests yet. Place an order from the cart first.')+'</p>';
+    $('shipping-list').innerHTML=rows.length?rows.map(function(s){var f=s.orders&&s.orders.factories;return '<a class="shipment-link" href="?order='+encodeURIComponent(s.order_id)+'" data-shipment="'+esc(s.order_id)+'"'+(selected===s.order_id?' aria-current="page"':'')+'>'+esc(f&&f.name||s.order_id.slice(0,8))+'<small>'+esc(s.order_id.slice(0,8))+' · '+esc(shipmentLabel(s))+'</small></a>';}).join(''):'<p class="shipping-empty">'+text('لا توجد طلبات شحن بعد. أنشئ طلباً من السلة أولاً.','No shipping requests yet. Place an order from the cart first.')+'</p>';
   }
   async function notices() {
     var data=await query(root.sb.from('shipping_notifications').select('id,order_id,kind').is('read_at',null).order('id',{ascending:false}).limit(50));
@@ -114,7 +154,9 @@
     return data;
   }
   async function loadDetail(id) {
+    if(uploading())return;
     var version=++generation; selected=id;
+    $('shipping-workflow').hidden=true;
     $('shipping-detail').innerHTML='<p>'+esc(root.I18N.t('fx_loading'))+'</p>';
     $('shipping-detail').setAttribute('aria-busy','true');
     try {
@@ -134,14 +176,16 @@
   function render(s,q,events) {
     var o=s.orders, f=o.factories||{}, buyer=o.buyer_id===root.SF_USER.id, seller=f.owner_id===root.SF_USER.id, admin=!!(root.SF_PROFILE && root.SF_PROFILE.is_admin);
     var editable=['awaiting_details','awaiting_quote','quoted'].includes(s.status)&&o.status==='awaiting_shipping';
-    var d=s.destination||{}, p=s.packing||{}, html='<h2>'+text('طلب','Order')+' '+esc(s.order_id.slice(0,8))+'</h2><span class="shipping-badge">'+esc(label(s.status))+'</span>';
+    var confirmed=approvals(s);
+    $('shipping-workflow').innerHTML=workflow(s,q,events); $('shipping-workflow').hidden=false;
+    var d=s.destination||{}, p=s.packing||{}, html='<h2>'+text('طلب','Order')+' '+esc(s.order_id.slice(0,8))+'</h2><span class="shipping-badge">'+esc(shipmentLabel(s))+'</span>';
     html+='<dl class="shipping-summary">'+line('المصنع','Factory',f.name||'—')+line('المنتجات','Products',money(o.subtotal))+line('رسوم المنصة','Platform fee',money(o.payment_fee))+line('ضريبة المنتجات والرسوم','Products and fee VAT',money(o.vat_amount))+
       line('الشحن شاملاً رسومه وضرائبه','Shipping including its fees and taxes',q&&q.accepted_at?money(q.total):say('بانتظار عرض الشحن والموافقة عليه','Pending shipping quote and acceptance'))+
       line(o.status==='awaiting_shipping'?'إجمالي المنتجات قبل الشحن':'الإجمالي المعتمد',o.status==='awaiting_shipping'?'Products total before shipping':'Confirmed total',money(o.total),true)+'</dl>';
     if(s.destination) html+='<h3>'+text('الوجهة','Destination')+'</h3><p class="shipping-note">'+esc([d.contact,d.phone_country_code,d.phone,d.address,d.city,d.country,d.postal_code,s.delivery_type==='port'?say('إلى الميناء: ','To port: ')+(d.port||''):say('إلى الباب','To door'),d.delivery_notes].filter(Boolean).join(' · '))+'</p>';
     if(s.packing) {
       html+='<h3>'+text('الاستلام والتغليف','Pickup and packing')+'</h3><p class="shipping-note">'+esc([p.pickup_address,p.contact,p.phone,date(s.ready_at),p.refrigerated?say('يحتاج تبريداً','Refrigerated'):say('دون تبريد','Not refrigerated'),p.special_requirements].filter(Boolean).join(' · '))+'</p>';
-      html+='<ul>'+p.packages.map(function(x){return '<li>'+esc(x.count+' × '+(x.type==='carton'?say('كرتون','carton'):say('طبلية','pallet'))+' · '+x.length_cm+' × '+x.width_cm+' × '+x.height_cm+' cm · '+x.weight_kg+' kg / '+say('قطعة','package'))+'</li>';}).join('')+'</ul>';
+      html+='<ul>'+p.packages.map(function(x){return '<li>'+esc(x.count+' × '+(x.type==='carton'?say('كرتون','carton'):say('طبلية','pallet'))+' · '+x.length_cm+' × '+x.width_cm+' × '+x.height_cm+' cm · '+x.weight_kg+' kg / '+say('قطعة','package'))+(x.photos&&x.photos.length?photosMarkup(x.photos,false):'')+'</li>';}).join('')+'</ul>';
     }
     if(q) {
       var expired=new Date(q.expires_at)<=new Date();
@@ -151,12 +195,14 @@
       if(s.status==='quoted') {
         html+='<p class="shipping-note">'+text('التقدير النهائي: ','Final estimate: ')+esc(money(Number(o.total)+Number(q.total)))+'</p>';
         if(expired) html+='<p>'+text('انتهت صلاحية هذا العرض. يلزم عرض جديد.','This quote expired. A new quote is required.')+'</p>';
-        if(buyer) html+='<div class="shipping-actions">'+(!expired?'<button data-action="accept">'+text('أوافق على السعر والشروط وأطلب الحجز','Accept price and terms; request booking')+'</button>':'')+'<button class="secondary" data-action="decline">'+text('طلب عرض بديل','Request replacement quote')+'</button></div>';
+        if(buyer) html+='<div class="shipping-actions">'+(!expired?'<button data-action="accept">'+text('أوافق على الإجمالي وأتابع للدفع','Approve total and proceed to payment')+'</button>':'')+'<button class="secondary" data-action="decline">'+text('طلب عرض بديل','Request replacement quote')+'</button></div>';
       }
     }
     if(s.booking_reference) html+='<h3>'+text('الحجز المؤكد','Confirmed booking')+'</h3><dl class="shipping-summary">'+line('رقم حجز الشركة','Carrier booking reference',s.booking_reference)+line('موعد الاستلام','Pickup time',date(s.pickup_at))+'</dl>';
-    if(s.status==='booking_requested') html+='<p class="shipping-note">'+text('تمت الموافقة على السعر وطلب الحجز. ننتظر تأكيد شركة الشحن ومرجع الحجز.','Price accepted and booking requested. Awaiting carrier confirmation and booking reference.')+'</p>';
-    if(editable) html+='<p class="shipping-note">'+text('تعديل الوجهة أو التغليف يُلغي صلاحية العرض الحالي ويطلب تسعيره من جديد.','Changing the destination or packing invalidates the current quote and requests new pricing.')+'</p>';
+    if(o.status==='awaiting_payment')html+='<section class="shipping-payment"><h3>'+text('بانتظار الدفع','Awaiting payment')+'</h3><p>'+text('الإجمالي المعتمد: ','Approved total: ')+esc(money(o.total))+'</p><p>'+text('الدفع حاليًا بالتنسيق مع المصنع خارج المنصة. بعد السداد يؤكد المصنع أو الإدارة استلام المبلغ؛ لا تُعد الموافقة على العرض دفعًا.','Payment is currently arranged with the factory outside the platform. After payment, the factory or team confirms receipt; accepting the quote does not record payment.')+'</p><a href="web-orders.html">'+text('فتح الطلبات لمتابعة الدفع','Open orders to follow up on payment')+'</a></section>';
+    if(o.status==='awaiting_payment'&&(seller||admin))html+='<button type="button" data-action="payment">'+text('تأكيد استلام المبلغ فعليًا','Confirm actual payment receipt')+'</button>';
+    if(s.status==='booking_requested'&&isPaid(o)) html+='<p class="shipping-note">'+text('تم تأكيد استلام الدفع. بانتظار تأكيد الحجز لدى شركة الشحن.','Payment receipt confirmed. Awaiting carrier booking confirmation.')+'</p>';
+    if(editable) html+='<p class="shipping-note">'+text('تغيير الوجهة يعيد الطلب إلى المصنع للتأكيد. تغيير الوجهة أو التغليف يُلغي عرض الشحن السابق.','Changing the destination returns the request to the factory for confirmation. Destination or packing changes invalidate the previous quote.')+'</p>';
     if(editable&&buyer) html+=form('destination',text('وجهة الشحنة','Shipment destination'),destinationChoice(destinationScope(d))+
       '<p class="shipping-note wide" role="status" data-domestic-note'+(destinationScope(d)==='domestic'?'':' hidden')+'>'+text('سيُستخدم عنوان التوصيل السعودي المحفوظ.','Your saved Saudi delivery address will be used.')+'</p>'+
       '<button type="button" class="secondary wide" data-use-saved-address hidden>'+text('استخدام العنوان المحفوظ في حسابي','Use the saved address in my account')+'</button>'+
@@ -165,20 +211,21 @@
       field('country','الدولة','Country',d.country)+field('city','المدينة','City',d.city)+field('contact','اسم المستلم','Recipient name',d.contact)+field('phone','هاتف المستلم مع رمز الدولة','Recipient phone with country code',d.phone,'tel','required maxlength="60"')+
       field('postal_code','الرمز البريدي (اختياري)','Postal code (optional)',d.postal_code,'text','maxlength="30"')+'<label>'+text('نوع التوصيل','Delivery service')+'<select name="delivery_type">'+option('door','إلى الباب','To door',s.delivery_type)+option('port','إلى الميناء','To port',s.delivery_type)+'</select></label>'+
       field('port','اسم الميناء (للتوصيل إلى الميناء)','Port name (for delivery to port)',d.port,'text','maxlength="200"')+area('address','العنوان الكامل / عنوان المستودع','Full address / warehouse address',d.address,1000)+'</fieldset>',text('احسب الشحن — طلب عرض يدوي','Calculate shipping — request manual quote'));
-    if(editable&&seller) html+=form('packing',text('بيانات شحنة المصنع','Factory shipment details'),area('pickup_address','عنوان الاستلام الكامل','Full pickup address',p.pickup_address,1500)+field('contact','اسم مسؤول الاستلام','Pickup contact',p.contact)+field('phone','هاتف مسؤول الاستلام','Pickup phone',p.phone,'tel','required maxlength="60"')+
+    if(editable&&seller&&!confirmed.buyer)html+='<p class="shipping-note">'+text('بانتظار تأكيد المشتري لطلبه وعنوانه قبل إدخال بيانات المصنع.','Awaiting buyer order and address confirmation before factory details.')+'</p>';
+    if(editable&&seller&&confirmed.buyer) html+=form('packing',text('بيانات شحنة المصنع','Factory shipment details'),area('pickup_address','عنوان الاستلام الكامل','Full pickup address',p.pickup_address,1500)+field('contact','اسم مسؤول الاستلام','Pickup contact',p.contact)+field('phone','هاتف مسؤول الاستلام','Pickup phone',p.phone,'tel','required maxlength="60"')+
       field('ready_at','موعد الجاهزية (بتوقيت جهازك)','Ready for pickup (your local time)',localDate(s.ready_at),'datetime-local','required')+
       '<label><input name="refrigerated" type="checkbox"'+(p.refrigerated?' checked':'')+'>'+text('تحتاج تبريداً','Requires refrigeration')+'</label>'+area('special_requirements','نوع الحاوية والمتطلبات الخاصة (اكتب لا يوجد إن لم تلزم)','Container and special requirements (write none if not needed)',p.special_requirements||say('لا يوجد','None'),2000)+
-      '<div class="wide" id="shipping-packages">'+(p.packages||[{}]).map(packageFields).join('')+'</div><button type="button" class="secondary" id="shipping-add-package">'+text('إضافة مقاس تغليف آخر','Add another package size')+'</button>',text('حفظ بيانات الشحنة','Save packing details'));
-    if(admin&&['awaiting_quote','quoted'].includes(s.status)) html+=form('quote',text('إدخال عرض شركة الشحن','Enter carrier quote'),field('carrier','اسم شركة الشحن','Carrier name','')+field('carrier_quote_reference','مرجع عرض الشركة','Carrier quote reference','','text','required maxlength="200"')+
+      '<div class="wide" id="shipping-packages">'+(p.packages||[{}]).map(packageFields).join('')+'</div><button type="button" class="secondary" id="shipping-add-package">'+text('إضافة مقاس تغليف آخر','Add another package size')+'</button>',text('تأكيد بيانات الشحنة وإرسالها للتسعير','Confirm shipment details and send for pricing'));
+    if(admin&&confirmed.buyer&&confirmed.factory&&['awaiting_quote','quoted'].includes(s.status)) html+=form('quote',text('إدخال عرض شركة الشحن','Enter carrier quote'),field('carrier','اسم شركة الشحن','Carrier name','')+field('carrier_quote_reference','مرجع عرض الشركة','Carrier quote reference','','text','required maxlength="200"')+
       field('freight','أجرة النقل (SAR)','Freight (SAR)',0,'number','required min="0" max="1000000000" step="0.01"')+field('additional_fees','الرسوم الإضافية (SAR)','Additional fees (SAR)',0,'number','required min="0" max="1000000000" step="0.01"')+field('taxes','ضرائب الشحن (SAR)','Shipping taxes (SAR)',0,'number','required min="0" max="1000000000" step="0.01"')+
       field('estimated_days_min','أقل مدة بعد الاستلام (أيام)','Minimum transit days',1,'number','required min="1" max="365" step="1"')+field('estimated_days_max','أقصى مدة بعد الاستلام (أيام)','Maximum transit days',7,'number','required min="1" max="365" step="1"')+field('expires_at','صلاحية العرض (بتوقيت جهازك)','Quote expiry (your local time)','','datetime-local','required')+
       area('inclusions','ما يشمله السعر: التخليص والرسوم والتوصيل','Included: customs clearance, fees and delivery','')+area('exclusions','ما لا يشمله / مبالغ لاحقة ومن يتحملها','Excluded / later charges and who pays them',''),text('نشر العرض وإشعار العميل','Publish quote and notify buyer'));
-    if(admin&&s.status==='booking_requested') html+=form('book',text('تأكيد الحجز لدى الشركة','Confirm booking with carrier'),field('booking_reference','مرجع الحجز المؤكد من الشركة','Confirmed carrier booking reference','','text','required maxlength="200"')+field('pickup_at','موعد الاستلام المؤكد (بتوقيت جهازك)','Confirmed pickup (your local time)',localDate(s.ready_at),'datetime-local','required'),text('حفظ الحجز المؤكد','Save confirmed booking'));
+    if(admin&&s.status==='booking_requested'&&isPaid(o)) html+=form('book',text('تأكيد الحجز لدى الشركة','Confirm booking with carrier'),field('booking_reference','مرجع الحجز المؤكد من الشركة','Confirmed carrier booking reference','','text','required maxlength="200"')+field('pickup_at','موعد الاستلام المؤكد (بتوقيت جهازك)','Confirmed pickup (your local time)',localDate(s.ready_at),'datetime-local','required'),text('حفظ الحجز المؤكد','Save confirmed booking'));
     var next={booked:'collected',collected:'departed',departed:'arrived',arrived:'delivered'}[s.status];
     if(admin&&next) html+=form('track',text('تسجيل تحديث من شركة الشحن','Record carrier update'),'<p class="wide">'+esc(label(next))+'</p>'+area('note','تفاصيل التحديث الوارد من الشركة','Update received from carrier',''),text('تسجيل التحديث','Record update'));
     if(editable&&buyer) html+='<div class="shipping-actions"><button class="secondary" data-action="cancel">'+text('إلغاء الطلب قبل اعتماد الشحن','Cancel order before accepting shipping')+'</button></div>';
-    html+='<h3>'+text('سجل تحديثات الشحنة','Shipment updates')+'</h3><p class="shipping-note">'+text('تسجل الإدارة التحديثات التي ترد من الشركة. هذا سجل حالات وليس موقعاً مباشراً على الخريطة.','The team records updates received from the carrier. These are shipment statuses, not a live map.')+'</p><ol class="shipping-timeline">'+events.map(function(e){return '<li>'+esc(label(e.kind))+'<time>'+esc(date(e.created_at))+'</time>'+(e.note?'<p class="shipping-note">'+esc(e.note)+'</p>':'')+'</li>';}).join('')+'</ol>';
     $('shipping-detail').innerHTML=html;
+    if(root.SFShippingImages)root.SFShippingImages.bind($('shipping-detail'),s.order_id);
     $('shipping-detail').querySelectorAll('form[data-action="destination"]').forEach(function(el){
       syncDestinationScope(el);
       el.addEventListener('input',function(){syncDestinationScope(el);});
@@ -186,7 +233,7 @@
       el.querySelector('[data-use-saved-address]').addEventListener('click',function(){ $('shipping-error').hidden=true; loadDomesticDestination(el,s,true); });
       if(el.elements.destination_scope.value==='domestic')loadDomesticDestination(el,s);
     });
-    $('shipping-detail').querySelectorAll('form').forEach(function(el){el.addEventListener('submit',function(event){event.preventDefault(); if(!el.reportValidity())return; var data=Object.fromEntries(new FormData(el)); var action=el.dataset.action;
+    $('shipping-detail').querySelectorAll('form').forEach(function(el){el.addEventListener('submit',function(event){event.preventDefault(); if(uploading()||!el.reportValidity())return; var data=Object.fromEntries(new FormData(el)); var action=el.dataset.action;
       if(action==='destination') {
         if(data.destination_scope==='domestic') {
           if(el._domesticLoading)return;
@@ -197,29 +244,31 @@
           data={destination:{scope:'international',country:data.country,city:data.city,address:data.address,contact:data.contact,phone:data.phone,postal_code:data.postal_code,port:data.port},delivery_type:data.delivery_type};
         }
       }
-      if(action==='packing') data={ready_at:new Date(data.ready_at).toISOString(),packing:{pickup_address:data.pickup_address,contact:data.contact,phone:data.phone,refrigerated:el.elements.refrigerated.checked,special_requirements:data.special_requirements,packages:Array.from(el.querySelectorAll('[data-package]')).map(function(group){var x={};group.querySelectorAll('input,select').forEach(function(input){x[input.name]=input.name==='type'?input.value:Number(input.value);});return x;})}};
+      if(action==='packing'&&!root.SFShippingImages){showError({message:'shipping_images_unavailable'});return;}
+      if(action==='packing') data={ready_at:new Date(data.ready_at).toISOString(),packing:{pickup_address:data.pickup_address,contact:data.contact,phone:data.phone,refrigerated:el.elements.refrigerated.checked,special_requirements:data.special_requirements,packages:Array.from(el.querySelectorAll('[data-package]')).map(function(group){var x={};group.querySelectorAll('input[name],select[name]').forEach(function(input){x[input.name]=input.name==='type'?input.value:Number(input.value);});var photos=group.querySelector('[data-shipping-photos]');if(photos&&root.SFShippingImages)x.photos=root.SFShippingImages.paths(photos);return x;})}};
       if(action==='quote') { ['freight','additional_fees','taxes','estimated_days_min','estimated_days_max'].forEach(function(k){data[k]=Number(data[k]);});data.expires_at=new Date(data.expires_at).toISOString(); }
       if(action==='book') data.pickup_at=new Date(data.pickup_at).toISOString();
       if(action==='track') data.status=next;
       act(s,action,data);
     });});
-    $('shipping-detail').querySelectorAll('button[data-action]').forEach(function(el){el.addEventListener('click',function(){var action=el.dataset.action;if(action==='accept'&&!root.confirm(say('تأكيد الموافقة على إجمالي الشحن ','Accept shipping total ')+money(q.total)+say(' والشروط المعروضة وطلب الحجز؟',' and the displayed terms, and request booking?')))return;if(action==='cancel'&&!root.confirm(say('تأكيد إلغاء الطلب؟','Cancel this order?')))return;act(s,action,{quote_id:q&&q.id});});});
-    var add=$('shipping-add-package'); if(add) add.addEventListener('click',function(){var host=$('shipping-packages');if(host.children.length<50)host.insertAdjacentHTML('beforeend',packageFields({},host.children.length));});
-    var packages=$('shipping-packages');if(packages)packages.addEventListener('click',function(e){var btn=e.target.closest('[data-remove-package]');if(btn&&packages.children.length>1)btn.closest('fieldset').remove();});
+    $('shipping-detail').querySelectorAll('button[data-action]').forEach(function(el){el.addEventListener('click',function(){var action=el.dataset.action;if(action==='accept'&&!root.confirm(say('تأكيد الموافقة على إجمالي الطلب شاملاً الشحن ','Approve order total including shipping ')+money(Number(o.total)+Number(q.total))+say(' والشروط المعروضة والانتقال إلى الدفع؟',' and the displayed terms, and proceed to payment?')))return;if(action==='payment'&&!root.confirm(say('هل استلمت فعليًا كامل مبلغ الطلب: ','Have you actually received the full order amount: ')+money(o.total)+'؟'))return;if(action==='cancel'&&!root.confirm(say('تأكيد إلغاء الطلب؟','Cancel this order?')))return;act(s,action,{quote_id:q&&q.id});});});
+    var add=$('shipping-add-package'); if(add) add.addEventListener('click',function(){var host=$('shipping-packages');if(!uploading()&&host.children.length<50){host.insertAdjacentHTML('beforeend',packageFields({},host.children.length));if(root.SFShippingImages)root.SFShippingImages.bind($('shipping-detail'),s.order_id,true);}});
+    var packages=$('shipping-packages');if(packages)packages.addEventListener('click',function(e){var btn=e.target.closest('[data-remove-package]');if(btn&&!uploading()&&packages.children.length>1)btn.closest('fieldset').remove();});
   }
   async function act(s,action,data) {
-    if(busy)return; busy=true; $('shipping-error').hidden=true;
+    if(busy||uploading())return; busy=true; $('shipping-error').hidden=true;
     $('shipping-detail').querySelectorAll('button,input,select,textarea').forEach(function(el){el.disabled=true;});
     try {
       data.revision=s.revision;
       if(action==='domestic_destination'||action==='saved_destination')await query(root.sb.rpc(action==='saved_destination'?'link_saved_shipping_address':'set_domestic_shipping_destination',{p_order_id:s.order_id,p_revision:s.revision,p_expected_destination:data.expected_destination}));
+      else if(action==='payment')await query(root.sb.rpc('mark_order_paid',{p_order_id:s.order_id}));
       else await query(root.sb.rpc('update_manual_shipping',{p_order_id:s.order_id,p_action:action,p_payload:data}));
       await loadList(false);await loadDetail(s.order_id);
     }
     catch(err){showError(err);}
     finally{busy=false;$('shipping-detail').querySelectorAll('button,input,select,textarea').forEach(function(el){el.disabled=false;});$('shipping-detail').querySelectorAll('form[data-action="destination"]').forEach(syncDestinationScope);}
   }
-  document.addEventListener('click',function(e){var link=e.target.closest('[data-shipment]');if(!link||busy)return;e.preventDefault();history.replaceState(null,'','?order='+encodeURIComponent(link.dataset.shipment));$('shipping-error').hidden=true;loadDetail(link.dataset.shipment);});
+  document.addEventListener('click',function(e){var link=e.target.closest('[data-shipment]');if(!link)return;e.preventDefault();if(busy||uploading())return;history.replaceState(null,'','?order='+encodeURIComponent(link.dataset.shipment));$('shipping-error').hidden=true;loadDetail(link.dataset.shipment);});
   $('shipping-refresh').addEventListener('click',function(){if(busy)return; $('shipping-error').hidden=true;loadList(false).then(function(){return selected?loadDetail(selected):notices();}).catch(showError);});
   $('shipping-more').addEventListener('click',function(){loadList(true).catch(showError);});
   root.SF_AUTH_READY.then(async function(){if(!root.SF_USER)return;await loadList(false);await notices();var id=new URLSearchParams(location.search).get('order')||(rows[0]&&rows[0].order_id);if(id)await loadDetail(id);else $('shipping-detail').innerHTML='<p class="shipping-empty">'+text('اختر طلب الشحن لعرض بياناته.','Select a shipment to see its details.')+'</p>';}).catch(showError);

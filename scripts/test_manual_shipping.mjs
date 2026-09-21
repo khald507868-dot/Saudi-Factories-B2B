@@ -328,5 +328,96 @@ try {
     await assert.rejects(()=>previewSaved(2,other.id),/saved_address_missing/);
     assert.deepEqual((await shipment(o.id)).destination,fresh);
   });
+  const approvalMigration=read('supabase/migrations/20260921220000_shipping_approval_sequence.sql');
+  await check('approval migration preserves historical prices and quotes and initializes confirmations once',async()=>{
+    const before=(await db.query('select order_id,status,destination,packing,current_quote_id from order_shipments order by order_id')).rows;
+    const prices=(await db.query('select id,total,shipping,status from orders order by id')).rows;
+    await db.exec(approvalMigration);await db.exec(approvalMigration);
+    assert.deepEqual((await db.query('select order_id,status,destination,packing,current_quote_id from order_shipments order by order_id')).rows,before);
+    assert.deepEqual((await db.query('select id,total,shipping,status from orders order by id')).rows,prices);
+    for(const row of before){const s=await shipment(row.order_id);assert.equal(!!s.buyer_confirmed_at,!!row.destination);assert.equal(!!s.factory_confirmed_at,!!row.destination&&!!row.packing);}
+  });
+  await check('buyer then factory then carrier quote then payment; address edits require factory reconfirmation',async()=>{
+    const o=await order();let s=await shipment(o.id);
+    assert.equal(s.buyer_confirmed_at,null);assert.equal(s.factory_confirmed_at,null);
+    assert.deepEqual((await db.query('select recipient_id,kind from shipping_notifications where order_id=$1',[o.id])).rows,[{recipient_id:uid(2),kind:'buyer_details_needed'}]);
+    await assert.rejects(()=>action(1,o.id,'packing',{packing,ready_at:future(1)}),/buyer_confirmation_required/);
+    await assert.rejects(()=>action(6,o.id,'quote',quote()),/factory_confirmation_required/);
+    s=await action(2,o.id,'destination',{destination,delivery_type:'door'});
+    assert(s.buyer_confirmed_at);assert.equal(s.factory_confirmed_at,null);assert.equal(s.status,'awaiting_details');
+    const notice=await one("select recipient_id from shipping_notifications where order_id=$1 and kind='destination'",[o.id]);assert.equal(notice.recipient_id,uid(1));
+    await assert.rejects(()=>action(2,o.id,'packing',{packing,ready_at:future(1)}),/access_denied/);
+    s=await action(1,o.id,'packing',{packing,ready_at:future(1)});assert(s.factory_confirmed_at);assert.equal(s.status,'awaiting_quote');
+    const adminNotice=await one("select recipient_id from shipping_notifications where order_id=$1 and kind='packing'",[o.id]);assert.equal(adminNotice.recipient_id,uid(6));
+    s=await action(6,o.id,'quote',quote());const previousQuote=s.current_quote_id;
+    assert.equal((await action(2,o.id,'destination',{destination,delivery_type:'door'})).revision,s.revision);
+    s=await action(2,o.id,'destination',{destination:{...destination,address:'New warehouse'},delivery_type:'door'});
+    assert.equal(s.factory_confirmed_at,null);assert.equal(s.status,'awaiting_details');assert.equal(s.current_quote_id,null);assert.deepEqual(s.packing,packing);
+    await db.exec(approvalMigration);assert.equal((await shipment(o.id)).factory_confirmed_at,null);
+    await assert.rejects(()=>action(6,o.id,'quote',quote()),/factory_confirmation_required/);
+    await assert.rejects(()=>action(2,o.id,'accept',{quote_id:previousQuote}),/stale/);
+    s=await action(1,o.id,'packing',{packing,ready_at:s.ready_at});assert(s.factory_confirmed_at);
+    s=await action(6,o.id,'quote',quote());await action(2,o.id,'accept',{quote_id:s.current_quote_id});
+    assert.equal((await one('select status from orders where id=$1',[o.id])).status,'awaiting_payment');
+    await assert.rejects(()=>action(6,o.id,'book',{booking_reference:'PREMATURE',pickup_at:future(2)}),/payment_required/);
+    await assert.rejects(()=>as(2,'select * from mark_order_paid($1)',[o.id]),/access denied/i);
+    await as(1,'select * from mark_order_paid($1)',[o.id]);
+    assert.equal((await one("select count(*)::int n from shipping_events where order_id=$1 and kind='payment'",[o.id])).n,1);
+    assert.equal((await action(6,o.id,'book',{booking_reference:'PAID-BOOKING',pickup_at:future(2)})).status,'booked');
+    await assert.rejects(()=>action(2,o.id,'destination',{destination,delivery_type:'door'}),/locked/);
+  });
+  await check('both saved-address paths enforce the same sequence and reset factory approval',async()=>{
+    const value={id:uid(++serial),latitude:24.7,longitude:46.7,address_scope:'domestic',country:'السعودية',city:'Riyadh',district:'District'};
+    await as(2,'select * from save_structured_delivery_address($1,$2)',[uid(2),value]);
+    const o=await order();let dest=await savedDestination(2,o.id),s=await saveDomestic(2,o.id,dest);
+    assert(s.buyer_confirmed_at);assert.equal(s.factory_confirmed_at,null);
+    await action(1,o.id,'packing',{packing,ready_at:future(1)});s=await action(6,o.id,'quote',quote());
+    const unchanged=await saveDomestic(2,o.id,dest);assert.equal(unchanged.current_quote_id,s.current_quote_id);assert(unchanged.factory_confirmed_at);
+    await as(2,'select * from save_structured_delivery_address($1,$2)',[uid(2),{...value,city:'Jeddah'}]);
+    dest=await previewSaved(2,o.id);s=await linkSaved(2,o.id,dest);
+    assert.equal(s.factory_confirmed_at,null);assert.equal(s.status,'awaiting_details');assert.equal(s.current_quote_id,null);assert.deepEqual(s.packing,packing);
+    await assert.rejects(()=>action(6,o.id,'quote',quote()),/factory_confirmation_required/);
+    await action(1,o.id,'packing',{packing,ready_at:s.ready_at});
+    s=await action(6,o.id,'quote',quote());assert(s.current_quote_id);
+    await action(2,o.id,'destination',{destination,delivery_type:'door'});
+    s=await saveDomestic(2,o.id,await savedDestination(2,o.id));assert.equal(s.factory_confirmed_at,null);assert.equal(s.status,'awaiting_details');
+  });
+  await check('private packing images enforce ownership, confirmation, limits, snapshot access and immutable storage',async()=>{
+    await db.exec(`create table storage.buckets(id text primary key,name text,public bool,file_size_limit bigint,allowed_mime_types text[]);
+      alter table storage.objects add bucket_id text,add name text,add metadata jsonb;
+      alter table storage.objects enable row level security;
+      grant usage on schema storage to authenticated;
+      grant select,insert,update,delete on storage.objects to authenticated;
+      create policy unrelated_broad_access on storage.objects for all to authenticated using(true) with check(true);`);
+    const migration=read('supabase/migrations/20260921230000_shipping_package_images.sql');await db.exec(migration);await db.exec(migration);
+    const bucket=await one("select * from storage.buckets where id='shipment-images'");assert.equal(bucket.public,false);assert.equal(Number(bucket.file_size_limit),5242880);
+    const o=await order(),other=await order();
+    const path=o.id+'/'+uid(++serial)+'.jpg',foreign=other.id+'/'+uid(++serial)+'.jpg';
+    const upload=(user,name)=>as(user,"insert into storage.objects(bucket_id,name,metadata) values('shipment-images',$1,'{\"mimetype\":\"image/jpeg\"}')",[name]);
+    await assert.rejects(()=>upload(1,path),e=>e.code==='42501');
+    await action(2,o.id,'destination',{destination,delivery_type:'door'});
+    await action(2,other.id,'destination',{destination,delivery_type:'door'});
+    for(const user of [2,3,4,5,6])await assert.rejects(()=>upload(user,path),e=>e.code==='42501');
+    await assert.rejects(()=>upload(1,o.id+'/bad.svg'),e=>e.code==='42501');
+    await upload(1,path);await upload(1,foreign);
+    const view=user=>as(user,"select name from storage.objects where bucket_id='shipment-images' and name=$1",[path]);
+    assert.equal((await view(1)).length,1);assert.equal((await view(2)).length,0);assert.equal((await view(4)).length,0);
+    const withPhotos=photos=>({...packing,packages:[{...packing.packages[0],photos}]});
+    for(const photos of [[foreign],[o.id+'/'+uid(++serial)+'.jpg'],['https://example.com/photo.jpg'],[{}],Array(6).fill(path),'not-array']){
+      await assert.rejects(()=>action(1,o.id,'packing',{packing:withPhotos(photos),ready_at:future(1)}),/shipping_(invalid_images|image_limit)/);
+    }
+    await assert.rejects(()=>action(1,o.id,'packing',{packing:{...packing,packages:Array(5).fill({...packing.packages[0],photos:Array(5).fill(path)})},ready_at:future(1)}),/image_limit/);
+    await action(1,o.id,'packing',{packing:withPhotos([path]),ready_at:future(1)});
+    assert.equal((await view(2)).length,1);assert.equal((await view(4)).length,0);assert.equal((await view(6)).length,1);
+    const quoteState=await action(6,o.id,'quote',quote());
+    assert.equal((await one('select packing_snapshot from shipping_quotes where id=$1',[quoteState.current_quote_id])).packing_snapshot.packages[0].photos[0],path);
+    await action(1,o.id,'packing',{packing:withPhotos([]),ready_at:future(1)});
+    assert.equal((await view(2)).length,1);
+    assert.equal((await as(1,"delete from storage.objects where bucket_id='shipment-images' and name=$1 returning name",[path])).length,0);
+    assert.equal((await as(1,"update storage.objects set metadata='{}' where bucket_id='shipment-images' and name=$1 returning name",[path])).length,0);
+    const q=await action(6,o.id,'quote',quote());await action(2,o.id,'accept',{quote_id:q.current_quote_id});
+    await assert.rejects(()=>upload(1,o.id+'/'+uid(++serial)+'.jpg'),e=>e.code==='42501');
+    await assert.rejects(()=>as(0,"select * from storage.objects where bucket_id='shipment-images'",[],'anon'),e=>e.code==='42501');
+  });
   console.log(`Completed ${checks} manual shipping checks; no production access.`);
 } finally {await db.close();}
