@@ -15,6 +15,8 @@
     collected:['تم الاستلام من المصنع','Collected from factory'],departed:['غادرت الشحنة','Departed'],arrived:['وصلت الشحنة','Arrived'],delivered:['تم التسليم','Delivered'],cancelled:['ملغي','Cancelled'],
     destination:['أكد المشتري الطلب وعنوان التوصيل','Buyer confirmed the order and delivery address'],packing:['أكد المصنع بيانات الشحنة','Factory confirmed shipment details'],quote:['تم تقديم عرض شركة الشحن','Carrier quote submitted'],
     buyer_details_needed:['بانتظار تأكيد المشتري للطلب والعنوان','Awaiting buyer order and address confirmation'],payment:['تم تأكيد استلام الدفع','Payment receipt confirmed'],
+    pickup_ready:['أكد المصنع جاهزية الشحنة للاستلام','Factory confirmed shipment ready for pickup'],pickup_ready_needed:['تم الدفع؛ على المصنع تأكيد جاهزية الشحنة','Paid; factory pickup readiness confirmation needed'],
+    production_needed:['تم الدفع؛ بانتظار بدء الإنتاج من المصنع','Paid; awaiting factory production'],production_started:['بدأ المصنع الإنتاج','Factory started production'],production_completed:['أكد المصنع انتهاء الإنتاج','Factory completed production'],
     accept:['وافق المشتري على العرض؛ بانتظار الدفع','Buyer accepted the quote; awaiting payment'],decline:['طُلب عرض بديل','Replacement quote requested'],book:['تأكيد حجز الشركة','Carrier booking confirmed'],cancel:['أُلغي الطلب','Order cancelled'],packing_needed:['طلب جديد يحتاج بيانات التغليف','New order needs packing details']
   };
   function label(key) { var pair=states[key]; return pair?say(pair[0],pair[1]):key; }
@@ -31,6 +33,9 @@
       shipping_buyer_confirmation_required:['يلزم تأكيد المشتري للطلب والعنوان أولًا.','The buyer must confirm the order and address first.'],
       shipping_factory_confirmation_required:['يلزم تأكيد المصنع لبيانات الشحنة قبل التسعير.','The factory must confirm shipment details before pricing.'],
       shipping_payment_required:['يلزم تأكيد استلام الدفع قبل حجز الشحنة.','Payment receipt must be confirmed before booking.'],
+      shipping_pickup_ready_required:['بانتظار تأكيد المصنع أن الشحنة جاهزة للاستلام.','Awaiting factory confirmation that the shipment is ready for pickup.'],
+      shipping_production_start_required:['أكد بدء الإنتاج أولًا.','Confirm production start first.'],
+      shipping_production_required:['يلزم تأكيد انتهاء الإنتاج قبل جاهزية الشحنة.','Confirm production completion before pickup readiness.'],
       shipping_invalid_images:['تعذّر حفظ صور التغليف. أعد رفع الصور وتأكد أنها تخص هذه الشحنة.','Unable to save packing images. Upload images belonging to this shipment.'],
       shipping_images_unavailable:['لم يكتمل تحميل خدمة الصور. حدّث الصفحة قبل حفظ بيانات التغليف.','The image service has not loaded. Refresh before saving packing details.'],
       shipping_image_limit:['الحد 5 صور لكل مجموعة تغليف و20 صورة للشحنة.','Limit: 5 images per package group and 20 per shipment.'],
@@ -109,8 +114,11 @@
       factory:s.factory_confirmed_at===undefined?!!s.packing:!!s.factory_confirmed_at};
   }
   function isPaid(o) { return ['paid','processing','shipped','completed'].includes(o.status); }
+  function pickupReady(s) { return !!s.pickup_ready_at||['booked','collected','departed','arrived','delivered'].includes(s.status); }
+  function productionComplete(s) { return !!s.production_completed_at||pickupReady(s); }
   function shipmentLabel(s) {
     if(s.orders&&s.orders.status==='awaiting_payment')return say('بانتظار الدفع','Awaiting payment');
+    if(s.status==='booking_requested'&&s.orders&&isPaid(s.orders))return pickupReady(s)?say('جاهزة لاستلام شركة الشحن','Ready for carrier pickup'):productionComplete(s)?say('بانتظار جاهزية الشحنة من المصنع','Awaiting factory pickup readiness'):s.production_started_at?say('تحت الإنتاج','In production'):say('بانتظار بدء الإنتاج','Awaiting production start');
     if(s.status==='awaiting_details')return approvals(s).buyer?say('بانتظار تأكيد المصنع','Awaiting factory confirmation'):say('بانتظار تأكيد المشتري','Awaiting buyer confirmation');
     return label(s.status);
   }
@@ -118,14 +126,16 @@
     var a=approvals(s), paid=isPaid(s.orders), stopped=['cancelled','payment_failed'].includes(s.orders.status)||s.status==='cancelled';
     var quoted=!!q&&(!!q.accepted_at||new Date(q.expires_at)>new Date());
     var current=!a.buyer?0:!a.factory?1:!quoted?2:3;
-    if(paid)current=4;
+    if(paid)current=pickupReady(s)?6:productionComplete(s)?5:4;
     var steps=[['المشتري','Buyer','تأكيد الطلب وعنوان التوصيل','Confirm order and delivery address',s.buyer_confirmed_at],
       ['المصنع','Factory','تأكيد عنوان الاستلام والتغليف والوزن','Confirm pickup address, packing and weight',s.factory_confirmed_at],
       ['شركة الشحن','Shipping company','تقييم التكلفة وإصدار العرض — تسجّله الإدارة حاليًا','Price the shipment and submit a quote — entered by the team for now',q&&q.created_at],
-      ['المشتري والدفع','Buyer and payment','مراجعة الإجمالي والموافقة ثم سداد المبلغ','Review the total, approve and pay',null]];
+      ['المشتري والدفع','Buyer and payment','مراجعة الإجمالي والموافقة ثم سداد المبلغ','Review the total, approve and pay',null],
+      ['المصنع — تحت الإنتاج','Factory — in production',s.production_started_at?'إنتاج الطلب ومتابعته حتى اكتماله':'بدء الإنتاج بعد تأكيد الدفع',s.production_started_at?'Produce the order through completion':'Start production after payment confirmation',s.production_completed_at],
+      ['المصنع — الشحنة جاهزة','Factory — ready for pickup','تأكيد الجاهزية وإشعار الاستلام — تنسّقه الإدارة حاليًا','Confirm readiness and notify pickup — coordinated by the team for now',s.pickup_ready_at]];
     var html='<h2>'+text('مراحل الموافقة على الشحنة','Shipment approval stages')+' · '+esc(s.order_id.slice(0,8))+'</h2><ol class="shipping-steps">';
     html+=steps.map(function(step,i){var state=stopped?'stopped':i<current?'done':i===current?'current':'waiting';return '<li data-step-state="'+state+'"'+(state==='current'?' aria-current="step"':'')+'><span class="shipping-step-number" aria-hidden="true">'+(state==='done'?'✓':i+1)+'</span><div><strong>'+text(step[0],step[1])+'</strong><p>'+text(step[2],step[3])+'</p><small>'+text(state==='done'?'مكتمل':state==='current'?'المرحلة الحالية':state==='stopped'?'متوقف':'بانتظار المرحلة السابقة',state==='done'?'Complete':state==='current'?'Current stage':state==='stopped'?'Stopped':'Waiting for previous stage')+'</small>'+(state==='done'&&step[4]?'<time>'+esc(date(step[4]))+'</time>':'')+'</div></li>';}).join('')+'</ol>';
-    var next=stopped?say('الطلب متوقف.','This order is stopped.'):paid?say('تم تأكيد استلام الدفع. تابع تفاصيل الحجز والشحنة أدناه.','Payment receipt confirmed. Follow booking and shipment details below.'):
+    var next=stopped?say('الطلب متوقف.','This order is stopped.'):paid?(pickupReady(s)?(s.pickup_ready_at&&s.status==='booking_requested'?say('أكد المصنع جاهزية الشحنة. أُشعرت الإدارة لتنسيق استلام شركة الشحن.','Factory readiness confirmed. The team has been notified to arrange carrier pickup.'):say('تابع تفاصيل الحجز والشحنة أدناه.','Follow booking and shipment details below.')):!productionComplete(s)?(s.production_started_at?say('الطلب تحت الإنتاج. بعد انتهائه يؤكد المصنع اكتمال الإنتاج ثم جاهزية الشحنة.','The order is in production. The factory confirms completion, then pickup readiness.'):say('تم تأكيد الدفع. الخطوة المطلوبة: يبدأ المصنع الإنتاج.','Payment confirmed. Next: the factory starts production.')):say('اكتمل الإنتاج. الخطوة المطلوبة: يؤكد المصنع أن الشحنة جاهزة للاستلام.','Production completed. Next: the factory confirms pickup readiness.')):
       current===0?say('الخطوة المطلوبة: يؤكد المشتري طلبه وعنوانه لإرساله إلى المصنع.','Next: the buyer confirms the order and address for the factory.'):
       current===1?say('الخطوة المطلوبة: يراجع المصنع عنوان الاستلام ومواصفات الشحنة ويؤكدها.','Next: the factory reviews and confirms pickup and shipment details.'):
       current===2?say('الخطوة المطلوبة: الحصول على عرض شركة الشحن وتسجيله بواسطة الإدارة.','Next: obtain the shipping company quote and have the team record it.'):
@@ -179,6 +189,8 @@
     var confirmed=approvals(s);
     $('shipping-workflow').innerHTML=workflow(s,q,events); $('shipping-workflow').hidden=false;
     var d=s.destination||{}, p=s.packing||{}, html='<h2>'+text('طلب','Order')+' '+esc(s.order_id.slice(0,8))+'</h2><span class="shipping-badge">'+esc(shipmentLabel(s))+'</span>';
+    if(s.status==='booking_requested'&&isPaid(o)&&!productionComplete(s)&&seller)html+='<section class="shipping-payment"><h3>'+text('مرحلة الإنتاج','Production stage')+'</h3><p>'+text(s.production_started_at?'الطلب تحت الإنتاج. أكد انتهاء الإنتاج عندما تكتمل البضاعة.':'تم تأكيد الدفع. يمكنك الآن تأكيد بدء إنتاج الطلب.',s.production_started_at?'The order is in production. Confirm completion when the goods are produced.':'Payment confirmed. You can now start production.')+'</p>'+(s.production_started_at?'<p>'+text('بدأ الإنتاج: ','Production started: ')+esc(date(s.production_started_at))+'</p>':'')+'<button type="button" data-action="'+(s.production_started_at?'production_complete':'production_start')+'">'+(s.production_started_at?text('تأكيد انتهاء الإنتاج','Confirm production completion'):text('بدء الإنتاج','Start production'))+'</button></section>';
+    if(s.status==='booking_requested'&&isPaid(o)&&productionComplete(s)&&!pickupReady(s)&&seller)html+='<section class="shipping-payment"><h3>'+text('تأكيد جاهزية الشحنة للاستلام','Confirm pickup readiness')+'</h3><p>'+text('أكد أن البضاعة معبأة وجاهزة في عنوان الاستلام المتفق عليه. سيصل إشعار للإدارة لتنسيق الاستلام مع شركة الشحن.','Confirm the packed goods are ready at the agreed pickup address. The team will be notified to arrange carrier pickup.')+'</p><button type="button" data-action="pickup_ready">'+text('الشحنة جاهزة — إشعار الاستلام','Shipment ready — notify pickup')+'</button></section>';
     html+='<dl class="shipping-summary">'+line('المصنع','Factory',f.name||'—')+line('المنتجات','Products',money(o.subtotal))+line('رسوم المنصة','Platform fee',money(o.payment_fee))+line('ضريبة المنتجات والرسوم','Products and fee VAT',money(o.vat_amount))+
       line('الشحن شاملاً رسومه وضرائبه','Shipping including its fees and taxes',q&&q.accepted_at?money(q.total):say('بانتظار عرض الشحن والموافقة عليه','Pending shipping quote and acceptance'))+
       line(o.status==='awaiting_shipping'?'إجمالي المنتجات قبل الشحن':'الإجمالي المعتمد',o.status==='awaiting_shipping'?'Products total before shipping':'Confirmed total',money(o.total),true)+'</dl>';
@@ -201,7 +213,7 @@
     if(s.booking_reference) html+='<h3>'+text('الحجز المؤكد','Confirmed booking')+'</h3><dl class="shipping-summary">'+line('رقم حجز الشركة','Carrier booking reference',s.booking_reference)+line('موعد الاستلام','Pickup time',date(s.pickup_at))+'</dl>';
     if(o.status==='awaiting_payment')html+='<section class="shipping-payment"><h3>'+text('بانتظار الدفع','Awaiting payment')+'</h3><p>'+text('الإجمالي المعتمد: ','Approved total: ')+esc(money(o.total))+'</p><p>'+text('الدفع حاليًا بالتنسيق مع المصنع خارج المنصة. بعد السداد يؤكد المصنع أو الإدارة استلام المبلغ؛ لا تُعد الموافقة على العرض دفعًا.','Payment is currently arranged with the factory outside the platform. After payment, the factory or team confirms receipt; accepting the quote does not record payment.')+'</p><a href="web-orders.html">'+text('فتح الطلبات لمتابعة الدفع','Open orders to follow up on payment')+'</a></section>';
     if(o.status==='awaiting_payment'&&(seller||admin))html+='<button type="button" data-action="payment">'+text('تأكيد استلام المبلغ فعليًا','Confirm actual payment receipt')+'</button>';
-    if(s.status==='booking_requested'&&isPaid(o)) html+='<p class="shipping-note">'+text('تم تأكيد استلام الدفع. بانتظار تأكيد الحجز لدى شركة الشحن.','Payment receipt confirmed. Awaiting carrier booking confirmation.')+'</p>';
+    if(s.status==='booking_requested'&&isPaid(o)&&productionComplete(s)) html+='<p class="shipping-note">'+(pickupReady(s)?text('الشحنة جاهزة. بانتظار تنسيق الاستلام وتأكيد الحجز لدى شركة الشحن.','Shipment ready. Awaiting pickup coordination and carrier booking confirmation.'):text('تم الدفع. بانتظار تأكيد المصنع لجاهزية الشحنة قبل تنسيق الاستلام.','Payment confirmed. Awaiting factory readiness before arranging pickup.'))+'</p>';
     if(editable) html+='<p class="shipping-note">'+text('تغيير الوجهة يعيد الطلب إلى المصنع للتأكيد. تغيير الوجهة أو التغليف يُلغي عرض الشحن السابق.','Changing the destination returns the request to the factory for confirmation. Destination or packing changes invalidate the previous quote.')+'</p>';
     if(editable&&buyer) html+=form('destination',text('وجهة الشحنة','Shipment destination'),destinationChoice(destinationScope(d))+
       '<p class="shipping-note wide" role="status" data-domestic-note'+(destinationScope(d)==='domestic'?'':' hidden')+'>'+text('سيُستخدم عنوان التوصيل السعودي المحفوظ.','Your saved Saudi delivery address will be used.')+'</p>'+
@@ -220,7 +232,7 @@
       field('freight','أجرة النقل (SAR)','Freight (SAR)',0,'number','required min="0" max="1000000000" step="0.01"')+field('additional_fees','الرسوم الإضافية (SAR)','Additional fees (SAR)',0,'number','required min="0" max="1000000000" step="0.01"')+field('taxes','ضرائب الشحن (SAR)','Shipping taxes (SAR)',0,'number','required min="0" max="1000000000" step="0.01"')+
       field('estimated_days_min','أقل مدة بعد الاستلام (أيام)','Minimum transit days',1,'number','required min="1" max="365" step="1"')+field('estimated_days_max','أقصى مدة بعد الاستلام (أيام)','Maximum transit days',7,'number','required min="1" max="365" step="1"')+field('expires_at','صلاحية العرض (بتوقيت جهازك)','Quote expiry (your local time)','','datetime-local','required')+
       area('inclusions','ما يشمله السعر: التخليص والرسوم والتوصيل','Included: customs clearance, fees and delivery','')+area('exclusions','ما لا يشمله / مبالغ لاحقة ومن يتحملها','Excluded / later charges and who pays them',''),text('نشر العرض وإشعار العميل','Publish quote and notify buyer'));
-    if(admin&&s.status==='booking_requested'&&isPaid(o)) html+=form('book',text('تأكيد الحجز لدى الشركة','Confirm booking with carrier'),field('booking_reference','مرجع الحجز المؤكد من الشركة','Confirmed carrier booking reference','','text','required maxlength="200"')+field('pickup_at','موعد الاستلام المؤكد (بتوقيت جهازك)','Confirmed pickup (your local time)',localDate(s.ready_at),'datetime-local','required'),text('حفظ الحجز المؤكد','Save confirmed booking'));
+    if(admin&&s.status==='booking_requested'&&isPaid(o)&&pickupReady(s)) html+=form('book',text('تأكيد الحجز لدى الشركة','Confirm booking with carrier'),field('booking_reference','مرجع الحجز المؤكد من الشركة','Confirmed carrier booking reference','','text','required maxlength="200"')+field('pickup_at','موعد الاستلام المؤكد (بتوقيت جهازك)','Confirmed pickup (your local time)',localDate(s.ready_at),'datetime-local','required'),text('حفظ الحجز المؤكد','Save confirmed booking'));
     var next={booked:'collected',collected:'departed',departed:'arrived',arrived:'delivered'}[s.status];
     if(admin&&next) html+=form('track',text('تسجيل تحديث من شركة الشحن','Record carrier update'),'<p class="wide">'+esc(label(next))+'</p>'+area('note','تفاصيل التحديث الوارد من الشركة','Update received from carrier',''),text('تسجيل التحديث','Record update'));
     if(editable&&buyer) html+='<div class="shipping-actions"><button class="secondary" data-action="cancel">'+text('إلغاء الطلب قبل اعتماد الشحن','Cancel order before accepting shipping')+'</button></div>';
@@ -251,7 +263,7 @@
       if(action==='track') data.status=next;
       act(s,action,data);
     });});
-    $('shipping-detail').querySelectorAll('button[data-action]').forEach(function(el){el.addEventListener('click',function(){var action=el.dataset.action;if(action==='accept'&&!root.confirm(say('تأكيد الموافقة على إجمالي الطلب شاملاً الشحن ','Approve order total including shipping ')+money(Number(o.total)+Number(q.total))+say(' والشروط المعروضة والانتقال إلى الدفع؟',' and the displayed terms, and proceed to payment?')))return;if(action==='payment'&&!root.confirm(say('هل استلمت فعليًا كامل مبلغ الطلب: ','Have you actually received the full order amount: ')+money(o.total)+'؟'))return;if(action==='cancel'&&!root.confirm(say('تأكيد إلغاء الطلب؟','Cancel this order?')))return;act(s,action,{quote_id:q&&q.id});});});
+    $('shipping-detail').querySelectorAll('button[data-action]').forEach(function(el){el.addEventListener('click',function(){var action=el.dataset.action;if(action==='accept'&&!root.confirm(say('تأكيد الموافقة على إجمالي الطلب شاملاً الشحن ','Approve order total including shipping ')+money(Number(o.total)+Number(q.total))+say(' والشروط المعروضة والانتقال إلى الدفع؟',' and the displayed terms, and proceed to payment?')))return;if(action==='production_start'&&!root.confirm(say('تأكيد بدء إنتاج الطلب؟','Confirm production start?')))return;if(action==='production_complete'&&!root.confirm(say('هل اكتمل إنتاج البضاعة؟','Has production of the goods been completed?')))return;if(action==='pickup_ready'&&!root.confirm(say('هل البضاعة معبأة وجاهزة للاستلام؟ سيصل إشعار للإدارة لتنسيق الاستلام.','Are the goods packed and ready for pickup? The team will be notified to arrange collection.')))return;if(action==='payment'&&!root.confirm(say('هل استلمت فعليًا كامل مبلغ الطلب: ','Have you actually received the full order amount: ')+money(o.total)+'؟'))return;if(action==='cancel'&&!root.confirm(say('تأكيد إلغاء الطلب؟','Cancel this order?')))return;act(s,action,{quote_id:q&&q.id});});});
     var add=$('shipping-add-package'); if(add) add.addEventListener('click',function(){var host=$('shipping-packages');if(!uploading()&&host.children.length<50){host.insertAdjacentHTML('beforeend',packageFields({},host.children.length));if(root.SFShippingImages)root.SFShippingImages.bind($('shipping-detail'),s.order_id,true);}});
     var packages=$('shipping-packages');if(packages)packages.addEventListener('click',function(e){var btn=e.target.closest('[data-remove-package]');if(btn&&!uploading()&&packages.children.length>1)btn.closest('fieldset').remove();});
   }
@@ -262,6 +274,8 @@
       data.revision=s.revision;
       if(action==='domestic_destination'||action==='saved_destination')await query(root.sb.rpc(action==='saved_destination'?'link_saved_shipping_address':'set_domestic_shipping_destination',{p_order_id:s.order_id,p_revision:s.revision,p_expected_destination:data.expected_destination}));
       else if(action==='payment')await query(root.sb.rpc('mark_order_paid',{p_order_id:s.order_id}));
+      else if(action==='production_start'||action==='production_complete')await query(root.sb.rpc('update_shipping_production',{p_order_id:s.order_id,p_revision:s.revision,p_action:action==='production_start'?'start':'complete'}));
+      else if(action==='pickup_ready')await query(root.sb.rpc('confirm_shipping_pickup_ready',{p_order_id:s.order_id,p_revision:s.revision}));
       else await query(root.sb.rpc('update_manual_shipping',{p_order_id:s.order_id,p_action:action,p_payload:data}));
       await loadList(false);await loadDetail(s.order_id);
     }
