@@ -170,5 +170,121 @@ try {
     assert.equal((await shipment(accepted.order_id)).status,'awaiting_details');
     assert.equal((await as(2,'select * from accept_private_chat_offer($1)',[q.id]))[0].order_id,accepted.order_id);
   });
+  await db.exec("alter table profiles add full_name text default '',add phone text default '',add country_code text default ''");
+  const domesticMigration=read('supabase/migrations/20260921100000_domestic_shipping_address.sql');
+  await check('domestic migration works without the missing address table and secures its writes',async()=>{
+    assert.equal((await one("select to_regclass('public.delivery_addresses') as relation")).relation,null);
+    await db.exec(domesticMigration);await db.exec(domesticMigration);
+    assert.equal((await one("select relrowsecurity from pg_class where oid='public.delivery_addresses'::regclass")).relrowsecurity,true);
+    for(const sql of ['select * from delivery_addresses','select get_domestic_shipping_destination($1)']){
+      await assert.rejects(()=>as(0,sql,sql.includes('$1')?[id]:[],'anon'),e=>e.code==='42501');
+    }
+    await assert.rejects(()=>as(2,'delete from delivery_addresses'),e=>e.code==='42501');
+    const address={id:uid(++serial),label:'Home',address_line:'Riyadh',latitude:24.7,longitude:46.7};
+    await assert.rejects(()=>as(5,'select * from save_delivery_address($1,$2)',[uid(5),address]),e=>e.code==='42501');
+    await assert.rejects(()=>as(2,'select * from save_delivery_address($1,$2)',[uid(4),address]),/session_changed/);
+    await as(4,'select * from save_delivery_address($1,$2)',[uid(4),address]);
+    assert.equal((await as(2,'select * from delivery_addresses')).length,0);
+    await as(4,'select * from delete_delivery_address($1,$2)',[uid(4),address.id]);
+  });
+  const savedDestination=async(user,oid)=>(await as(user,'select get_domestic_shipping_destination($1) as destination',[oid]))[0].destination;
+  const saveDomestic=async(user,oid,expected,revision)=>(await as(user,'select * from set_domestic_shipping_destination($1,$2,$3)',[oid,revision??(await shipment(oid)).revision,expected]))[0];
+  let localOrder,localAddress;
+  await check('domestic address is private and missing addresses cannot produce empty shipments',async()=>{
+    localOrder=await order();
+    assert.equal(await savedDestination(2,localOrder.id),null);
+    await assert.rejects(()=>saveDomestic(2,localOrder.id,{}),/saved_address_missing/);
+    for(const user of [1,4,6]){
+      await assert.rejects(()=>savedDestination(user,localOrder.id),/access_denied/);
+      await assert.rejects(()=>saveDomestic(user,localOrder.id,{}),/access_denied/);
+    }
+    await assert.rejects(()=>as(0,'select get_domestic_shipping_destination($1)',[localOrder.id],'anon'),e=>e.code==='42501');
+    await assert.rejects(()=>as(0,"select set_domestic_shipping_destination($1,0,'{}')",[localOrder.id],'anon'),e=>e.code==='42501');
+    await db.query("insert into delivery_addresses(id,user_id,label,address_line,latitude,longitude,is_default) values($1,$2,'Other','Private foreign user address',24,46,true)",[uid(++serial),uid(4)]);
+    assert.equal(await savedDestination(2,localOrder.id),null);
+  });
+  await check('domestic choice resolves the buyer default address and verifies contact details',async()=>{
+    await db.query("insert into delivery_addresses(id,user_id,label,address_line,latitude,longitude,building,notes,is_default) values($1,$2,'Home','Riyadh, warehouse 12',24.7,46.7,'22','Call on arrival',true)",[uid(++serial),uid(2)]);
+    await assert.rejects(()=>savedDestination(2,localOrder.id),/contact_missing/);
+    await db.query("update profiles set full_name='Buyer',phone='501234567',country_code='+966' where id=$1",[uid(2)]);
+    localAddress=await savedDestination(2,localOrder.id);
+    assert.equal(localAddress.scope,'domestic');assert.equal(localAddress.country,'Saudi Arabia');
+    assert.equal(localAddress.address,'Riyadh, warehouse 12 · 22');assert.equal(localAddress.delivery_notes,'Call on arrival');
+    assert.equal(localAddress.contact,'Buyer');assert.equal(localAddress.phone_country_code,'+966');
+    await assert.rejects(()=>saveDomestic(2,localOrder.id,{...localAddress,address:'Tampered'}),/stale/);
+    const result=await saveDomestic(2,localOrder.id,localAddress);
+    assert.deepEqual(result.destination,localAddress);assert.equal(result.delivery_type,'door');assert.equal(result.status,'awaiting_details');
+    assert.equal((await saveDomestic(2,localOrder.id,localAddress)).revision,result.revision);
+    await action(1,localOrder.id,'packing',{packing,ready_at:future(1)});
+    const quoteState=await action(6,localOrder.id,'quote',quote());
+    assert.equal((await one('select destination_snapshot from shipping_quotes where id=$1',[quoteState.current_quote_id])).destination_snapshot.scope,'domestic');
+    await action(2,localOrder.id,'accept',{quote_id:quoteState.current_quote_id});
+    await assert.rejects(()=>saveDomestic(2,localOrder.id,localAddress),/locked/);
+  });
+  await check('address changes require review and current shipping addresses survive default-address changes',async()=>{
+    const next=await order(),before=await savedDestination(2,next.id);
+    await db.query("update delivery_addresses set address_line='Jeddah, warehouse 99' where user_id=$1",[uid(2)]);
+    await assert.rejects(()=>saveDomestic(2,next.id,before),/stale/);
+    assert.equal((await savedDestination(2,localOrder.id)).address,localAddress.address);
+    const fresh=await savedDestination(2,next.id);assert(fresh.address.startsWith('Jeddah'));
+    await saveDomestic(2,next.id,fresh);
+    assert.equal((await shipment(next.id)).current_quote_id,null);
+    await assert.rejects(()=>saveDomestic(2,next.id,fresh,0),/stale/);
+    await db.query('delete from delivery_addresses where user_id=$1',[uid(2)]);
+    const another=await order(),fromHistory=await savedDestination(2,another.id);
+    assert.equal(fromHistory.scope,'domestic');assert(!fromHistory.address.includes('Private foreign'));
+  });
+  await check('existing Saudi destinations are recognized and switching cancels an international quote',async()=>{
+    const o=await order();
+    await action(2,o.id,'destination',{destination:{...destination,country:'المملكة العربية السعودية',city:'Riyadh'},delivery_type:'door'});
+    const current=await savedDestination(2,o.id);assert.equal(current.city,'Riyadh');
+    await saveDomestic(2,o.id,current);
+    await action(2,o.id,'destination',{destination:{...destination,scope:'international'},delivery_type:'door'});
+    await action(1,o.id,'packing',{packing,ready_at:future(1)});
+    await action(6,o.id,'quote',quote());
+    const local=await savedDestination(2,o.id);
+    const result=await saveDomestic(2,o.id,local);
+    assert.equal(result.current_quote_id,null);assert.equal(result.status,'awaiting_quote');assert.equal(result.destination.scope,'domestic');
+  });
+  await check('rerunning address setup or domestic migration preserves existing addresses and shipments',async()=>{
+    const beforeAddresses=(await db.query('select * from delivery_addresses order by user_id,id')).rows;
+    const beforeShipments=(await db.query('select * from order_shipments order by order_id')).rows;
+    // قواعد سبق أن طبّقت هجرة العناوين الأصلية تظل متوافقة مع الملف الكامل.
+    await db.exec(read('supabase/migrations/20260910060000_delivery_addresses.sql'));
+    await db.exec(domesticMigration);
+    assert.deepEqual((await db.query('select * from delivery_addresses order by user_id,id')).rows,beforeAddresses);
+    assert.deepEqual((await db.query('select * from order_shipments order by order_id')).rows,beforeShipments);
+  });
+  await check('structured addresses save separate fields and validate national formats without changing RLS',async()=>{
+    const migration=read('supabase/migrations/20260921160000_structured_delivery_addresses.sql');
+    await db.exec(migration);await db.exec(migration);
+    const value={id:uid(++serial),latitude:24.7,longitude:46.7,address_scope:'domestic',country:'السعودية',city:'Riyadh',district:'District',street:'Street',building:'١٢٣٤',short_address:'abcd١٢٣٤',postal_code:'١٢٣٤٥',additional_number:'٥٦٧٨'};
+    const save=async(user,data,expected=uid(user))=>as(user,'select * from save_structured_delivery_address($1,$2)',[expected,data]);
+    const rows=await save(2,value),saved=rows.find(r=>r.id===value.id);
+    assert.equal(saved.short_address,'ABCD1234');assert.equal(saved.postal_code,'12345');assert.equal(saved.additional_number,'5678');assert.equal(saved.street,'Street');assert.equal(saved.country,'Saudi Arabia');
+    assert(saved.address_line.includes('12345'));assert(saved.address_line.includes('ABCD1234'));
+    for(const extra of [{postal_code:'123'},{short_address:'invalid'},{additional_number:'12'},{building:'12'},{city:''},{country:'UAE'},{district:{bad:true}}])await assert.rejects(()=>save(2,{...value,...extra}),e=>e.code==='22023');
+    await assert.rejects(()=>save(4,value,uid(2)),e=>e.code==='42501');
+    await assert.rejects(()=>save(5,value),e=>e.code==='42501');
+    await assert.rejects(()=>as(0,'select * from save_structured_delivery_address($1,$2)',[uid(2),value],'anon'),e=>e.code==='42501');
+    assert.equal((await as(4,'select * from delivery_addresses where id=$1',[value.id])).length,0);
+    const o=await order(),dest=await savedDestination(2,o.id);
+    assert.equal(dest.city,'Riyadh');assert.equal(dest.postal_code,'12345');assert.equal(dest.short_address,'ABCD1234');
+    await saveDomestic(2,o.id,dest);
+    const foreign={...value,address_scope:'international',country:'France',city:'Paris',district:'Centre'};
+    const updated=(await save(2,foreign)).find(r=>r.id===value.id);
+    for(const key of ['street','short_address','postal_code','additional_number','building','floor','apartment','notes'])assert.equal(updated[key],'');
+    assert.equal(updated.address_line,'France، Paris، Centre');
+    const next=await order();await assert.rejects(()=>savedDestination(2,next.id),/saved_address_not_domestic/);
+    assert.equal((await savedDestination(2,o.id)).short_address,'ABCD1234');
+    const before=(await as(2,'select * from delivery_addresses')).map(r=>({...r}));
+    await db.exec(migration);
+    assert.deepEqual(await as(2,'select * from delivery_addresses'),before);
+    // العميل القديم يستطيع الحفظ، لكن يُطلب مراجعة الأجزاء قبل شحن محلي جديد.
+    await as(2,'select * from save_delivery_address($1,$2)',[uid(2),{id:value.id,label:'Legacy edit',address_line:'New location',latitude:48.8,longitude:2.3}]);
+    const legacy=await one('select * from delivery_addresses where user_id=$1 and id=$2',[uid(2),value.id]);
+    assert.equal(legacy.address_scope,'legacy_review');assert.equal(legacy.city,'');
+    await assert.rejects(()=>savedDestination(2,next.id),/saved_address_not_domestic/);
+  });
   console.log(`Completed ${checks} manual shipping checks; no production access.`);
 } finally {await db.close();}

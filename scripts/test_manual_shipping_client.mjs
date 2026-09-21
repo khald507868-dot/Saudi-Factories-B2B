@@ -49,3 +49,37 @@ assert(!(await renderAs('buyer','quoted',true)).includes('data-action="accept"')
 assert((await renderAs('admin','booking_requested')).includes('data-action="book"'));
 assert(!(await renderAs('buyer','booking_requested')).includes('data-action="book"'));
 console.log('PASS role-specific forms, expired quote controls, final estimate, booking controls, and escaped carrier text');
+
+// فحص الانتقال الفعلي بين وضعي النموذج وتعطيل قيود الحقول المخفية.
+const noopElement=()=>({addEventListener(){},hidden:true,textContent:''});
+const uiElements=new Map();
+const uiDocument={addEventListener(){},getElementById(id){if(!uiElements.has(id))uiElements.set(id,noopElement());return uiElements.get(id);}};
+let savedAddress={scope:'domestic',country:'Saudi Arabia',address:'Riyadh <warehouse>',contact:'Buyer',phone:'123'};
+const testWindow={I18N:window.I18N,SF_AUTH_READY:{then(){return {catch(){}};}},sb:{rpc:async(name,args)=>{
+  assert.equal(name,'get_domestic_shipping_destination');assert.equal(args.p_order_id,'my-order');return {data:savedAddress};
+}}};
+const sourceWithHooks=read('shipping-page.js').replace('})(window);','root.shippingTest = {destinationScope, destinationChoice, syncDestinationScope, loadDomesticDestination};\n})(window);');
+vm.runInNewContext(sourceWithHooks,{window:testWindow,document:uiDocument});
+const helpers=testWindow.shippingTest;
+assert.equal(helpers.destinationScope({country:'المملكة العربية السعودية'}),'domestic');
+assert.equal(helpers.destinationScope({country:' KSA '}),'domestic');
+assert.equal(helpers.destinationScope({country:'UAE'}),'international');
+assert.equal(helpers.destinationScope({}),'');
+assert(helpers.destinationChoice('domestic').includes('value="domestic" required checked'));
+const details={},note={},submit={};
+const form={isConnected:true,elements:{destination_scope:{value:''},country:{value:'UAE',setCustomValidity(message){this.validationMessage=message;}},delivery_type:{value:'door'},port:{}},querySelector(selector){return ({'[data-destination-fields]':details,'[data-domestic-note]':note,'button[type="submit"]':submit})[selector];}};
+helpers.syncDestinationScope(form);assert(details.hidden);assert(details.disabled);assert(submit.disabled);
+form.elements.destination_scope.value='domestic';helpers.syncDestinationScope(form);
+assert(details.hidden);assert(details.disabled);assert(!note.hidden);assert(submit.disabled);
+await helpers.loadDomesticDestination(form,{order_id:'my-order'});
+assert(!submit.disabled);assert(note.textContent.includes('Riyadh <warehouse>'));
+form.elements.destination_scope.value='international';helpers.syncDestinationScope(form);
+assert(!details.hidden);assert(!details.disabled);assert(note.hidden);assert(!submit.disabled);
+form.elements.delivery_type.value='port';helpers.syncDestinationScope(form);assert(form.elements.port.required);
+form.elements.country.value='السعودية';helpers.syncDestinationScope(form);assert(form.elements.country.validationMessage);
+form.elements.country.value='UAE';helpers.syncDestinationScope(form);assert.equal(form.elements.country.validationMessage,'');
+form.elements.destination_scope.value='domestic';helpers.syncDestinationScope(form);assert(!form.elements.port.required);assert(details.disabled);assert(!submit.disabled);
+savedAddress=null;form._domesticDestination=null;await helpers.loadDomesticDestination(form,{order_id:'my-order'});
+assert(submit.disabled);assert(note.textContent.includes('No saved Saudi address'));
+form.elements.destination_scope.value='international';helpers.syncDestinationScope(form);assert(!submit.disabled);
+console.log('PASS domestic/international toggles, saved-address loading, missing-address guard, port validation and hidden-field disabling');

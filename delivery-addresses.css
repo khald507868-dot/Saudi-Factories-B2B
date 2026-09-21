@@ -1,0 +1,38 @@
+/* دفتر عناوين الحساب، مشترك مع تطبيق الجوال. */
+* { box-sizing: border-box; }
+body { margin: 0; font-family: "Segoe UI", Tahoma, Arial, sans-serif; color: #04361b; background: #f3f6f4; }
+.addresses-main { grid-column: 2; min-width: 0; margin: 18px 0; }
+.addresses-main h1 { font-size: 26px; margin: 0 0 14px; }
+.addresses-main h2 { font-size: 19px; margin: 0 0 12px; }
+.addresses-main p { line-height: 1.8; overflow-wrap: anywhere; }
+.address-hint { color: #617568; }
+.address-toolbar, .address-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-block: 14px; }
+.addresses-main button, .addresses-main .address-link { font: inherit; padding: 10px 18px; border: 1px solid #c9d8cd; border-radius: 9px; background: white; color: #315f3e; cursor: pointer; }
+.addresses-main button.primary { background: #356441; color: white; border-color: #356441; }
+.addresses-main button:disabled { opacity: .55; cursor: wait; }
+.addresses-main :focus-visible { outline: 3px solid #679b77; outline-offset: 3px; }
+.addresses-main [hidden] { display: none !important; }
+.address-card, .address-editor { padding: 22px; border: 1px solid #cbdcd0; border-radius: 16px; background: white; margin-block: 16px; }
+.address-card[data-default="true"] { border: 2px solid #356441; }
+.address-default { display: inline-block; padding: 4px 12px; border-radius: 20px; background: #edf5ef; color: #356441; }
+.address-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.address-wide { grid-column: 1 / -1; }
+.address-editor label { display: grid; gap: 8px; font-weight: 600; }
+.address-editor input, .address-editor textarea, .address-editor select { width: 100%; min-width: 0; font: inherit; color: inherit; background: white; border: 1px solid #b8cdbf; border-radius: 9px; padding: 12px; }
+.address-editor input[readonly] { background: #eef4ef; }
+.address-scope { margin-bottom: 20px; }
+#address-saudi-fields { margin-top: 16px; }
+.address-editor textarea { resize: vertical; min-height: 85px; }
+.address-editor fieldset { margin: 0; padding: 0; border: 0; min-width: 0; }
+.address-editor summary { cursor: pointer; margin-block: 14px; }
+#address-map { height: 310px; border-radius: 12px; border: 1px solid #cbdcd0; z-index: 0; direction: ltr; }
+#address-status { min-height: 28px; }
+#address-status[data-error="true"] { color: #a22f28; }
+.address-map-details { background: #f3f7f4; border-radius: 12px; padding: 18px; margin-block: 16px; }
+.address-map-details h3 { margin: 0; font-size: 17px; }
+.address-detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.address-detail-grid dt { font-weight: 600; }
+.address-detail-grid dd { margin: 6px 0 0; overflow-wrap: anywhere; line-height: 1.6; }
+.addresses-mobile-nav { display: none; }
+.addresses-mobile-nav a { color: #356441; }
+@media (max-width: 600px) { .address-grid { grid-template-columns: 1fr; } .address-card, .address-editor { padding: 16px; } }
