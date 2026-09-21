@@ -19,6 +19,7 @@
   function label(key) { var pair=states[key]; return pair?say(pair[0],pair[1]):key; }
   async function query(job) { var r=await job; if(r.error) throw r.error; return r.data; }
   function showError(err) {
+    if(err&&['PGRST202','42883'].includes(err.code))err={message:'shipping_domestic_setup_required'};
     var msg=err && err.message || String(err), key=msg.match(/shipping_[a-z_]+/);
     var map={shipping_stale:['تغيّرت بيانات الطلب. حدّث الصفحة وراجع العرض قبل المحاولة.','The request changed. Refresh and review it before retrying.'],
       shipping_quote_expired:['انتهت صلاحية العرض. اطلب عرضاً بديلاً.','This quote expired. Request a replacement.'],
@@ -59,21 +60,28 @@
     var details=el.querySelector('[data-destination-fields]');
     details.hidden=scope!=='international'; details.disabled=scope!=='international';
     el.querySelector('[data-domestic-note]').hidden=scope!=='domestic';
-    el.querySelector('button[type="submit"]').disabled=busy||!scope||(scope==='domestic'&&!el._domesticDestination);
+    var savedButton=el.querySelector('[data-use-saved-address]');
+    savedButton.hidden=scope!=='domestic'; savedButton.disabled=busy||!!el._domesticLoading;
+    var submit=el.querySelector('button[type="submit"]');
+    submit.disabled=busy||!scope||(scope==='domestic'&&(!el._domesticDestination||el._domesticLoading));
+    submit.textContent=scope==='domestic'?say('ربط العنوان وطلب عرض الشحن','Link address and request shipping quote'):say('احسب الشحن — طلب عرض يدوي','Calculate shipping — request manual quote');
     el.elements.country.setCustomValidity(scope==='international'&&isSaudiCountry(el.elements.country.value)?say('للشحن إلى السعودية اختر «داخل السعودية».','For Saudi delivery, select Inside Saudi Arabia.'):'');
     el.elements.port.required=scope==='international'&&el.elements.delivery_type.value==='port';
   }
-  async function loadDomesticDestination(el,s) {
-    if(el._domesticLoading||el._domesticDestination)return;
+  async function loadDomesticDestination(el,s,useSaved) {
+    if((useSaved&&busy)||el._domesticLoading||(!useSaved&&el._domesticDestination))return;
     el._domesticLoading=true;
+    if(useSaved) { el._domesticDestination=null; el._useSavedAddress=true; }
     var note=el.querySelector('[data-domestic-note]');
     note.textContent=say('جارٍ تحميل عنوانك المحفوظ…','Loading your saved address…');
     syncDestinationScope(el);
     try {
-      var dest=await query(root.sb.rpc('get_domestic_shipping_destination',{p_order_id:s.order_id}));
+      var dest=await query(root.sb.rpc(el._useSavedAddress?'get_saved_shipping_destination':'get_domestic_shipping_destination',{p_order_id:s.order_id}));
       if(el.isConnected===false)return;
       el._domesticDestination=dest;
-      note.textContent=dest?say('سيُستخدم عنوانك المحفوظ: ','Your saved address will be used: ')+[dest.address,dest.city].filter(Boolean).join(' · '):
+      var prefix=el._useSavedAddress?say('عنوان حسابك الافتراضي — راجعه ثم أكد الربط: ','Your default account address — review, then confirm linking: '):
+        (s.destination&&isSaudiCountry(s.destination.country)?say('الوجهة الحالية للشحنة: ','Current shipment destination: '):say('سيُستخدم عنوانك المحفوظ: ','Your saved address will be used: '));
+      note.textContent=dest?prefix+[dest.address,dest.city].filter(Boolean).join(' · '):
         say('لا يوجد عنوان سعودي محفوظ. أضف عنوان توصيل من صفحة «العنوان» في حسابك، ثم اضغط «تحديث».','No saved Saudi address. Add an address from the Address page in your account, then select Refresh.');
     } catch(err) {
       if(el.isConnected===false)return;
@@ -151,6 +159,7 @@
     if(editable) html+='<p class="shipping-note">'+text('تعديل الوجهة أو التغليف يُلغي صلاحية العرض الحالي ويطلب تسعيره من جديد.','Changing the destination or packing invalidates the current quote and requests new pricing.')+'</p>';
     if(editable&&buyer) html+=form('destination',text('وجهة الشحنة','Shipment destination'),destinationChoice(destinationScope(d))+
       '<p class="shipping-note wide" role="status" data-domestic-note'+(destinationScope(d)==='domestic'?'':' hidden')+'>'+text('سيُستخدم عنوان التوصيل السعودي المحفوظ.','Your saved Saudi delivery address will be used.')+'</p>'+
+      '<button type="button" class="secondary wide" data-use-saved-address hidden>'+text('استخدام العنوان المحفوظ في حسابي','Use the saved address in my account')+'</button>'+
       '<a class="wide" href="web-addresses.html">'+text('إدارة عناوين التوصيل','Manage delivery addresses')+'</a>'+
       '<fieldset class="shipping-fields shipping-destination-fields wide" data-destination-fields'+(destinationScope(d)==='international'?'':' hidden disabled')+'><legend>'+text('تفاصيل التوصيل خارج السعودية','Delivery details outside Saudi Arabia')+'</legend>'+
       field('country','الدولة','Country',d.country)+field('city','المدينة','City',d.city)+field('contact','اسم المستلم','Recipient name',d.contact)+field('phone','هاتف المستلم مع رمز الدولة','Recipient phone with country code',d.phone,'tel','required maxlength="60"')+
@@ -174,13 +183,15 @@
       syncDestinationScope(el);
       el.addEventListener('input',function(){syncDestinationScope(el);});
       el.addEventListener('change',function(){syncDestinationScope(el);if(el.elements.destination_scope.value==='domestic')loadDomesticDestination(el,s);});
+      el.querySelector('[data-use-saved-address]').addEventListener('click',function(){ $('shipping-error').hidden=true; loadDomesticDestination(el,s,true); });
       if(el.elements.destination_scope.value==='domestic')loadDomesticDestination(el,s);
     });
     $('shipping-detail').querySelectorAll('form').forEach(function(el){el.addEventListener('submit',function(event){event.preventDefault(); if(!el.reportValidity())return; var data=Object.fromEntries(new FormData(el)); var action=el.dataset.action;
       if(action==='destination') {
         if(data.destination_scope==='domestic') {
+          if(el._domesticLoading)return;
           if(!el._domesticDestination){showError({message:'shipping_saved_address_missing'});return;}
-          action='domestic_destination';data={expected_destination:el._domesticDestination};
+          action=el._useSavedAddress?'saved_destination':'domestic_destination';data={expected_destination:el._domesticDestination};
         } else {
           if(data.destination_scope!=='international')return;
           data={destination:{scope:'international',country:data.country,city:data.city,address:data.address,contact:data.contact,phone:data.phone,postal_code:data.postal_code,port:data.port},delivery_type:data.delivery_type};
@@ -201,7 +212,7 @@
     $('shipping-detail').querySelectorAll('button,input,select,textarea').forEach(function(el){el.disabled=true;});
     try {
       data.revision=s.revision;
-      if(action==='domestic_destination')await query(root.sb.rpc('set_domestic_shipping_destination',{p_order_id:s.order_id,p_revision:s.revision,p_expected_destination:data.expected_destination}));
+      if(action==='domestic_destination'||action==='saved_destination')await query(root.sb.rpc(action==='saved_destination'?'link_saved_shipping_address':'set_domestic_shipping_destination',{p_order_id:s.order_id,p_revision:s.revision,p_expected_destination:data.expected_destination}));
       else await query(root.sb.rpc('update_manual_shipping',{p_order_id:s.order_id,p_action:action,p_payload:data}));
       await loadList(false);await loadDetail(s.order_id);
     }

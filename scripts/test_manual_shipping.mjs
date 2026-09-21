@@ -286,5 +286,47 @@ try {
     assert.equal(legacy.address_scope,'legacy_review');assert.equal(legacy.city,'');
     await assert.rejects(()=>savedDestination(2,next.id),/saved_address_not_domestic/);
   });
+  const previewSaved=async(user,oid)=>(await as(user,'select get_saved_shipping_destination($1) as destination',[oid]))[0].destination;
+  const linkSaved=async(user,oid,dest,revision)=>(await as(user,'select * from link_saved_shipping_address($1,$2,$3)',[oid,revision??(await shipment(oid)).revision,dest]))[0];
+  await check('linking a saved address replaces only the selected shipment and invalidates its quote',async()=>{
+    const migration=read('supabase/migrations/20260921200000_link_saved_shipping_address.sql');
+    const before=(await db.query('select * from order_shipments order by order_id')).rows;
+    await db.exec(migration);await db.exec(migration);
+    assert.deepEqual((await db.query('select * from order_shipments order by order_id')).rows,before);
+    const o=await order(),original=await prepare(o.id);
+    await assert.rejects(()=>previewSaved(2,o.id),/saved_address_not_domestic/);
+    const address={id:uid(++serial),latitude:21.5,longitude:39.2,address_scope:'domestic',country:'السعودية',city:'Jeddah',district:'District',street:'New Street',building:'1234',short_address:'ABCD1234',postal_code:'12345',additional_number:'5678'};
+    await as(2,'select * from save_structured_delivery_address($1,$2)',[uid(2),address]);
+    const preview=await previewSaved(2,o.id);
+    assert.equal(preview.saved_address_id,address.id);assert.equal(preview.short_address,'ABCD1234');
+    assert.equal((await shipment(o.id)).destination.country,'UAE');
+    await assert.rejects(()=>linkSaved(2,o.id,{...preview,address:'Tampered'}),/stale/);
+    await assert.rejects(()=>linkSaved(2,o.id,preview,0),/stale/);
+    const linked=await linkSaved(2,o.id,preview);
+    assert.deepEqual(linked.destination,preview);assert.equal(linked.delivery_type,'door');
+    assert.equal(linked.current_quote_id,null);assert.equal(linked.status,'awaiting_quote');
+    assert.equal(linked.revision,original.revision+1);
+    const requoted=await action(6,o.id,'quote',quote());
+    const events=(await one('select count(*)::int n from shipping_events where order_id=$1',[o.id])).n;
+    assert.equal((await linkSaved(2,o.id,preview)).revision,requoted.revision);
+    assert.equal((await shipment(o.id)).current_quote_id,requoted.current_quote_id);
+    assert.equal((await one('select count(*)::int n from shipping_events where order_id=$1',[o.id])).n,events);
+    await as(2,'select * from save_structured_delivery_address($1,$2)',[uid(2),{...address,street:'Changed Street'}]);
+    await assert.rejects(()=>linkSaved(2,o.id,preview),/stale/);
+    assert.deepEqual((await shipment(o.id)).destination,preview);
+    const fresh=await previewSaved(2,o.id);assert.equal(fresh.street,'Changed Street');
+    const changed=await linkSaved(2,o.id,fresh);assert.equal(changed.current_quote_id,null);
+    for(const user of [1,4,5,6]){
+      await assert.rejects(()=>previewSaved(user,o.id),/access_denied/);
+      await assert.rejects(()=>linkSaved(user,o.id,fresh),/access_denied/);
+    }
+    await assert.rejects(()=>as(0,'select get_saved_shipping_destination($1)',[o.id],'anon'),e=>e.code==='42501');
+    await assert.rejects(()=>as(0,"select link_saved_shipping_address($1,0,'{}')",[o.id],'anon'),e=>e.code==='42501');
+    const accepted=await action(6,o.id,'quote',quote());await action(2,o.id,'accept',{quote_id:accepted.current_quote_id});
+    await assert.rejects(()=>linkSaved(2,o.id,fresh),/locked/);
+    const other=await order();await db.query('delete from delivery_addresses where user_id=$1',[uid(2)]);
+    await assert.rejects(()=>previewSaved(2,other.id),/saved_address_missing/);
+    assert.deepEqual((await shipment(o.id)).destination,fresh);
+  });
   console.log(`Completed ${checks} manual shipping checks; no production access.`);
 } finally {await db.close();}
