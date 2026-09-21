@@ -111,21 +111,37 @@ assert((await renderAs('admin','booking_requested',false,{orders:unpaidOrders}))
 assert(!(await renderAs('seller','booking_requested')).includes('data-action="payment"'));
 const sample={order_id:'sample',status:'awaiting_details',buyer_confirmed_at:null,factory_confirmed_at:null,orders:{status:'awaiting_shipping'}};
 const currentStep=markup=>[...markup.matchAll(/<li data-step-state="([^"]+)"/g)].map(m=>m[1]);
-assert.deepEqual(currentStep(helpers.workflow(sample,null,[])),['current','waiting','waiting','waiting','waiting','waiting']);
-sample.buyer_confirmed_at='2026-09-21';assert.deepEqual(currentStep(helpers.workflow(sample,null,[])),['done','current','waiting','waiting','waiting','waiting']);
-sample.factory_confirmed_at='2026-09-21';assert.deepEqual(currentStep(helpers.workflow(sample,null,[])),['done','done','current','waiting','waiting','waiting']);
+assert.deepEqual(currentStep(helpers.workflow(sample,null,[])),['current','waiting','waiting','waiting','waiting','waiting','waiting','waiting']);
+sample.buyer_confirmed_at='2026-09-21';assert.deepEqual(currentStep(helpers.workflow(sample,null,[])),['done','current','waiting','waiting','waiting','waiting','waiting','waiting']);
+sample.factory_confirmed_at='2026-09-21';assert.deepEqual(currentStep(helpers.workflow(sample,null,[])),['done','done','current','waiting','waiting','waiting','waiting','waiting']);
 const readyQuote={expires_at:'2099-01-01',created_at:'2026-09-21'};
-assert.deepEqual(currentStep(helpers.workflow(sample,readyQuote,[])),['done','done','done','current','waiting','waiting']);
-assert.deepEqual(currentStep(helpers.workflow(sample,{...readyQuote,expires_at:'2000-01-01'},[])),['done','done','current','waiting','waiting','waiting']);
+assert.deepEqual(currentStep(helpers.workflow(sample,readyQuote,[])),['done','done','done','current','waiting','waiting','waiting','waiting']);
+assert.deepEqual(currentStep(helpers.workflow(sample,{...readyQuote,expires_at:'2000-01-01'},[])),['done','done','current','waiting','waiting','waiting','waiting','waiting']);
 sample.orders.status='awaiting_payment';assert(helpers.workflow(sample,{...readyQuote,accepted_at:'2026-09-21'},[]).includes('Awaiting buyer payment'));
-sample.orders.status='paid';assert.deepEqual(currentStep(helpers.workflow(sample,readyQuote,[])),['done','done','done','done','current','waiting']);
+sample.orders.status='paid';assert.deepEqual(currentStep(helpers.workflow(sample,readyQuote,[])),['done','done','done','done','current','waiting','waiting','waiting']);
 sample.production_started_at='2026-09-22';assert(helpers.workflow(sample,readyQuote,[]).includes('The order is in production'));
-assert.deepEqual(currentStep(helpers.workflow(sample,readyQuote,[])),['done','done','done','done','current','waiting']);
-sample.production_completed_at='2026-09-22';assert.deepEqual(currentStep(helpers.workflow(sample,readyQuote,[])),['done','done','done','done','done','current']);
-sample.pickup_ready_at='2026-09-22';sample.status='booking_requested';assert.deepEqual(currentStep(helpers.workflow(sample,readyQuote,[])),['done','done','done','done','done','done']);
+assert.deepEqual(currentStep(helpers.workflow(sample,readyQuote,[])),['done','done','done','done','current','waiting','waiting','waiting']);
+sample.production_completed_at='2026-09-22';assert.deepEqual(currentStep(helpers.workflow(sample,readyQuote,[])),['done','done','done','done','done','current','waiting','waiting']);
+sample.pickup_ready_at='2026-09-22';sample.status='booking_requested';assert.deepEqual(currentStep(helpers.workflow(sample,readyQuote,[])),['done','done','done','done','done','done','current','waiting']);
 assert(helpers.workflow(sample,readyQuote,[]).includes('team has been notified'));
-sample.pickup_ready_at=null;sample.production_started_at=null;sample.production_completed_at=null;sample.status='booked';assert.deepEqual(currentStep(helpers.workflow(sample,readyQuote,[])),['done','done','done','done','done','done']);
-sample.orders.status='cancelled';assert.deepEqual(currentStep(helpers.workflow(sample,null,[])),['stopped','stopped','stopped','stopped','stopped','stopped']);
+sample.pickup_ready_at=null;sample.production_started_at=null;sample.production_completed_at=null;sample.status='booked';assert.deepEqual(currentStep(helpers.workflow(sample,readyQuote,[])),['done','done','done','done','done','done','current','waiting']);
+for(const status of ['collected','departed','arrived']){
+  sample.status=status;
+  const markup=helpers.workflow(sample,readyQuote,[{kind:'collected',created_at:'2026-09-22T10:00:00Z'}]);
+  assert.deepEqual(currentStep(markup),[...Array(7).fill('done'),'current']);
+  assert(markup.includes('Shipping company — shipment collected'));
+  assert(markup.includes('The shipping company has collected'));
+  const lastCard=markup.split('<li data-step-state="done"').at(-1).split('</li>')[0];
+  assert(lastCard.includes('<time>'));
+  assert(!helpers.workflow(sample,readyQuote,[]).split('<li data-step-state="done"').at(-1).split('</li>')[0].includes('<time>'));
+}
+sample.status='delivered';sample.orders.status='completed';
+const deliveredMarkup=helpers.workflow(sample,readyQuote,[{kind:'delivered',created_at:'2026-09-23T10:00:00Z'}]);
+assert.deepEqual(currentStep(deliveredMarkup),Array(8).fill('done'));
+assert(deliveredMarkup.includes('All stages are complete.'));
+assert(deliveredMarkup.split('<li data-step-state="done"').at(-1).split('</li>')[0].includes('<time>'));
+assert(!helpers.workflow(sample,readyQuote,[]).split('<li data-step-state="done"').at(-1).split('</li>')[0].includes('<time>'));
+sample.orders.status='cancelled';assert.deepEqual(currentStep(helpers.workflow(sample,null,[])),['stopped','stopped','stopped','stopped','stopped','stopped','stopped','stopped']);
 assert(helpers.workflow(sample,null,[{kind:'payment',created_at:'2026-09-21',note:'<img src=x>'}]).includes('&lt;img'));
 const shippingHtml=read('web-shipping.html');assert(shippingHtml.indexOf('id="shipping-workflow"')<shippingHtml.indexOf('class="shipping-layout"'));
 console.log('PASS approval stages, expiry/cancellation/payment states, sequential role forms and safe history above shipment details');
@@ -140,3 +156,14 @@ assert(!(await renderAs('admin','booking_requested')).includes('data-action="pic
 assert(!(await renderAs('seller','booking_requested',false,{orders:unpaidOrders})).includes('data-action="pickup_ready"'));
 assert(!(await renderAs('seller','booking_requested',false,{pickup_ready_at:'2026-09-22'})).includes('data-action="pickup_ready"'));
 console.log('PASS production between payment and readiness, factory-only actions, legacy display and booking gate');
+
+assert((await renderAs('admin','booked')).includes('Confirm: shipment collected'));
+for(const role of ['buyer','seller'])assert(!(await renderAs(role,'booked')).includes('data-action="track"'));
+assert(!(await renderAs('admin','booking_requested')).includes('data-action="track"'));
+assert(!(await renderAs('admin','collected')).includes('Confirm: shipment collected'));
+console.log('PASS seventh collection stage, actual event timestamp, legacy states and admin-only collection confirmation');
+
+assert((await renderAs('admin','arrived')).includes('Confirm: shipment delivered to customer'));
+for(const role of ['buyer','seller'])assert(!(await renderAs(role,'arrived')).includes('data-action="track"'));
+for(const status of ['booked','collected','departed','delivered'])assert(!(await renderAs('admin',status)).includes('Confirm: shipment delivered to customer'));
+console.log('PASS final delivery stage stays active during transit and completes only on delivery, with recorded timestamp and admin-only confirmation');
