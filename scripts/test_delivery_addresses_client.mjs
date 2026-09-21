@@ -23,7 +23,7 @@ const form=get('address-form');
 form.elements=Object.fromEntries([...html.matchAll(/<(?:input|textarea|select)[^>]*name="([^"]+)"/g)].map(m=>[m[1],new Element()]));
 form.elements.address_scope.value='domestic';
 get('address-editor').hidden=true;
-let rows=[],failure,heldResponse,authListener,gpsCallback,uuid=0,tileError,pin,mapRemovals=0;
+let rows=[],failure,heldResponse,authListener,gpsCallback,uuid=0,tileError,pin,mapRemovals=0,dragEnabled=true;
 const calls=[],filters=[],navigations=[],mapEvents={},lookups=[];
 const fakeMap={setView(){return fakeMap;},invalidateSize(){},on(event,fn){mapEvents[event]=fn;return fakeMap;},remove(){mapRemovals++;}};
 const window={
@@ -36,7 +36,7 @@ const window={
     map:()=>fakeMap,
     marker(point,options){
       assert.equal(options.draggable,true);let position=point;
-      pin={events:{},dragging:{enable(){},disable(){}},addTo(){return pin;},on(event,fn){pin.events[event]=fn;return pin;},setLatLng(value){position=value;},getLatLng(){return {wrap:()=>({lat:position[0],lng:position[1]})};},remove(){}};
+      pin={events:{},dragging:{enable(){dragEnabled=true;},disable(){dragEnabled=false;}},addTo(){return pin;},on(event,fn){pin.events[event]=fn;return pin;},setLatLng(value){position=value;},getLatLng(){return {wrap:()=>({lat:position[0],lng:position[1]})};},remove(){}};
       return pin;
     },
     tileLayer(url,options){
@@ -68,18 +68,44 @@ vm.runInNewContext(read('delivery-addresses.js'),context);await tick();
 assert.deepEqual(filters,[['user_id','buyer']]);
 assert.equal(get('dash-name').textContent,'<img onerror=alert(1)>');assert.equal(get('dash-name').children.length,0);
 assert(!html.includes('<textarea'));assert(html.includes('name="latitude" type="hidden"'));
+assert.match(html, /id="address-save" type="button"[^>]*disabled/);
+assert.match(html, /<form id="address-form"[^>]*onsubmit="return false;"/);
 get('address-add').fire('click');
 assert.equal(get('address-saudi-fields').hidden,false);assert.equal(form.elements.country.readOnly,true);
 form.elements.city.value='Riyadh';form.elements.district.value='District';
 form.fire('submit');await tick();assert.equal(calls.length,0);assert.equal(get('address-status').textContent,'delivery_choose_location');
 get('address-locate').fire('click');gpsCallback({coords:{latitude:24.7,longitude:46.7}});
 form.elements.short_address.value='abcd١٢٣٤';form.elements.postal_code.value='١٢٣٤٥';form.elements.additional_number.value='٥٦٧٨';form.elements.building.value='١٢٣٤';form.elements.street.value='Street';
-failure={message:'Network unavailable'};form.fire('submit');await tick();
+failure={code:'PGRST202',message:'Missing function'};get('address-save').fire('click');await tick();
 assert.equal(get('address-editor').hidden,false);assert.equal(form.elements.city.value,'Riyadh');
-form.fire('submit');await tick();
+assert.equal(get('address-save-status').textContent,'delivery_setup_required');
+assert.equal(get('address-save-status').dataset.error,'true');
+assert.equal(get('address-fields').disabled,false);assert.equal(get('address-save').disabled,false);
+get('address-save').fire('click');await tick();
 assert.equal(calls[0].payload.p_address.id,calls[1].payload.p_address.id);
 assert.equal(calls[1].payload.p_address.short_address,'ABCD1234');assert.equal(calls[1].payload.p_address.postal_code,'12345');
 assert.equal(rows.length,1);
+assert.equal(get('address-save-status').textContent,'delivery_saved');
+assert.equal(get('address-save-status').dataset.error,'false');
+assert.equal(get('address-editor').hidden,false);assert.equal(get('address-fields').disabled,true);
+assert.equal(get('address-save').disabled,true);assert.equal(get('address-update').hidden,false);assert.equal(dragEnabled,false);
+const savedCalls=calls.length,savedLatitude=form.elements.latitude.value;
+form.fire('submit');get('address-locate').fire('click');
+mapEvents.click({latlng:{lat:1,wrap:()=>({lng:2})}});
+await tick();assert.equal(calls.length,savedCalls);assert.equal(form.elements.latitude.value,savedLatitude);
+get('address-update').fire('click');assert.equal(get('address-fields').disabled,false);assert.equal(dragEnabled,true);
+form.elements.city.value='Unsaved city';get('address-cancel').fire('click');
+assert.equal(form.elements.city.value,'Riyadh');assert.equal(get('address-fields').disabled,true);
+get('address-update').fire('click');form.elements.city.value='Updated city';
+let resolveSave;heldResponse=new Promise(resolve=>{resolveSave=resolve;});
+form.fire('submit');assert.equal(get('address-fields').disabled,true);assert.equal(get('address-cancel').disabled,true);
+get('address-update').fire('click');get('address-cancel').fire('click');assert.equal(form.elements.city.value,'Updated city');
+resolveSave({error:{message:'Network unavailable'}});await tick();heldResponse=null;
+assert.equal(get('address-fields').disabled,false);assert.equal(form.elements.city.value,'Updated city');
+form.fire('submit');await tick();assert.equal(get('address-fields').disabled,true);assert.equal(form.elements.city.value,'Updated city');
+// إعادة تحميل البيانات تفتح العنوان المحفوظ للعرض فقط.
+get('address-retry').fire('click');await tick();assert.equal(get('address-fields').disabled,true);assert.equal(get('address-update').hidden,false);
+console.log('PASS saved view locks fields and map, explicit update, cancel restore, failed save retry and reload');
 console.log('PASS domestic fields, map requirement, Arabic digits, separate payload and retry identity');
 
 const cardButton=(index,key)=>get('address-list').children[index].children.find(el=>el.className==='address-actions').children.find(el=>el.textContent===key);

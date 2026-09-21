@@ -15,19 +15,29 @@
     if (domestic()) form.elements.country.value = t('delivery_saudi_country');
   }
   function digits(value) { return value.replace(/[٠-٩]/g, function (c) { return String(c.charCodeAt(0) - 1632); }).replace(/[۰-۹]/g, function (c) { return String(c.charCodeAt(0) - 1776); }); }
-  var rows = [], userId, editingId, busy = false, loaded = false, map, marker, mapFailed = false, locationVersion = 0, sessionVersion = 0, detailsVersion = 0;
+  var rows = [], userId, editingId, busy = false, savedView = false, loaded = false, map, marker, mapFailed = false, locationVersion = 0, sessionVersion = 0, detailsVersion = 0;
   var form = $('address-form');
   function status(key, error) {
     $('address-status').textContent = key ? t(key) : '';
     $('address-status').dataset.error = String(!!error);
+    $('address-save-status').textContent = key ? t(key) : '';
+    $('address-save-status').dataset.error = String(!!error);
   }
   function lock(value) {
     busy = value;
-    $('address-fields').disabled = value;
+    $('address-fields').disabled = value || savedView;
+    $('address-editor').dataset.saved = String(savedView);
+    $('address-save').disabled = value || savedView || !loaded;
+    $('address-save').textContent = t(savedView ? 'delivery_saved' : 'delivery_save');
+    $('address-update').hidden = !savedView;
+    $('address-update').disabled = value;
+    $('address-cancel').hidden = savedView;
+    $('address-cancel').disabled = value;
+    $('address-save-hint').hidden = savedView;
     document.querySelectorAll('[data-address-action]').forEach(function (button) { button.disabled = value; });
     $('address-add').disabled = value || !loaded;
     $('address-retry').disabled = value;
-    if (marker && marker.dragging) marker.dragging[value ? 'disable' : 'enable']();
+    if (marker && marker.dragging) marker.dragging[value || savedView ? 'disable' : 'enable']();
     syncScope();
   }
   function failure(error, fallback) {
@@ -84,6 +94,8 @@
       if (result.error) throw result.error;
       rows = result.data || []; loaded = true; render(); status('');
       $('address-retry').hidden = true;
+      var selected = rows.find(function (row) { return row.is_default; }) || rows[0];
+      if (selected) { lock(false); edit(selected, true); }
     } catch (error) {
       status(failure(error, 'delivery_load_failed'), true);
       $('address-retry').hidden = false;
@@ -99,7 +111,12 @@
       if (version !== sessionVersion) return;
       if (result.error) throw result.error;
       rows = result.data || [];
-      render(); closeEditor(); status(success);
+      render();
+      var saved = name === 'save_structured_delivery_address' && rows.find(function (row) { return row.id === payload.p_address.id; });
+      if (saved) {
+        lock(false); edit(saved, true); $('address-update').focus({ preventScroll: true });
+      } else closeEditor();
+      status(success);
     } catch (error) { status(failure(error, 'delivery_sync_failed'), true); }
     finally { lock(false); }
   }
@@ -111,12 +128,12 @@
     $('address-map-details').hidden = true;
   }
   async function lookupDetails(fill) {
-    if (!root.SFDeliveryGeocoding) return;
+    if (savedView || !root.SFDeliveryGeocoding) return;
     var version = ++detailsVersion, location = locationVersion;
     var before = {};
     geoFields.forEach(function (key) { before[key] = form.elements[key].value; });
     var lat = Number(form.elements.latitude.value), lon = Number(form.elements.longitude.value);
-    function current() { return version === detailsVersion && location === locationVersion && !busy && !$('address-editor').hidden; }
+    function current() { return version === detailsVersion && location === locationVersion && !busy && !savedView && !$('address-editor').hidden; }
     $('address-map-details').hidden = false;
     $('address-geocode-status').textContent = t('delivery_reading_address');
     try {
@@ -143,7 +160,7 @@
     }
   }
   function setLocation(lat, lon, pan, preserveAddress) {
-    if (busy || !validCoordinates(lat, lon)) return;
+    if (busy || (savedView && !preserveAddress) || !validCoordinates(lat, lon)) return;
     var changed = form.elements.latitude.value && (Number(form.elements.latitude.value) !== lat || Number(form.elements.longitude.value) !== lon);
     locationVersion++;
     form.elements.latitude.value = String(lat);
@@ -156,6 +173,7 @@
       });
       else marker.setLatLng([lat, lon]);
       if (pan) map.setView([lat, lon], 16);
+      if (savedView && marker.dragging) marker.dragging.disable();
     }
     resetDetails();
     if (changed && !preserveAddress) fields.filter(function (key) { return !['latitude','longitude'].includes(key); }).forEach(function (key) { form.elements[key].value = ''; });
@@ -192,7 +210,7 @@
     map.on('click', function (event) { setLocation(event.latlng.lat, event.latlng.wrap().lng, false); });
   }
   function retryMap() {
-    if (busy) return;
+    if (busy || savedView) return;
     if (map && mapFailed) { map.remove(); map = null; marker = null; }
     initMap();
     var lat = form.elements.latitude.value, lon = form.elements.longitude.value;
@@ -203,8 +221,9 @@
     resetDetails();
     $('address-editor').hidden = true;
   }
-  function edit(row) {
+  function edit(row, readOnly) {
     if (busy || !loaded) return;
+    savedView = !!readOnly;
     locationVersion++;
     resetDetails();
     editingId = row ? row.id : root.crypto.randomUUID();
@@ -221,25 +240,27 @@
       setLocation(row.latitude, row.longitude, true, true);
       if (!row.country || !row.city) lookupDetails(true);
     }
-    $('address-editor').scrollIntoView({ block: 'start', behavior: 'smooth' });
-    form.elements.city.focus({ preventScroll: true });
+    lock(false);
+    if (!savedView) {
+      $('address-editor').scrollIntoView({ block: 'start', behavior: 'smooth' });
+      form.elements.city.focus({ preventScroll: true });
+    }
   }
   function locate() {
-    if (busy) return;
+    if (busy || savedView) return;
     if (!root.navigator.geolocation) { $('address-location-status').textContent = t('delivery_location_unavailable'); return; }
     var version = ++locationVersion;
     $('address-location-status').textContent = t('delivery_locating');
     root.navigator.geolocation.getCurrentPosition(function (position) {
-      if (version !== locationVersion || busy || $('address-editor').hidden) return;
+      if (version !== locationVersion || busy || savedView || $('address-editor').hidden) return;
       setLocation(position.coords.latitude, position.coords.longitude, true);
     }, function (error) {
       if (version !== locationVersion) return;
       $('address-location-status').textContent = t(error.code === 1 ? 'delivery_location_denied' : 'delivery_location_unavailable');
     }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
   }
-  form.addEventListener('submit', function (event) {
-    event.preventDefault();
-    if (busy) return;
+  function saveAddress() {
+    if (busy || savedView || $('address-editor').hidden) return;
     var address = { id: editingId, address_scope: form.elements.address_scope.value };
     fields.forEach(function (key) { address[key] = form.elements[key].value.trim(); });
     if (!address.latitude || !address.longitude || !validCoordinates(Number(address.latitude), Number(address.longitude))) {
@@ -257,14 +278,26 @@
     if (!form.reportValidity()) return;
     address.latitude = Number(address.latitude); address.longitude = Number(address.longitude);
     mutate('save_structured_delivery_address', { p_address: address }, 'delivery_saved');
-  });
+  }
+  form.addEventListener('submit', function (event) { event.preventDefault(); saveAddress(); });
+  $('address-save').addEventListener('click', saveAddress);
   $('address-add').addEventListener('click', function () { edit(null); });
-  $('address-cancel').addEventListener('click', closeEditor);
+  $('address-update').addEventListener('click', function () {
+    if (busy || !savedView) return;
+    var row = rows.find(function (item) { return item.id === editingId; });
+    if (row) edit(row);
+  });
+  $('address-cancel').addEventListener('click', function () {
+    if (busy) return;
+    var row = rows.find(function (item) { return item.id === editingId; });
+    if (row) edit(row, true); else closeEditor();
+  });
   $('address-locate').addEventListener('click', locate);
   $('address-retry').addEventListener('click', load);
   $('address-map-retry').addEventListener('click', retryMap);
-  $('address-details-retry').addEventListener('click', function () { if (!busy) { resetDetails(); lookupDetails(true); } });
+  $('address-details-retry').addEventListener('click', function () { if (!busy && !savedView) { resetDetails(); lookupDetails(true); } });
   form.elements.address_scope.addEventListener('change', function () {
+    if (busy || savedView) return;
     locationVersion++; resetDetails();
     fields.forEach(function (key) { form.elements[key].value = ''; });
     if (marker) { marker.remove(); marker = null; }

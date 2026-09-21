@@ -20,10 +20,10 @@
 <link rel="stylesheet" href="desktop.css">
 <link rel="stylesheet" href="green-frames.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
-<link rel="stylesheet" href="delivery-addresses.css">
+<link rel="stylesheet" href="delivery-addresses.css?v=20260921-save2">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="" defer></script>
 <script src="delivery-geocoding.js" defer></script>
-<script src="delivery-addresses.js" defer></script>
+<script src="delivery-addresses.js?v=20260921-save2" defer></script>
 </head>
 <body class="account-page addresses-page">
 <a class="page-logo" href="index.html"><span class="wm-title"><span class="w-green">Saudi</span> <span class="w-dark">Factories</span> <span class="w-b2b">B2B</span></span><span class="wm-rule"></span></a>
@@ -117,7 +117,7 @@
   <section id="address-list" aria-label="العناوين" data-i18n-aria-label="delivery_choose"></section>
   <section id="address-editor" class="address-editor" hidden>
     <h2 data-i18n="delivery_details">تفاصيل عنوان التوصيل</h2>
-    <form id="address-form" novalidate>
+    <form id="address-form" novalidate onsubmit="return false;">
       <fieldset id="address-fields">
         <label class="address-scope"><span data-i18n="delivery_scope">مكان التوصيل</span><select name="address_scope"><option value="domestic" data-i18n="delivery_scope_domestic">داخل السعودية</option><option value="international" data-i18n="delivery_scope_international">خارج السعودية</option></select></label>
         <p data-i18n="delivery_map_click_hint">حدّد موقع العنوان بالضغط على الخريطة أو استخدم موقعك الحالي.</p>
@@ -149,9 +149,14 @@
           </div>
           <p id="address-national-hint" class="address-hint" data-i18n="delivery_national_optional">حقول العنوان الوطني اختيارية حاليًا. أدخلها من عنوانك في سبل؛ لا تُستنتج تلقائيًا ولا يتم توثيقها من الخريطة.</p>
         </fieldset>
-        <p class="address-hint" data-i18n="delivery_save_default_hint">سيصبح هذا عنوانك الافتراضي بعد الحفظ.</p>
-        <div class="address-actions"><button type="submit" class="primary" data-i18n="delivery_save">حفظ العنوان</button><button id="address-cancel" type="button" data-i18n="delivery_cancel">إلغاء</button></div>
+        <p id="address-save-hint" class="address-hint" data-i18n="delivery_save_default_hint">سيصبح هذا عنوانك الافتراضي بعد الحفظ.</p>
       </fieldset>
+      <p id="address-save-status" role="status" aria-live="polite" class="address-save-status"></p>
+      <div class="address-actions">
+        <button id="address-save" type="button" class="primary" disabled data-i18n="delivery_save">حفظ العنوان</button>
+        <button id="address-update" type="button" class="address-update" hidden><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7v5h-5M4 17v-5h5"></path><path d="M6.1 6.1A8 8 0 0 1 19.5 10M4.5 14a8 8 0 0 0 13.4 3.9"></path></svg><span data-i18n="btn_update">تحديث</span></button>
+        <button id="address-cancel" type="button" data-i18n="delivery_cancel">إلغاء</button>
+      </div>
     </form>
   </section>
 </main>

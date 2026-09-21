@@ -9,7 +9,10 @@ body { margin: 0; font-family: "Segoe UI", Tahoma, Arial, sans-serif; color: #04
 .address-toolbar, .address-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-block: 14px; }
 .addresses-main button, .addresses-main .address-link { font: inherit; padding: 10px 18px; border: 1px solid #c9d8cd; border-radius: 9px; background: white; color: #315f3e; cursor: pointer; }
 .addresses-main button.primary { background: #356441; color: white; border-color: #356441; }
-.addresses-main button:disabled { opacity: .55; cursor: wait; }
+.addresses-main button:disabled { opacity: .55; cursor: not-allowed; }
+.address-update { display: inline-flex; align-items: center; gap: 8px; }
+.address-update svg { width: 20px; height: 20px; }
+.address-editor[data-saved="true"] input, .address-editor[data-saved="true"] select { background: #eef4ef; opacity: 1; -webkit-text-fill-color: #04361b; cursor: default; }
 .addresses-main :focus-visible { outline: 3px solid #679b77; outline-offset: 3px; }
 .addresses-main [hidden] { display: none !important; }
 .address-card, .address-editor { padding: 22px; border: 1px solid #cbdcd0; border-radius: 16px; background: white; margin-block: 16px; }
@@ -28,6 +31,9 @@ body { margin: 0; font-family: "Segoe UI", Tahoma, Arial, sans-serif; color: #04
 #address-map { height: 310px; border-radius: 12px; border: 1px solid #cbdcd0; z-index: 0; direction: ltr; }
 #address-status { min-height: 28px; }
 #address-status[data-error="true"] { color: #a22f28; }
+.address-save-status { color: #356441; font-weight: 600; }
+.address-save-status:empty { display: none; }
+.address-save-status[data-error="true"] { color: #a22f28; }
 .address-map-details { background: #f3f7f4; border-radius: 12px; padding: 18px; margin-block: 16px; }
 .address-map-details h3 { margin: 0; font-size: 17px; }
 .address-detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
