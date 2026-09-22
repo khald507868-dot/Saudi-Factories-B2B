@@ -18,8 +18,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <title data-i18n="factory_page_title">صفحة المصنع - المصانع السعودية</title>
 <script src="currency.js"></script>
-<script src="translate.js"></script>
-<script src="i18n.js?v=20260922-locale"></script>
+<script src="translate.js?v=20260922-translation-retry"></script>
+<script src="i18n.js?v=20260922-translation-retry"></script>
 <script src="currency-ui.js?v=20260922-locale-dropdown"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase-config.js"></script>
@@ -1562,6 +1562,19 @@
     color: #9aa8a0;
   }
 
+  .about-edit-toggle {
+    margin-top: 12px;
+    padding: 7px 16px;
+    border: 1px solid #c7d0ca;
+    border-radius: 8px;
+    background: #fff;
+    color: #386442;
+    font: inherit;
+    cursor: pointer;
+  }
+  .about-translation { margin-top: 12px; color: #65756a; font-size: 13px; }
+  .about-translation button { margin-inline-start: 10px; }
+
   .read-name {
     font-size: 17px;
     font-weight: 700;
@@ -1677,6 +1690,10 @@
       <h2 class="about-h" data-i18n="about_overview">نظرة عامة</h2>
       <label class="sr-label" for="factory-about" data-i18n="factory_about_label">نبذة عن المصنع</label>
       <textarea id="factory-about" data-i18n-placeholder="factory_about_placeholder" placeholder="اكتب نبذة عن مصنعك ومنتجاته..."></textarea>
+      <div id="about-translation" class="about-translation" hidden>
+        <span id="about-translation-status" role="status" aria-live="polite"></span>
+        <button type="button" id="about-translation-retry" class="about-edit-toggle" hidden></button>
+      </div>
 
       <!-- تفاصيل المصنع — كلّ صفّ يُخفى إن خلا حقله في وضع العرض -->
       <div class="about-rows" id="about-rows">
@@ -2196,6 +2213,7 @@
       }
 
       /* ===== الاسم والنبذة ===== */
+      var aboutEditing = false;
       if (canEdit) {
         nameInput.value = data.name || "";
         aboutInput.value = data.about || "";
@@ -2233,10 +2251,7 @@
           }
         });
 
-        aboutInput.addEventListener("input", function () {
-          data.about = aboutInput.value;
-          save();
-        });
+        initAboutEditor();
       } else {
         /* استبدال حقول الإدخال بنص للقراءة.
            الاسم لا يُستبدل: صار داخل الترويسة ومخفياً للزائر. */
@@ -2260,6 +2275,7 @@
       /* تحويل حقل إدخال إلى نص ثابت في وضع العرض */
       function showAsText(field, value, emptyText, extraClass) {
         var el = document.createElement("div");
+        el.id = field.id + "-read";
         el.className = "read-text" + (extraClass ? " " + extraClass : "");
         if (value) {
           el.textContent = value;
@@ -2268,6 +2284,41 @@
           el.classList.add("empty");
         }
         field.parentNode.replaceChild(el, field);
+      }
+
+      function initAboutEditor() {
+        var preview = document.createElement("div");
+        preview.id = "factory-about-read";
+        preview.className = "read-text";
+        aboutInput.parentNode.insertBefore(preview, aboutInput);
+        aboutInput.style.display = "none";
+        aboutInput.setAttribute("dir", "auto");
+        var toggle = document.createElement("button");
+        toggle.type = "button";
+        toggle.id = "factory-about-edit";
+        toggle.className = "about-edit-toggle";
+        toggle.textContent = I18N.t("delivery_edit");
+        toggle.setAttribute("aria-controls", "factory-about");
+        toggle.setAttribute("aria-expanded", "false");
+        aboutInput.parentNode.insertBefore(toggle, aboutInput.nextSibling);
+        toggle.addEventListener("click", function () {
+          aboutEditing = !aboutEditing;
+          aboutInput.style.display = aboutEditing ? "" : "none";
+          preview.style.display = aboutEditing ? "none" : "";
+          toggle.textContent = I18N.t(aboutEditing ? "home_panel_close" : "delivery_edit");
+          toggle.setAttribute("aria-expanded", String(aboutEditing));
+          if (aboutEditing) {
+            document.getElementById("about-translation").hidden = true;
+            aboutInput.value = data.about || "";
+            aboutInput.focus();
+          } else {
+            renderAbout();
+          }
+        });
+        aboutInput.addEventListener("input", function () {
+          data.about = aboutInput.value;
+          save();
+        });
       }
 
       /* ===== ترويسة المصنع ===== */
@@ -2536,7 +2587,50 @@
         return "https://" + value;
       }
 
+      function translateOverview(overview, userInitiated) {
+        var box = document.getElementById("about-translation");
+        var status = document.getElementById("about-translation-status");
+        var retry = document.getElementById("about-translation-retry");
+        retry.onclick = function () {
+          if (!aboutEditing) translateOverview(overview, true);
+        };
+        function updateStatus(state, progress) {
+          if (aboutEditing) return;
+          box.hidden = state === "translated" || state === "original";
+          retry.hidden = state !== "activation-required" && state !== "failed";
+          retry.disabled = retry.hidden;
+          retry.textContent = I18N.t(state === "activation-required" ? "translation_enable" : "translation_retry");
+          var key = state === "activation-required" ? "translation_activation"
+            : state === "unsupported" || state === "unavailable" ? "translation_unavailable"
+            : state === "downloading" ? "translation_downloading"
+            : state === "failed" ? "translation_failed" : "translation_working";
+          status.textContent = box.hidden ? "" : I18N.t(key) +
+            (state === "downloading" && Number.isFinite(progress) ? " " + progress + "%" : "");
+        }
+        if (!window.SFTranslate) { updateStatus("unsupported"); return; }
+        SFTranslate.translateEl(overview, I18N.getLang(), {
+          userInitiated: !!userInitiated,
+          onStatus: updateStatus
+        });
+      }
+
       function renderAbout() {
+        /* Refresh and translate the overview for visitors and owners.
+           Keep the owner's editable source text separate from its translation. */
+        if (!aboutEditing) {
+          var overview = document.getElementById("factory-about-read");
+          var aboutCard = document.getElementById("card-about");
+          var about = String(data.about || "");
+          if (aboutCard) aboutCard.classList.toggle("is-empty", !canEdit && !about.trim());
+          if (overview) {
+            overview.textContent = about;
+            overview.classList.toggle("empty", !about.trim());
+            overview.setAttribute("data-sf-src", about);
+            overview.setAttribute("data-sf-translate", "");
+            translateOverview(overview, false);
+            if (canEdit && !about.trim()) overview.textContent = I18N.t("factory_no_about");
+          }
+        }
         document.getElementById("v-website").textContent = data.website || "";
         document.getElementById("v-website").href = safeExternalUrl(data.website);
         document.getElementById("v-industry").textContent = industryLabel();

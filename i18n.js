@@ -4,6 +4,13 @@
 
   var dict = {
     ar: {
+      translation_working: "جارٍ ترجمة النص…",
+      translation_downloading: "جارٍ تنزيل ملفات الترجمة…",
+      translation_activation: "اضغط تفعيل الترجمة لتحميل اللغة المطلوبة وترجمة النص.",
+      translation_enable: "تفعيل الترجمة",
+      translation_unavailable: "ترجمة هذا النص غير متاحة في متصفحك للغة المختارة؛ يُعرض النص الأصلي.",
+      translation_failed: "تعذّرت الترجمة. يُعرض النص الأصلي؛ يمكنك إعادة المحاولة.",
+      translation_retry: "إعادة محاولة الترجمة",
       locale_preferences_title: "تعيين اللغة والعملة",
       locale_preferences_description: "اختر اللغة وعملة العرض المفضلتين لديك، ثم اضغط حفظ.",
       locale_preferences_save: "حفظ",
@@ -716,6 +723,13 @@
       usertype_factory: "مصانع"
     },
     en: {
+      translation_working: "Translating text…",
+      translation_downloading: "Downloading translation files…",
+      translation_activation: "Activate translation to load the required language and translate this text.",
+      translation_enable: "Activate translation",
+      translation_unavailable: "Translation is unavailable in this browser for the selected language. The original text is shown.",
+      translation_failed: "Translation failed. The original text is shown; you can try again.",
+      translation_retry: "Retry translation",
       locale_preferences_title: "Language and currency",
       locale_preferences_description: "Choose your preferred language and display currency, then save.",
       locale_preferences_save: "Save",
@@ -1428,6 +1442,13 @@
       usertype_factory: "Factories"
     },
     fr: {
+      translation_working: "Traduction du texte en cours…",
+      translation_downloading: "Téléchargement des fichiers de traduction…",
+      translation_activation: "Activez la traduction pour charger la langue requise et traduire ce texte.",
+      translation_enable: "Activer la traduction",
+      translation_unavailable: "La traduction est indisponible dans ce navigateur pour la langue choisie. Le texte original est affiché.",
+      translation_failed: "La traduction a échoué. Le texte original est affiché ; vous pouvez réessayer.",
+      translation_retry: "Réessayer la traduction",
       locale_preferences_title: "Language and currency",
       locale_preferences_description: "Choose your preferred language and display currency, then save.",
       locale_preferences_save: "Save",
@@ -2140,6 +2161,13 @@
       usertype_factory: "Usines"
     },
     es: {
+      translation_working: "Translating text…",
+      translation_downloading: "Downloading translation files…",
+      translation_activation: "Activate translation to load the required language and translate this text.",
+      translation_enable: "Activate translation",
+      translation_unavailable: "Translation is unavailable in this browser for the selected language. The original text is shown.",
+      translation_failed: "Translation failed. The original text is shown; you can try again.",
+      translation_retry: "Retry translation",
       locale_preferences_title: "Language and currency",
       locale_preferences_description: "Choose your preferred language and display currency, then save.",
       locale_preferences_save: "Save",
@@ -2852,6 +2880,13 @@
       usertype_factory: "Fabricas"
     },
     de: {
+      translation_working: "Translating text…",
+      translation_downloading: "Downloading translation files…",
+      translation_activation: "Activate translation to load the required language and translate this text.",
+      translation_enable: "Activate translation",
+      translation_unavailable: "Translation is unavailable in this browser for the selected language. The original text is shown.",
+      translation_failed: "Translation failed. The original text is shown; you can try again.",
+      translation_retry: "Retry translation",
       locale_preferences_title: "Language and currency",
       locale_preferences_description: "Choose your preferred language and display currency, then save.",
       locale_preferences_save: "Save",
@@ -3564,6 +3599,13 @@
       usertype_factory: "Fabriken"
     },
     it: {
+      translation_working: "Translating text…",
+      translation_downloading: "Downloading translation files…",
+      translation_activation: "Activate translation to load the required language and translate this text.",
+      translation_enable: "Activate translation",
+      translation_unavailable: "Translation is unavailable in this browser for the selected language. The original text is shown.",
+      translation_failed: "Translation failed. The original text is shown; you can try again.",
+      translation_retry: "Retry translation",
       locale_preferences_title: "Language and currency",
       locale_preferences_description: "Choose your preferred language and display currency, then save.",
       locale_preferences_save: "Save",
@@ -4276,6 +4318,13 @@
       usertype_factory: "Fabbriche"
     },
     pt: {
+      translation_working: "Translating text…",
+      translation_downloading: "Downloading translation files…",
+      translation_activation: "Activate translation to load the required language and translate this text.",
+      translation_enable: "Activate translation",
+      translation_unavailable: "Translation is unavailable in this browser for the selected language. The original text is shown.",
+      translation_failed: "Translation failed. The original text is shown; you can try again.",
+      translation_retry: "Retry translation",
       locale_preferences_title: "Language and currency",
       locale_preferences_description: "Choose your preferred language and display currency, then save.",
       locale_preferences_save: "Save",
@@ -4988,6 +5037,13 @@
       usertype_factory: "Fabricas"
     },
     ru: {
+      translation_working: "Translating text…",
+      translation_downloading: "Downloading translation files…",
+      translation_activation: "Activate translation to load the required language and translate this text.",
+      translation_enable: "Activate translation",
+      translation_unavailable: "Translation is unavailable in this browser for the selected language. The original text is shown.",
+      translation_failed: "Translation failed. The original text is shown; you can try again.",
+      translation_retry: "Retry translation",
       locale_preferences_title: "Language and currency",
       locale_preferences_description: "Choose your preferred language and display currency, then save.",
       locale_preferences_save: "Save",
@@ -5700,6 +5756,13 @@
       usertype_factory: "Заводы"
     },
     tr: {
+      translation_working: "Translating text…",
+      translation_downloading: "Downloading translation files…",
+      translation_activation: "Activate translation to load the required language and translate this text.",
+      translation_enable: "Activate translation",
+      translation_unavailable: "Translation is unavailable in this browser for the selected language. The original text is shown.",
+      translation_failed: "Translation failed. The original text is shown; you can try again.",
+      translation_retry: "Retry translation",
       locale_preferences_title: "Language and currency",
       locale_preferences_description: "Choose your preferred language and display currency, then save.",
       locale_preferences_save: "Save",
@@ -6412,6 +6475,13 @@
       usertype_factory: "Fabrikalar"
     },
     fa: {
+      translation_working: "Translating text…",
+      translation_downloading: "Downloading translation files…",
+      translation_activation: "Activate translation to load the required language and translate this text.",
+      translation_enable: "Activate translation",
+      translation_unavailable: "Translation is unavailable in this browser for the selected language. The original text is shown.",
+      translation_failed: "Translation failed. The original text is shown; you can try again.",
+      translation_retry: "Retry translation",
       locale_preferences_title: "Language and currency",
       locale_preferences_description: "Choose your preferred language and display currency, then save.",
       locale_preferences_save: "Save",
@@ -7124,6 +7194,13 @@
       usertype_factory: "کارخانه‌ها"
     },
     ur: {
+      translation_working: "Translating text…",
+      translation_downloading: "Downloading translation files…",
+      translation_activation: "Activate translation to load the required language and translate this text.",
+      translation_enable: "Activate translation",
+      translation_unavailable: "Translation is unavailable in this browser for the selected language. The original text is shown.",
+      translation_failed: "Translation failed. The original text is shown; you can try again.",
+      translation_retry: "Retry translation",
       locale_preferences_title: "Language and currency",
       locale_preferences_description: "Choose your preferred language and display currency, then save.",
       locale_preferences_save: "Save",
@@ -7836,6 +7913,13 @@
       usertype_factory: "فیکٹریاں"
     },
     hi: {
+      translation_working: "Translating text…",
+      translation_downloading: "Downloading translation files…",
+      translation_activation: "Activate translation to load the required language and translate this text.",
+      translation_enable: "Activate translation",
+      translation_unavailable: "Translation is unavailable in this browser for the selected language. The original text is shown.",
+      translation_failed: "Translation failed. The original text is shown; you can try again.",
+      translation_retry: "Retry translation",
       locale_preferences_title: "Language and currency",
       locale_preferences_description: "Choose your preferred language and display currency, then save.",
       locale_preferences_save: "Save",
@@ -8548,6 +8632,13 @@
       usertype_factory: "फैक्ट्रियां"
     },
     zh: {
+      translation_working: "Translating text…",
+      translation_downloading: "Downloading translation files…",
+      translation_activation: "Activate translation to load the required language and translate this text.",
+      translation_enable: "Activate translation",
+      translation_unavailable: "Translation is unavailable in this browser for the selected language. The original text is shown.",
+      translation_failed: "Translation failed. The original text is shown; you can try again.",
+      translation_retry: "Retry translation",
       locale_preferences_title: "Language and currency",
       locale_preferences_description: "Choose your preferred language and display currency, then save.",
       locale_preferences_save: "Save",
@@ -9260,6 +9351,13 @@
       usertype_factory: "工厂"
     },
     ja: {
+      translation_working: "Translating text…",
+      translation_downloading: "Downloading translation files…",
+      translation_activation: "Activate translation to load the required language and translate this text.",
+      translation_enable: "Activate translation",
+      translation_unavailable: "Translation is unavailable in this browser for the selected language. The original text is shown.",
+      translation_failed: "Translation failed. The original text is shown; you can try again.",
+      translation_retry: "Retry translation",
       locale_preferences_title: "Language and currency",
       locale_preferences_description: "Choose your preferred language and display currency, then save.",
       locale_preferences_save: "Save",
@@ -9972,6 +10070,13 @@
       usertype_factory: "工場"
     },
     ko: {
+      translation_working: "Translating text…",
+      translation_downloading: "Downloading translation files…",
+      translation_activation: "Activate translation to load the required language and translate this text.",
+      translation_enable: "Activate translation",
+      translation_unavailable: "Translation is unavailable in this browser for the selected language. The original text is shown.",
+      translation_failed: "Translation failed. The original text is shown; you can try again.",
+      translation_retry: "Retry translation",
       locale_preferences_title: "Language and currency",
       locale_preferences_description: "Choose your preferred language and display currency, then save.",
       locale_preferences_save: "Save",
@@ -10684,6 +10789,13 @@
       usertype_factory: "공장"
     },
     id: {
+      translation_working: "Translating text…",
+      translation_downloading: "Downloading translation files…",
+      translation_activation: "Activate translation to load the required language and translate this text.",
+      translation_enable: "Activate translation",
+      translation_unavailable: "Translation is unavailable in this browser for the selected language. The original text is shown.",
+      translation_failed: "Translation failed. The original text is shown; you can try again.",
+      translation_retry: "Retry translation",
       locale_preferences_title: "Language and currency",
       locale_preferences_description: "Choose your preferred language and display currency, then save.",
       locale_preferences_save: "Save",
@@ -11396,6 +11508,13 @@
       usertype_factory: "Pabrik"
     },
     ms: {
+      translation_working: "Translating text…",
+      translation_downloading: "Downloading translation files…",
+      translation_activation: "Activate translation to load the required language and translate this text.",
+      translation_enable: "Activate translation",
+      translation_unavailable: "Translation is unavailable in this browser for the selected language. The original text is shown.",
+      translation_failed: "Translation failed. The original text is shown; you can try again.",
+      translation_retry: "Retry translation",
       locale_preferences_title: "Language and currency",
       locale_preferences_description: "Choose your preferred language and display currency, then save.",
       locale_preferences_save: "Save",
@@ -12108,6 +12227,13 @@
       usertype_factory: "Kilang"
     },
     th: {
+      translation_working: "Translating text…",
+      translation_downloading: "Downloading translation files…",
+      translation_activation: "Activate translation to load the required language and translate this text.",
+      translation_enable: "Activate translation",
+      translation_unavailable: "Translation is unavailable in this browser for the selected language. The original text is shown.",
+      translation_failed: "Translation failed. The original text is shown; you can try again.",
+      translation_retry: "Retry translation",
       locale_preferences_title: "Language and currency",
       locale_preferences_description: "Choose your preferred language and display currency, then save.",
       locale_preferences_save: "Save",
@@ -12820,6 +12946,13 @@
       usertype_factory: "โรงงาน"
     },
     vi: {
+      translation_working: "Translating text…",
+      translation_downloading: "Downloading translation files…",
+      translation_activation: "Activate translation to load the required language and translate this text.",
+      translation_enable: "Activate translation",
+      translation_unavailable: "Translation is unavailable in this browser for the selected language. The original text is shown.",
+      translation_failed: "Translation failed. The original text is shown; you can try again.",
+      translation_retry: "Retry translation",
       locale_preferences_title: "Language and currency",
       locale_preferences_description: "Choose your preferred language and display currency, then save.",
       locale_preferences_save: "Save",
@@ -13532,6 +13665,13 @@
       usertype_factory: "Nha may"
     },
     he: {
+      translation_working: "Translating text…",
+      translation_downloading: "Downloading translation files…",
+      translation_activation: "Activate translation to load the required language and translate this text.",
+      translation_enable: "Activate translation",
+      translation_unavailable: "Translation is unavailable in this browser for the selected language. The original text is shown.",
+      translation_failed: "Translation failed. The original text is shown; you can try again.",
+      translation_retry: "Retry translation",
       locale_preferences_title: "Language and currency",
       locale_preferences_description: "Choose your preferred language and display currency, then save.",
       locale_preferences_save: "Save",
@@ -14244,6 +14384,13 @@
       usertype_factory: "מפעלים"
     },
     nl: {
+      translation_working: "Translating text…",
+      translation_downloading: "Downloading translation files…",
+      translation_activation: "Activate translation to load the required language and translate this text.",
+      translation_enable: "Activate translation",
+      translation_unavailable: "Translation is unavailable in this browser for the selected language. The original text is shown.",
+      translation_failed: "Translation failed. The original text is shown; you can try again.",
+      translation_retry: "Retry translation",
       locale_preferences_title: "Language and currency",
       locale_preferences_description: "Choose your preferred language and display currency, then save.",
       locale_preferences_save: "Save",
@@ -14956,6 +15103,13 @@
       usertype_factory: "Fabrieken"
     },
     pl: {
+      translation_working: "Translating text…",
+      translation_downloading: "Downloading translation files…",
+      translation_activation: "Activate translation to load the required language and translate this text.",
+      translation_enable: "Activate translation",
+      translation_unavailable: "Translation is unavailable in this browser for the selected language. The original text is shown.",
+      translation_failed: "Translation failed. The original text is shown; you can try again.",
+      translation_retry: "Retry translation",
       locale_preferences_title: "Language and currency",
       locale_preferences_description: "Choose your preferred language and display currency, then save.",
       locale_preferences_save: "Save",
@@ -15668,6 +15822,13 @@
       usertype_factory: "Fabryki"
     },
     sv: {
+      translation_working: "Translating text…",
+      translation_downloading: "Downloading translation files…",
+      translation_activation: "Activate translation to load the required language and translate this text.",
+      translation_enable: "Activate translation",
+      translation_unavailable: "Translation is unavailable in this browser for the selected language. The original text is shown.",
+      translation_failed: "Translation failed. The original text is shown; you can try again.",
+      translation_retry: "Retry translation",
       locale_preferences_title: "Language and currency",
       locale_preferences_description: "Choose your preferred language and display currency, then save.",
       locale_preferences_save: "Save",
@@ -16380,6 +16541,13 @@
       usertype_factory: "Fabriker"
     },
     el: {
+      translation_working: "Translating text…",
+      translation_downloading: "Downloading translation files…",
+      translation_activation: "Activate translation to load the required language and translate this text.",
+      translation_enable: "Activate translation",
+      translation_unavailable: "Translation is unavailable in this browser for the selected language. The original text is shown.",
+      translation_failed: "Translation failed. The original text is shown; you can try again.",
+      translation_retry: "Retry translation",
       locale_preferences_title: "Language and currency",
       locale_preferences_description: "Choose your preferred language and display currency, then save.",
       locale_preferences_save: "Save",
@@ -17092,6 +17260,13 @@
       usertype_factory: "Ergostasia"
     },
     bn: {
+      translation_working: "Translating text…",
+      translation_downloading: "Downloading translation files…",
+      translation_activation: "Activate translation to load the required language and translate this text.",
+      translation_enable: "Activate translation",
+      translation_unavailable: "Translation is unavailable in this browser for the selected language. The original text is shown.",
+      translation_failed: "Translation failed. The original text is shown; you can try again.",
+      translation_retry: "Retry translation",
       locale_preferences_title: "Language and currency",
       locale_preferences_description: "Choose your preferred language and display currency, then save.",
       locale_preferences_save: "Save",
@@ -17804,6 +17979,13 @@
       usertype_factory: "কারখানা"
     },
     pa: {
+      translation_working: "Translating text…",
+      translation_downloading: "Downloading translation files…",
+      translation_activation: "Activate translation to load the required language and translate this text.",
+      translation_enable: "Activate translation",
+      translation_unavailable: "Translation is unavailable in this browser for the selected language. The original text is shown.",
+      translation_failed: "Translation failed. The original text is shown; you can try again.",
+      translation_retry: "Retry translation",
       locale_preferences_title: "Language and currency",
       locale_preferences_description: "Choose your preferred language and display currency, then save.",
       locale_preferences_save: "Save",
@@ -18516,6 +18698,13 @@
       usertype_factory: "ਫੈਕਟਰੀਆਂ"
     },
     ta: {
+      translation_working: "Translating text…",
+      translation_downloading: "Downloading translation files…",
+      translation_activation: "Activate translation to load the required language and translate this text.",
+      translation_enable: "Activate translation",
+      translation_unavailable: "Translation is unavailable in this browser for the selected language. The original text is shown.",
+      translation_failed: "Translation failed. The original text is shown; you can try again.",
+      translation_retry: "Retry translation",
       locale_preferences_title: "Language and currency",
       locale_preferences_description: "Choose your preferred language and display currency, then save.",
       locale_preferences_save: "Save",
@@ -19228,6 +19417,13 @@
       usertype_factory: "தொழிற்சாலைகள்"
     },
     sw: {
+      translation_working: "Translating text…",
+      translation_downloading: "Downloading translation files…",
+      translation_activation: "Activate translation to load the required language and translate this text.",
+      translation_enable: "Activate translation",
+      translation_unavailable: "Translation is unavailable in this browser for the selected language. The original text is shown.",
+      translation_failed: "Translation failed. The original text is shown; you can try again.",
+      translation_retry: "Retry translation",
       locale_preferences_title: "Language and currency",
       locale_preferences_description: "Choose your preferred language and display currency, then save.",
       locale_preferences_save: "Save",
@@ -19940,6 +20136,13 @@
       usertype_factory: "Viwanda"
     },
     am: {
+      translation_working: "Translating text…",
+      translation_downloading: "Downloading translation files…",
+      translation_activation: "Activate translation to load the required language and translate this text.",
+      translation_enable: "Activate translation",
+      translation_unavailable: "Translation is unavailable in this browser for the selected language. The original text is shown.",
+      translation_failed: "Translation failed. The original text is shown; you can try again.",
+      translation_retry: "Retry translation",
       locale_preferences_title: "Language and currency",
       locale_preferences_description: "Choose your preferred language and display currency, then save.",
       locale_preferences_save: "Save",
@@ -20652,6 +20855,13 @@
       usertype_factory: "ፋብሪካዎች"
     },
     ku: {
+      translation_working: "Translating text…",
+      translation_downloading: "Downloading translation files…",
+      translation_activation: "Activate translation to load the required language and translate this text.",
+      translation_enable: "Activate translation",
+      translation_unavailable: "Translation is unavailable in this browser for the selected language. The original text is shown.",
+      translation_failed: "Translation failed. The original text is shown; you can try again.",
+      translation_retry: "Retry translation",
       locale_preferences_title: "Language and currency",
       locale_preferences_description: "Choose your preferred language and display currency, then save.",
       locale_preferences_save: "Save",
