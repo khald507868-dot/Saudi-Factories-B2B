@@ -4,6 +4,13 @@
 
   var dict = {
     ar: {
+      catalog_search_view_all: "عرض جميع النتائج",
+      catalog_search_similar: "نتائج قريبة من كلمة البحث",
+      catalog_search_action: "بحث",
+      catalog_search_results: "نتائج البحث",
+      catalog_search_prompt: "اكتب اسم منتج أو مصنع لبدء البحث.",
+      catalog_search_hint: "اكتب اسم المنتج أو المصنع لتظهر النتائج والأسماء القريبة أثناء الكتابة.",
+      catalog_search_failed: "تعذّر تحميل نتائج البحث. حاول مجددًا.",
       account_delete: "حذف الحساب",
       account_delete_warning: "سيُحذف حسابك وبيانات ملفك ومنتجات مصنعك نهائيًا. لا يمكن التراجع عن هذه العملية.",
       account_delete_confirm: "أفهم أن الحذف نهائي وأريد حذف حسابي.",
@@ -704,6 +711,13 @@
       usertype_factory: "مصانع"
     },
     en: {
+      catalog_search_view_all: "View all results",
+      catalog_search_similar: "Similar matches",
+      catalog_search_action: "Search",
+      catalog_search_results: "Search results",
+      catalog_search_prompt: "Enter a product or factory name to start searching.",
+      catalog_search_hint: "Type a product or factory name to see matching and similar names as you type.",
+      catalog_search_failed: "Could not load search results. Please try again.",
       account_delete: "Delete account",
       account_delete_warning: "Your account, profile data and factory products will be permanently deleted. This cannot be undone.",
       account_delete_confirm: "I understand deletion is permanent and want to delete my account.",
@@ -1404,6 +1418,13 @@
       usertype_factory: "Factories"
     },
     fr: {
+      catalog_search_view_all: "View all results",
+      catalog_search_similar: "Similar matches",
+      catalog_search_action: "Search",
+      catalog_search_results: "Search results",
+      catalog_search_prompt: "Enter a product or factory name to start searching.",
+      catalog_search_hint: "Type a product or factory name to see matching and similar names as you type.",
+      catalog_search_failed: "Could not load search results. Please try again.",
       account_delete: "Delete account",
       account_delete_warning: "Your account, profile data and factory products will be permanently deleted. This cannot be undone.",
       account_delete_confirm: "I understand deletion is permanent and want to delete my account.",
@@ -2104,6 +2125,13 @@
       usertype_factory: "Usines"
     },
     es: {
+      catalog_search_view_all: "View all results",
+      catalog_search_similar: "Similar matches",
+      catalog_search_action: "Search",
+      catalog_search_results: "Search results",
+      catalog_search_prompt: "Enter a product or factory name to start searching.",
+      catalog_search_hint: "Type a product or factory name to see matching and similar names as you type.",
+      catalog_search_failed: "Could not load search results. Please try again.",
       account_delete: "Delete account",
       account_delete_warning: "Your account, profile data and factory products will be permanently deleted. This cannot be undone.",
       account_delete_confirm: "I understand deletion is permanent and want to delete my account.",
@@ -2804,6 +2832,13 @@
       usertype_factory: "Fabricas"
     },
     de: {
+      catalog_search_view_all: "View all results",
+      catalog_search_similar: "Similar matches",
+      catalog_search_action: "Search",
+      catalog_search_results: "Search results",
+      catalog_search_prompt: "Enter a product or factory name to start searching.",
+      catalog_search_hint: "Type a product or factory name to see matching and similar names as you type.",
+      catalog_search_failed: "Could not load search results. Please try again.",
       account_delete: "Delete account",
       account_delete_warning: "Your account, profile data and factory products will be permanently deleted. This cannot be undone.",
       account_delete_confirm: "I understand deletion is permanent and want to delete my account.",
@@ -3504,6 +3539,13 @@
       usertype_factory: "Fabriken"
     },
     it: {
+      catalog_search_view_all: "View all results",
+      catalog_search_similar: "Similar matches",
+      catalog_search_action: "Search",
+      catalog_search_results: "Search results",
+      catalog_search_prompt: "Enter a product or factory name to start searching.",
+      catalog_search_hint: "Type a product or factory name to see matching and similar names as you type.",
+      catalog_search_failed: "Could not load search results. Please try again.",
       account_delete: "Delete account",
       account_delete_warning: "Your account, profile data and factory products will be permanently deleted. This cannot be undone.",
       account_delete_confirm: "I understand deletion is permanent and want to delete my account.",
@@ -4204,6 +4246,13 @@
       usertype_factory: "Fabbriche"
     },
     pt: {
+      catalog_search_view_all: "View all results",
+      catalog_search_similar: "Similar matches",
+      catalog_search_action: "Search",
+      catalog_search_results: "Search results",
+      catalog_search_prompt: "Enter a product or factory name to start searching.",
+      catalog_search_hint: "Type a product or factory name to see matching and similar names as you type.",
+      catalog_search_failed: "Could not load search results. Please try again.",
       account_delete: "Delete account",
       account_delete_warning: "Your account, profile data and factory products will be permanently deleted. This cannot be undone.",
       account_delete_confirm: "I understand deletion is permanent and want to delete my account.",
@@ -4904,6 +4953,13 @@
       usertype_factory: "Fabricas"
     },
     ru: {
+      catalog_search_view_all: "View all results",
+      catalog_search_similar: "Similar matches",
+      catalog_search_action: "Search",
+      catalog_search_results: "Search results",
+      catalog_search_prompt: "Enter a product or factory name to start searching.",
+      catalog_search_hint: "Type a product or factory name to see matching and similar names as you type.",
+      catalog_search_failed: "Could not load search results. Please try again.",
       account_delete: "Delete account",
       account_delete_warning: "Your account, profile data and factory products will be permanently deleted. This cannot be undone.",
       account_delete_confirm: "I understand deletion is permanent and want to delete my account.",
@@ -5604,6 +5660,13 @@
       usertype_factory: "Заводы"
     },
     tr: {
+      catalog_search_view_all: "View all results",
+      catalog_search_similar: "Similar matches",
+      catalog_search_action: "Search",
+      catalog_search_results: "Search results",
+      catalog_search_prompt: "Enter a product or factory name to start searching.",
+      catalog_search_hint: "Type a product or factory name to see matching and similar names as you type.",
+      catalog_search_failed: "Could not load search results. Please try again.",
       account_delete: "Delete account",
       account_delete_warning: "Your account, profile data and factory products will be permanently deleted. This cannot be undone.",
       account_delete_confirm: "I understand deletion is permanent and want to delete my account.",
@@ -6304,6 +6367,13 @@
       usertype_factory: "Fabrikalar"
     },
     fa: {
+      catalog_search_view_all: "View all results",
+      catalog_search_similar: "Similar matches",
+      catalog_search_action: "Search",
+      catalog_search_results: "Search results",
+      catalog_search_prompt: "Enter a product or factory name to start searching.",
+      catalog_search_hint: "Type a product or factory name to see matching and similar names as you type.",
+      catalog_search_failed: "Could not load search results. Please try again.",
       account_delete: "Delete account",
       account_delete_warning: "Your account, profile data and factory products will be permanently deleted. This cannot be undone.",
       account_delete_confirm: "I understand deletion is permanent and want to delete my account.",
@@ -7004,6 +7074,13 @@
       usertype_factory: "کارخانه‌ها"
     },
     ur: {
+      catalog_search_view_all: "View all results",
+      catalog_search_similar: "Similar matches",
+      catalog_search_action: "Search",
+      catalog_search_results: "Search results",
+      catalog_search_prompt: "Enter a product or factory name to start searching.",
+      catalog_search_hint: "Type a product or factory name to see matching and similar names as you type.",
+      catalog_search_failed: "Could not load search results. Please try again.",
       account_delete: "Delete account",
       account_delete_warning: "Your account, profile data and factory products will be permanently deleted. This cannot be undone.",
       account_delete_confirm: "I understand deletion is permanent and want to delete my account.",
@@ -7704,6 +7781,13 @@
       usertype_factory: "فیکٹریاں"
     },
     hi: {
+      catalog_search_view_all: "View all results",
+      catalog_search_similar: "Similar matches",
+      catalog_search_action: "Search",
+      catalog_search_results: "Search results",
+      catalog_search_prompt: "Enter a product or factory name to start searching.",
+      catalog_search_hint: "Type a product or factory name to see matching and similar names as you type.",
+      catalog_search_failed: "Could not load search results. Please try again.",
       account_delete: "Delete account",
       account_delete_warning: "Your account, profile data and factory products will be permanently deleted. This cannot be undone.",
       account_delete_confirm: "I understand deletion is permanent and want to delete my account.",
@@ -8404,6 +8488,13 @@
       usertype_factory: "फैक्ट्रियां"
     },
     zh: {
+      catalog_search_view_all: "View all results",
+      catalog_search_similar: "Similar matches",
+      catalog_search_action: "Search",
+      catalog_search_results: "Search results",
+      catalog_search_prompt: "Enter a product or factory name to start searching.",
+      catalog_search_hint: "Type a product or factory name to see matching and similar names as you type.",
+      catalog_search_failed: "Could not load search results. Please try again.",
       account_delete: "Delete account",
       account_delete_warning: "Your account, profile data and factory products will be permanently deleted. This cannot be undone.",
       account_delete_confirm: "I understand deletion is permanent and want to delete my account.",
@@ -9104,6 +9195,13 @@
       usertype_factory: "工厂"
     },
     ja: {
+      catalog_search_view_all: "View all results",
+      catalog_search_similar: "Similar matches",
+      catalog_search_action: "Search",
+      catalog_search_results: "Search results",
+      catalog_search_prompt: "Enter a product or factory name to start searching.",
+      catalog_search_hint: "Type a product or factory name to see matching and similar names as you type.",
+      catalog_search_failed: "Could not load search results. Please try again.",
       account_delete: "Delete account",
       account_delete_warning: "Your account, profile data and factory products will be permanently deleted. This cannot be undone.",
       account_delete_confirm: "I understand deletion is permanent and want to delete my account.",
@@ -9804,6 +9902,13 @@
       usertype_factory: "工場"
     },
     ko: {
+      catalog_search_view_all: "View all results",
+      catalog_search_similar: "Similar matches",
+      catalog_search_action: "Search",
+      catalog_search_results: "Search results",
+      catalog_search_prompt: "Enter a product or factory name to start searching.",
+      catalog_search_hint: "Type a product or factory name to see matching and similar names as you type.",
+      catalog_search_failed: "Could not load search results. Please try again.",
       account_delete: "Delete account",
       account_delete_warning: "Your account, profile data and factory products will be permanently deleted. This cannot be undone.",
       account_delete_confirm: "I understand deletion is permanent and want to delete my account.",
@@ -10504,6 +10609,13 @@
       usertype_factory: "공장"
     },
     id: {
+      catalog_search_view_all: "View all results",
+      catalog_search_similar: "Similar matches",
+      catalog_search_action: "Search",
+      catalog_search_results: "Search results",
+      catalog_search_prompt: "Enter a product or factory name to start searching.",
+      catalog_search_hint: "Type a product or factory name to see matching and similar names as you type.",
+      catalog_search_failed: "Could not load search results. Please try again.",
       account_delete: "Delete account",
       account_delete_warning: "Your account, profile data and factory products will be permanently deleted. This cannot be undone.",
       account_delete_confirm: "I understand deletion is permanent and want to delete my account.",
@@ -11204,6 +11316,13 @@
       usertype_factory: "Pabrik"
     },
     ms: {
+      catalog_search_view_all: "View all results",
+      catalog_search_similar: "Similar matches",
+      catalog_search_action: "Search",
+      catalog_search_results: "Search results",
+      catalog_search_prompt: "Enter a product or factory name to start searching.",
+      catalog_search_hint: "Type a product or factory name to see matching and similar names as you type.",
+      catalog_search_failed: "Could not load search results. Please try again.",
       account_delete: "Delete account",
       account_delete_warning: "Your account, profile data and factory products will be permanently deleted. This cannot be undone.",
       account_delete_confirm: "I understand deletion is permanent and want to delete my account.",
@@ -11904,6 +12023,13 @@
       usertype_factory: "Kilang"
     },
     th: {
+      catalog_search_view_all: "View all results",
+      catalog_search_similar: "Similar matches",
+      catalog_search_action: "Search",
+      catalog_search_results: "Search results",
+      catalog_search_prompt: "Enter a product or factory name to start searching.",
+      catalog_search_hint: "Type a product or factory name to see matching and similar names as you type.",
+      catalog_search_failed: "Could not load search results. Please try again.",
       account_delete: "Delete account",
       account_delete_warning: "Your account, profile data and factory products will be permanently deleted. This cannot be undone.",
       account_delete_confirm: "I understand deletion is permanent and want to delete my account.",
@@ -12604,6 +12730,13 @@
       usertype_factory: "โรงงาน"
     },
     vi: {
+      catalog_search_view_all: "View all results",
+      catalog_search_similar: "Similar matches",
+      catalog_search_action: "Search",
+      catalog_search_results: "Search results",
+      catalog_search_prompt: "Enter a product or factory name to start searching.",
+      catalog_search_hint: "Type a product or factory name to see matching and similar names as you type.",
+      catalog_search_failed: "Could not load search results. Please try again.",
       account_delete: "Delete account",
       account_delete_warning: "Your account, profile data and factory products will be permanently deleted. This cannot be undone.",
       account_delete_confirm: "I understand deletion is permanent and want to delete my account.",
@@ -13304,6 +13437,13 @@
       usertype_factory: "Nha may"
     },
     he: {
+      catalog_search_view_all: "View all results",
+      catalog_search_similar: "Similar matches",
+      catalog_search_action: "Search",
+      catalog_search_results: "Search results",
+      catalog_search_prompt: "Enter a product or factory name to start searching.",
+      catalog_search_hint: "Type a product or factory name to see matching and similar names as you type.",
+      catalog_search_failed: "Could not load search results. Please try again.",
       account_delete: "Delete account",
       account_delete_warning: "Your account, profile data and factory products will be permanently deleted. This cannot be undone.",
       account_delete_confirm: "I understand deletion is permanent and want to delete my account.",
@@ -14004,6 +14144,13 @@
       usertype_factory: "מפעלים"
     },
     nl: {
+      catalog_search_view_all: "View all results",
+      catalog_search_similar: "Similar matches",
+      catalog_search_action: "Search",
+      catalog_search_results: "Search results",
+      catalog_search_prompt: "Enter a product or factory name to start searching.",
+      catalog_search_hint: "Type a product or factory name to see matching and similar names as you type.",
+      catalog_search_failed: "Could not load search results. Please try again.",
       account_delete: "Delete account",
       account_delete_warning: "Your account, profile data and factory products will be permanently deleted. This cannot be undone.",
       account_delete_confirm: "I understand deletion is permanent and want to delete my account.",
@@ -14704,6 +14851,13 @@
       usertype_factory: "Fabrieken"
     },
     pl: {
+      catalog_search_view_all: "View all results",
+      catalog_search_similar: "Similar matches",
+      catalog_search_action: "Search",
+      catalog_search_results: "Search results",
+      catalog_search_prompt: "Enter a product or factory name to start searching.",
+      catalog_search_hint: "Type a product or factory name to see matching and similar names as you type.",
+      catalog_search_failed: "Could not load search results. Please try again.",
       account_delete: "Delete account",
       account_delete_warning: "Your account, profile data and factory products will be permanently deleted. This cannot be undone.",
       account_delete_confirm: "I understand deletion is permanent and want to delete my account.",
@@ -15404,6 +15558,13 @@
       usertype_factory: "Fabryki"
     },
     sv: {
+      catalog_search_view_all: "View all results",
+      catalog_search_similar: "Similar matches",
+      catalog_search_action: "Search",
+      catalog_search_results: "Search results",
+      catalog_search_prompt: "Enter a product or factory name to start searching.",
+      catalog_search_hint: "Type a product or factory name to see matching and similar names as you type.",
+      catalog_search_failed: "Could not load search results. Please try again.",
       account_delete: "Delete account",
       account_delete_warning: "Your account, profile data and factory products will be permanently deleted. This cannot be undone.",
       account_delete_confirm: "I understand deletion is permanent and want to delete my account.",
@@ -16104,6 +16265,13 @@
       usertype_factory: "Fabriker"
     },
     el: {
+      catalog_search_view_all: "View all results",
+      catalog_search_similar: "Similar matches",
+      catalog_search_action: "Search",
+      catalog_search_results: "Search results",
+      catalog_search_prompt: "Enter a product or factory name to start searching.",
+      catalog_search_hint: "Type a product or factory name to see matching and similar names as you type.",
+      catalog_search_failed: "Could not load search results. Please try again.",
       account_delete: "Delete account",
       account_delete_warning: "Your account, profile data and factory products will be permanently deleted. This cannot be undone.",
       account_delete_confirm: "I understand deletion is permanent and want to delete my account.",
@@ -16804,6 +16972,13 @@
       usertype_factory: "Ergostasia"
     },
     bn: {
+      catalog_search_view_all: "View all results",
+      catalog_search_similar: "Similar matches",
+      catalog_search_action: "Search",
+      catalog_search_results: "Search results",
+      catalog_search_prompt: "Enter a product or factory name to start searching.",
+      catalog_search_hint: "Type a product or factory name to see matching and similar names as you type.",
+      catalog_search_failed: "Could not load search results. Please try again.",
       account_delete: "Delete account",
       account_delete_warning: "Your account, profile data and factory products will be permanently deleted. This cannot be undone.",
       account_delete_confirm: "I understand deletion is permanent and want to delete my account.",
@@ -17504,6 +17679,13 @@
       usertype_factory: "কারখানা"
     },
     pa: {
+      catalog_search_view_all: "View all results",
+      catalog_search_similar: "Similar matches",
+      catalog_search_action: "Search",
+      catalog_search_results: "Search results",
+      catalog_search_prompt: "Enter a product or factory name to start searching.",
+      catalog_search_hint: "Type a product or factory name to see matching and similar names as you type.",
+      catalog_search_failed: "Could not load search results. Please try again.",
       account_delete: "Delete account",
       account_delete_warning: "Your account, profile data and factory products will be permanently deleted. This cannot be undone.",
       account_delete_confirm: "I understand deletion is permanent and want to delete my account.",
@@ -18204,6 +18386,13 @@
       usertype_factory: "ਫੈਕਟਰੀਆਂ"
     },
     ta: {
+      catalog_search_view_all: "View all results",
+      catalog_search_similar: "Similar matches",
+      catalog_search_action: "Search",
+      catalog_search_results: "Search results",
+      catalog_search_prompt: "Enter a product or factory name to start searching.",
+      catalog_search_hint: "Type a product or factory name to see matching and similar names as you type.",
+      catalog_search_failed: "Could not load search results. Please try again.",
       account_delete: "Delete account",
       account_delete_warning: "Your account, profile data and factory products will be permanently deleted. This cannot be undone.",
       account_delete_confirm: "I understand deletion is permanent and want to delete my account.",
@@ -18904,6 +19093,13 @@
       usertype_factory: "தொழிற்சாலைகள்"
     },
     sw: {
+      catalog_search_view_all: "View all results",
+      catalog_search_similar: "Similar matches",
+      catalog_search_action: "Search",
+      catalog_search_results: "Search results",
+      catalog_search_prompt: "Enter a product or factory name to start searching.",
+      catalog_search_hint: "Type a product or factory name to see matching and similar names as you type.",
+      catalog_search_failed: "Could not load search results. Please try again.",
       account_delete: "Delete account",
       account_delete_warning: "Your account, profile data and factory products will be permanently deleted. This cannot be undone.",
       account_delete_confirm: "I understand deletion is permanent and want to delete my account.",
@@ -19604,6 +19800,13 @@
       usertype_factory: "Viwanda"
     },
     am: {
+      catalog_search_view_all: "View all results",
+      catalog_search_similar: "Similar matches",
+      catalog_search_action: "Search",
+      catalog_search_results: "Search results",
+      catalog_search_prompt: "Enter a product or factory name to start searching.",
+      catalog_search_hint: "Type a product or factory name to see matching and similar names as you type.",
+      catalog_search_failed: "Could not load search results. Please try again.",
       account_delete: "Delete account",
       account_delete_warning: "Your account, profile data and factory products will be permanently deleted. This cannot be undone.",
       account_delete_confirm: "I understand deletion is permanent and want to delete my account.",
@@ -20304,6 +20507,13 @@
       usertype_factory: "ፋብሪካዎች"
     },
     ku: {
+      catalog_search_view_all: "View all results",
+      catalog_search_similar: "Similar matches",
+      catalog_search_action: "Search",
+      catalog_search_results: "Search results",
+      catalog_search_prompt: "Enter a product or factory name to start searching.",
+      catalog_search_hint: "Type a product or factory name to see matching and similar names as you type.",
+      catalog_search_failed: "Could not load search results. Please try again.",
       account_delete: "Delete account",
       account_delete_warning: "Your account, profile data and factory products will be permanently deleted. This cannot be undone.",
       account_delete_confirm: "I understand deletion is permanent and want to delete my account.",

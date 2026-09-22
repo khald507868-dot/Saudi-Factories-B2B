@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-i18n="catalog_search_results">نتائج البحث</title>
+  <link rel="icon" href="favicon.ico?v=20260922-sf-brand" sizes="16x16 32x32 48x48">
+  <link rel="icon" type="image/svg+xml" href="assets/brand/favicon.svg?v=20260922-sf-brand" sizes="any">
+  <link rel="apple-touch-icon" href="assets/brand/apple-touch-icon.png?v=20260922-sf-brand">
+  <script src="currency.js"></script>
+  <script src="i18n.js?v=20260922-live-search"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-config.js"></script>
+  <script>var SF_PUBLIC_PAGE = true;</script>
+  <script src="account-access.js"></script>
+  <script src="auth-guard.js"></script>
+  <script src="product-card-data.js"></script>
+  <link rel="stylesheet" href="desktop.css">
+  <link rel="stylesheet" href="site-search.css?v=20260922-live-search">
+  <script src="site-search.js?v=20260922-live-search" defer></script>
+</head>
+<body class="catalog-page">
+  <header class="catalog-header">
+    <a href="index.html">Saudi Factories B2B</a>
+    <nav><a href="index.html" data-i18n="nav_home">الرئيسية</a><a href="web-factories.html" data-i18n="nav_factories">المصانع</a><a href="web-account.html" data-i18n="nav_account">الحساب</a></nav>
+  </header>
+  <main class="catalog-main">
+    <h1><span data-i18n="catalog_search_results">نتائج البحث</span> <span id="catalog-search-term"></span></h1>
+    <form class="search-box" action="web-search.html" method="get" role="search">
+      <button type="submit" class="site-search-submit" aria-label="بحث"><svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="7.5"></circle><path d="m16 16 5 5"></path></svg></button>
+      <input type="search" name="q" required maxlength="120" data-i18n-placeholder="search_placeholder" placeholder="ابحث عن مصنع أو منتج...">
+    </form>
+    <p class="catalog-hint" data-i18n="catalog_search_hint">ابحث بالاسم أو بجزء منه كما هو مكتوب في المنتج أو المصنع.</p>
+    <p id="catalog-search-prompt" data-i18n="catalog_search_prompt">اكتب اسم منتج أو مصنع لبدء البحث.</p>
+    <div id="catalog-search-results" hidden>
+      <section class="catalog-section" aria-labelledby="catalog-products-title">
+        <h2 id="catalog-products-title" data-i18n="factory_products_title">المنتجات</h2>
+        <p id="catalog-products-status" class="catalog-status" role="status"></p>
+        <div id="catalog-products" class="catalog-grid" aria-busy="false"></div>
+        <button id="catalog-products-more" type="button" class="catalog-more" hidden data-i18n="home_more_products">عرض المزيد</button>
+      </section>
+      <section class="catalog-section" aria-labelledby="catalog-factories-title">
+        <h2 id="catalog-factories-title" data-i18n="nav_factories">المصانع</h2>
+        <p id="catalog-factories-status" class="catalog-status" role="status"></p>
+        <div id="catalog-factories" class="catalog-grid" aria-busy="false"></div>
+        <button id="catalog-factories-more" type="button" class="catalog-more" hidden data-i18n="home_more_products">عرض المزيد</button>
+      </section>
+    </div>
+  </main>
+</body>
+</html>

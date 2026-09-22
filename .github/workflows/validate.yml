@@ -29,6 +29,7 @@ jobs:
         shell: bash
         run: |
           node scripts/test_avatar_security.mjs
+          node scripts/test_site_search.mjs
           node scripts/test_manual_shipping_client.mjs
           node scripts/test_shipping_images_client.mjs
           node scripts/test_delivery_addresses_client.mjs

@@ -1,0 +1,34 @@
+.search-box .site-search-submit{display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;border:0;background:transparent;color:#04361b;padding:4px;cursor:pointer;font:inherit;border-radius:50%}
+.search-box .site-search-submit svg{width:22px;height:22px;stroke:currentColor;fill:none}
+.search-box .site-search-submit:focus-visible{outline:3px solid #c9a227;outline-offset:3px}
+form.search-box{margin:0}
+form.search-box{position:relative;overflow:visible!important}
+.site-search-suggestions{position:absolute;inset-inline:0;top:calc(100% + 8px);z-index:100;max-height:min(65vh,560px);overflow-y:auto;background:#fff;color:#04361b;border:1px solid #bdd0c2;border-radius:16px;box-shadow:0 12px 30px #04361b26;padding:8px;text-align:start;box-sizing:border-box}
+.site-search-suggestions[hidden]{display:none!important}
+.site-search-suggestions .catalog-card{display:flex;flex-direction:row;align-items:center;gap:12px;border:0;border-radius:9px;padding:8px;text-decoration:none;color:#04361b;background:white;min-width:0}
+.site-search-suggestions .catalog-card:hover,.site-search-suggestions .catalog-card:focus-visible{background:#edf5ef;outline:2px solid #386c48;outline-offset:-2px}
+.site-search-suggestions .catalog-card-image{height:52px;width:52px;flex:0 0 52px;border-radius:8px;overflow:hidden}
+.site-search-suggestions .catalog-card-body{padding:0;min-width:0}.site-search-suggestions .catalog-card h3{font-size:15px;margin:0;line-height:1.5}.site-search-suggestions .catalog-card p{font-size:12px;margin:2px 0;line-height:1.5}
+.site-search-group{font-size:13px;font-weight:700;color:#596d60;margin:6px 10px!important;padding-top:4px}
+.site-search-message{font-size:14px;padding:12px;margin:0}
+.site-search-all{display:block;padding:10px;margin-top:6px;border-top:1px solid #e1e9e3;text-align:center;color:#17663d;font-size:14px;font-weight:600}
+.site-search-announcement{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.catalog-page{margin:0;background:#f6f7f6;color:#04361b;font:16px/1.65 "Segoe UI",Tahoma,Arial,sans-serif}
+.catalog-page *{box-sizing:border-box}.catalog-page [hidden]{display:none!important}
+.catalog-header{background:white;border-bottom:1px solid #dfe8e2;padding:20px max(24px,5vw);display:flex;gap:24px;flex-wrap:wrap;align-items:center;justify-content:space-between}
+.catalog-header nav{display:flex;gap:20px}.catalog-page a{color:inherit;text-underline-offset:4px}
+.catalog-main{max-width:1240px;margin:30px auto;padding:0 24px 48px}
+.catalog-main h1{margin:0 0 20px;font-size:28px}.catalog-main h1 span{font-size:20px;overflow-wrap:anywhere}
+.catalog-main .search-box{display:flex;align-items:center;gap:12px;border:2px solid #386c48;border-radius:32px;padding:8px 16px;background:white;max-width:850px}
+.catalog-main .search-box input{width:100%;min-width:0;border:0;outline:none;background:transparent;padding:6px;font:inherit;color:inherit}
+.catalog-main .search-box:focus-within{outline:2px solid #c9a227;outline-offset:3px}
+.catalog-hint,.catalog-status{color:#596d60}.catalog-section{margin-top:32px}.catalog-section h2{font-size:22px}
+.catalog-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px}
+.catalog-card{display:flex;flex-direction:column;overflow:hidden;text-decoration:none;background:white;border:1px solid #dfe8e2;border-radius:16px;min-width:0}
+.catalog-card:hover{border-color:#386c48}.catalog-card:focus-visible{outline:3px solid #c9a227;outline-offset:3px}
+.catalog-card-image{height:170px;background:#eaf0eb}.catalog-card-image img{width:100%;height:100%;object-fit:contain}
+.catalog-card-body{padding:16px}.catalog-card h3{font-size:17px;margin:0 0 8px;overflow-wrap:anywhere}.catalog-card p{margin:6px 0;overflow-wrap:anywhere}
+.catalog-factory-name{font-size:14px;color:#596d60}.catalog-price{font-weight:700}
+.catalog-more{margin-top:18px;padding:10px 24px;border:1px solid #386c48;border-radius:10px;background:#386c48;color:white;font:inherit;cursor:pointer}.catalog-more:disabled{opacity:.6;cursor:wait}
+@media(max-width:900px){.catalog-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:480px){.catalog-main{padding-inline:16px}.catalog-grid{grid-template-columns:1fr}.catalog-header{gap:12px;padding:16px}.catalog-main h1{font-size:24px}}
