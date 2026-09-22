@@ -1503,7 +1503,7 @@
                  '<table class="spec-table"><tbody>' +
                    rows.map(function (r) {
                      return '<tr><th>' + escapeHTML(I18N.t(r[0])) + '</th>' +
-                            '<td>' + escapeHTML(r[1]) + '</td></tr>';
+                            '<td' + (r[0] !== "product_moq" ? ' data-sf-translate' : '') + '>' + escapeHTML(r[1]) + '</td></tr>';
                    }).join("") +
                  '</tbody></table>' +
                '</div>';
@@ -1518,7 +1518,7 @@
       var nameHTML = hasLocalProduct
         ? '<div class="prod-name" data-sf-translate>' +
           escapeHTML(displayName) + '</div>'
-        : '<div class="prod-name sk-line sk-name"></div>';
+        : '<div class="prod-name sk-line sk-name" data-sf-translate></div>';
 
       var SUPPLIER_HTML =
         '<div class="card supplier-card">' +
@@ -2727,6 +2727,7 @@
         var title = wrap.querySelector(".prod-name");
         if (title) {
           title.textContent = row.name || factory.name || factoryName;
+          title.setAttribute("data-sf-translate", "");
           title.removeAttribute("data-sf-src");
           /* نزع الهيكل: الكتابة أعلاه تملأ النصّ
              ولا تمسّ الأصناف، فيبقى الرمادي فوق الاسم. */
@@ -2741,15 +2742,6 @@
         if (Array.isArray(row.tiers)) {
           product.tiers = row.tiers;
         }
-        /* والوصف كذلك إن جاء من الخادم. */
-        var descEl = wrap.querySelector(".prod-desc");
-        if (descEl && row.description != null && row.description !== "") {
-          descEl.textContent = row.description;
-          descEl.removeAttribute("data-sf-src");
-        }
-
-        /* بعد كلّ كتابة: تُعاد الترجمة لما تغيّر. */
-        if (global_SFTranslate()) SFTranslate.translateAll(wrap);
         /* التقييمات تحتاج معرّف المنتج من الخادم. */
         loadReviewsBlock();
 
@@ -2840,6 +2832,8 @@
             bindCartButton();
           }
         }
+        /* Translate the final nodes after rebuilding the description and specs. */
+        if (global_SFTranslate()) SFTranslate.translateAll(wrap);
       }
 
       /* ===== منتجات مشابهة =====

@@ -166,6 +166,13 @@
     font-weight: 600;
   }
 
+  .image-save-status { margin: 0; font-size: 13px; color: #386442; text-align: center; }
+  .image-save-status[data-error="true"] { color: #a32d25; }
+  .image-upload:disabled { cursor: wait; opacity: .65; }
+  .image-delete { border: 0; background: transparent; color: #a32d25; font: inherit; font-size: 13px; cursor: pointer; padding: 4px 10px; }
+  .image-delete:hover { text-decoration: underline; }
+  .image-delete:disabled { cursor: wait; opacity: .65; }
+
   /* الجنس */
   .gender-row {
     display: flex;
@@ -831,12 +838,14 @@
     <form id="profile-form">
       <!-- صورة الشركة/الحساب: تُعرض وتُعدّل هنا كما في صفحة التسجيل -->
       <div class="company-image-field">
-        <div class="image-upload" id="image-upload-trigger">
+        <button type="button" class="image-upload" id="image-upload-trigger" aria-labelledby="company-image-label">
           <img id="image-preview" alt="" style="display:none;">
           <svg id="image-upload-icon" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M4 16l4.586-4.586a2 2 0 0 1 2.828 0L16 16"></path><path d="M14 14l1.586-1.586a2 2 0 0 1 2.828 0L20 14"></path><rect x="2" y="4" width="20" height="16" rx="2"></rect><circle cx="8" cy="9" r="1.5"></circle></svg>
-        </div>
-        <span class="upload-label" data-i18n="field_company_image">إضافة صورة الشركة</span>
+        </button>
+        <span id="company-image-label" class="upload-label" data-i18n="field_company_image">إضافة صورة الشركة</span>
         <input type="file" id="f-company-image" accept="image/*" style="display:none;">
+        <button type="button" id="image-delete" class="image-delete" data-i18n="cert_delete" hidden>حذف الصورة</button>
+        <p id="image-save-status" class="image-save-status" role="status" aria-live="polite"></p>
       </div>
 
       <div class="field">
@@ -1025,8 +1034,9 @@
       var isFactory = accountType === "factory";
 
       /* Database media fields contain URLs only; discard legacy base64 drafts. */
-      var companyImageData = sfSafeHttpUrl(serverProfile.company_image || savedAccount.companyImage || "");
+      var companyImageData = sfSafeHttpUrl(serverProfile.company_image || "");
       var imageUploadPending = false;
+      var profileSavePending = false;
       var addressData = savedAccount.address || {
         city: "", district: "", shortAddress: "",
         building: "", secondary: "", postal: "", street: ""
@@ -1061,7 +1071,7 @@
         var filled = nameInput.value.trim().length > 0 &&
           phoneInput.value.trim().length > 0 &&
           (!crInput || crInput.value.trim().length > 0) &&
-          !imageUploadPending;
+          !imageUploadPending && !profileSavePending;
         updateBtn.disabled = !filled;
         updateBtn.classList.toggle("enabled", filled);
       }
@@ -1152,6 +1162,8 @@
       var imageInput = document.getElementById("f-company-image");
       var imagePreview = document.getElementById("image-preview");
       var imageIcon = document.getElementById("image-upload-icon");
+      var imageStatus = document.getElementById("image-save-status");
+      var imageDelete = document.getElementById("image-delete");
 
       function showCompanyImage(dataUrl) {
         imagePreview.src = dataUrl;
@@ -1160,6 +1172,7 @@
       }
 
       function restoreCompanyImage(url) {
+        imageDelete.hidden = !url;
         if (url) {
           showCompanyImage(url);
           return;
@@ -1176,59 +1189,128 @@
         message.classList.add("show");
       }
 
-      if (companyImageData) showCompanyImage(companyImageData);
+      restoreCompanyImage(companyImageData);
+
+      function saveCompanyImage(url) {
+        return Promise.resolve().then(function () {
+          if (!window.sb || !window.SF_USER) throw new Error(I18N.t("cert_failed"));
+          return sb.from("profiles").update({ company_image: url })
+            .eq("id", SF_USER.id).select("company_image").single();
+        }).then(function (result) {
+          if (result.error) throw result.error;
+          if (!result.data || result.data.company_image !== url) throw new Error(I18N.t("cert_failed"));
+          companyImageData = url;
+          serverProfile.company_image = url;
+          if (window.SF_PROFILE) window.SF_PROFILE.company_image = url;
+          try {
+            var cached = JSON.parse(localStorage.getItem("sf_account") || "{}");
+            if (!cached || typeof cached !== "object" || Array.isArray(cached)) cached = {};
+            cached.companyImage = url;
+            localStorage.setItem("sf_account", JSON.stringify(cached));
+          } catch (error) { /* The server save remains valid if local storage is unavailable. */ }
+          restoreCompanyImage(url);
+          var avatar = document.getElementById("dash-avatar");
+          if (avatar) {
+            if (url) {
+              var img = document.createElement("img");
+              img.alt = "";
+              img.src = url;
+              avatar.replaceChildren(img);
+            } else {
+              avatar.textContent = "👤";
+            }
+          }
+        });
+      }
+
+      imageDelete.addEventListener("click", function () {
+        if (!companyImageData || imageUploadPending || profileSavePending) return;
+        imageUploadPending = true;
+        imageTrigger.disabled = imageInput.disabled = imageDelete.disabled = true;
+        imageStatus.textContent = I18N.t("profile_image_deleting");
+        imageStatus.setAttribute("data-error", "false");
+        checkFilled();
+        saveCompanyImage("").then(function () {
+          imageStatus.textContent = I18N.t("profile_image_deleted");
+        }).catch(function (error) {
+          imageStatus.textContent = I18N.t("cert_failed") + (error && error.message ? " " + error.message : "");
+          imageStatus.setAttribute("data-error", "true");
+        }).finally(function () {
+          imageUploadPending = false;
+          imageTrigger.disabled = imageInput.disabled = imageDelete.disabled = false;
+          checkFilled();
+        });
+      });
 
       /* تصغير الصورة قبل الحفظ حتى لا تمتلئ مساحة التخزين بسرعة */
-      function resizeImage(dataUrl, maxSize, done) {
+      function resizeImage(dataUrl, maxSize, done, fail) {
         var img = new Image();
         img.onload = function () {
-          var scale = Math.min(1, maxSize / Math.max(img.width, img.height));
-          var canvas = document.createElement("canvas");
-          canvas.width = Math.round(img.width * scale);
-          canvas.height = Math.round(img.height * scale);
-          canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
-          done(canvas.toDataURL("image/jpeg", 0.8));
+          try {
+            var scale = Math.min(1, maxSize / Math.max(img.width, img.height));
+            var canvas = document.createElement("canvas");
+            canvas.width = Math.round(img.width * scale);
+            canvas.height = Math.round(img.height * scale);
+            canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+            done(canvas.toDataURL("image/jpeg", 0.8));
+          } catch (error) { fail(error); }
         };
-        img.onerror = function () { done(dataUrl); };
+        img.onerror = fail;
         img.src = dataUrl;
       }
 
       imageTrigger.addEventListener("click", function () {
-        imageInput.click();
+        if (!imageUploadPending && !profileSavePending) imageInput.click();
       });
 
       imageInput.addEventListener("change", function () {
         var file = imageInput.files[0];
-        if (!file) return;
-        var reader = new FileReader();
-        reader.onload = function (e) {
-          /* الصورة تُعرض فقط، ولا تُحفظ إلا عند الضغط على "تحديث" */
-          resizeImage(e.target.result, 400, function (resized) {
-            var previousImage = companyImageData;
-            showCompanyImage(resized);
-            if (window.SFUpload && window.SF_USER) {
-              imageUploadPending = true;
-              checkFilled();
-              SFUpload.uploadDataUrl(resized, "factory-media", "profile", "image")
-                .then(function (uploaded) {
-                  companyImageData = uploaded.url;
-                  imageUploadPending = false;
-                  checkFilled();
-                })
-                .catch(function (err) {
-                  companyImageData = previousImage;
-                  imageUploadPending = false;
-                  restoreCompanyImage(previousImage);
-                  showProfileError(err);
-                  checkFilled();
-                });
-            } else {
-              restoreCompanyImage(previousImage);
-              showProfileError(new Error("تعذّر رفع الصورة. أعد تحميل الصفحة وحاول مرة أخرى."));
-            }
-          });
-        };
-        reader.readAsDataURL(file);
+        if (!file || imageUploadPending || profileSavePending) return;
+        var previousImage = companyImageData;
+        imageUploadPending = true;
+        imageTrigger.disabled = imageInput.disabled = imageDelete.disabled = true;
+        imageStatus.textContent = I18N.t("msg_uploading");
+        imageStatus.setAttribute("data-error", "false");
+        checkFilled();
+
+        /* Save this field immediately, without submitting other profile edits. */
+        new Promise(function (resolve, reject) {
+          if (!window.SFUpload || !window.SF_USER || !window.sb) {
+            reject(new Error(I18N.t("cert_failed")));
+            return;
+          }
+          var reader = new FileReader();
+          reader.onerror = reader.onabort = reject;
+          reader.onload = function (e) {
+            resizeImage(e.target.result, 400, resolve, reject);
+          };
+          reader.readAsDataURL(file);
+        }).then(function (resized) {
+          showCompanyImage(resized);
+          return SFUpload.uploadDataUrl(resized, "factory-media", "profile", "image");
+        }).then(function (uploaded) {
+          var url = sfSafeHttpUrl(uploaded.url);
+          if (!url) throw new Error(I18N.t("cert_failed"));
+          return saveCompanyImage(url);
+        }).then(function () {
+          imageStatus.textContent = I18N.t("admin_cat_saved");
+        }).catch(function (error) {
+          companyImageData = previousImage;
+          restoreCompanyImage(previousImage);
+          imageStatus.textContent = I18N.t("cert_failed") + (error && error.message ? " " + error.message : "");
+          imageStatus.setAttribute("data-error", "true");
+        }).finally(function () {
+          imageUploadPending = false;
+          imageTrigger.disabled = imageInput.disabled = imageDelete.disabled = false;
+          imageInput.value = "";
+          checkFilled();
+        });
+      });
+
+      window.addEventListener("beforeunload", function (event) {
+        if (!imageUploadPending) return;
+        event.preventDefault();
+        event.returnValue = "";
       });
 
       var editableFields = [nameInput, phoneInput, emailInput];
@@ -1293,12 +1375,20 @@
           showProfileError(new Error("انتظر اكتمال رفع الصورة ثم حاول مجددًا."));
           return;
         }
+        if (profileSavePending) return;
+        profileSavePending = true;
+        imageTrigger.disabled = imageInput.disabled = imageDelete.disabled = true;
+        checkFilled();
         var accountData = saveAccountData();
         saveAccountToServer(accountData).then(function () {
           showConfirm();
         }).catch(function (err) {
           console.warn("profile save:", err && err.message);
           showProfileError(err);
+        }).finally(function () {
+          profileSavePending = false;
+          imageTrigger.disabled = imageInput.disabled = imageDelete.disabled = false;
+          checkFilled();
         });
       });
 
