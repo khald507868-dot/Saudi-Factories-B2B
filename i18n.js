@@ -4,6 +4,9 @@
 
   var dict = {
     ar: {
+      locale_preferences_title: "تعيين اللغة والعملة",
+      locale_preferences_description: "اختر اللغة وعملة العرض المفضلتين لديك، ثم اضغط حفظ.",
+      locale_preferences_save: "حفظ",
       catalog_search_view_all: "عرض جميع النتائج",
       catalog_search_similar: "نتائج قريبة من كلمة البحث",
       catalog_search_action: "بحث",
@@ -711,6 +714,9 @@
       usertype_factory: "مصانع"
     },
     en: {
+      locale_preferences_title: "Language and currency",
+      locale_preferences_description: "Choose your preferred language and display currency, then save.",
+      locale_preferences_save: "Save",
       catalog_search_view_all: "View all results",
       catalog_search_similar: "Similar matches",
       catalog_search_action: "Search",
@@ -1418,6 +1424,9 @@
       usertype_factory: "Factories"
     },
     fr: {
+      locale_preferences_title: "Language and currency",
+      locale_preferences_description: "Choose your preferred language and display currency, then save.",
+      locale_preferences_save: "Save",
       catalog_search_view_all: "View all results",
       catalog_search_similar: "Similar matches",
       catalog_search_action: "Search",
@@ -2125,6 +2134,9 @@
       usertype_factory: "Usines"
     },
     es: {
+      locale_preferences_title: "Language and currency",
+      locale_preferences_description: "Choose your preferred language and display currency, then save.",
+      locale_preferences_save: "Save",
       catalog_search_view_all: "View all results",
       catalog_search_similar: "Similar matches",
       catalog_search_action: "Search",
@@ -2832,6 +2844,9 @@
       usertype_factory: "Fabricas"
     },
     de: {
+      locale_preferences_title: "Language and currency",
+      locale_preferences_description: "Choose your preferred language and display currency, then save.",
+      locale_preferences_save: "Save",
       catalog_search_view_all: "View all results",
       catalog_search_similar: "Similar matches",
       catalog_search_action: "Search",
@@ -3539,6 +3554,9 @@
       usertype_factory: "Fabriken"
     },
     it: {
+      locale_preferences_title: "Language and currency",
+      locale_preferences_description: "Choose your preferred language and display currency, then save.",
+      locale_preferences_save: "Save",
       catalog_search_view_all: "View all results",
       catalog_search_similar: "Similar matches",
       catalog_search_action: "Search",
@@ -4246,6 +4264,9 @@
       usertype_factory: "Fabbriche"
     },
     pt: {
+      locale_preferences_title: "Language and currency",
+      locale_preferences_description: "Choose your preferred language and display currency, then save.",
+      locale_preferences_save: "Save",
       catalog_search_view_all: "View all results",
       catalog_search_similar: "Similar matches",
       catalog_search_action: "Search",
@@ -4953,6 +4974,9 @@
       usertype_factory: "Fabricas"
     },
     ru: {
+      locale_preferences_title: "Language and currency",
+      locale_preferences_description: "Choose your preferred language and display currency, then save.",
+      locale_preferences_save: "Save",
       catalog_search_view_all: "View all results",
       catalog_search_similar: "Similar matches",
       catalog_search_action: "Search",
@@ -5660,6 +5684,9 @@
       usertype_factory: "Заводы"
     },
     tr: {
+      locale_preferences_title: "Language and currency",
+      locale_preferences_description: "Choose your preferred language and display currency, then save.",
+      locale_preferences_save: "Save",
       catalog_search_view_all: "View all results",
       catalog_search_similar: "Similar matches",
       catalog_search_action: "Search",
@@ -6367,6 +6394,9 @@
       usertype_factory: "Fabrikalar"
     },
     fa: {
+      locale_preferences_title: "Language and currency",
+      locale_preferences_description: "Choose your preferred language and display currency, then save.",
+      locale_preferences_save: "Save",
       catalog_search_view_all: "View all results",
       catalog_search_similar: "Similar matches",
       catalog_search_action: "Search",
@@ -7074,6 +7104,9 @@
       usertype_factory: "کارخانه‌ها"
     },
     ur: {
+      locale_preferences_title: "Language and currency",
+      locale_preferences_description: "Choose your preferred language and display currency, then save.",
+      locale_preferences_save: "Save",
       catalog_search_view_all: "View all results",
       catalog_search_similar: "Similar matches",
       catalog_search_action: "Search",
@@ -7781,6 +7814,9 @@
       usertype_factory: "فیکٹریاں"
     },
     hi: {
+      locale_preferences_title: "Language and currency",
+      locale_preferences_description: "Choose your preferred language and display currency, then save.",
+      locale_preferences_save: "Save",
       catalog_search_view_all: "View all results",
       catalog_search_similar: "Similar matches",
       catalog_search_action: "Search",
@@ -8488,6 +8524,9 @@
       usertype_factory: "फैक्ट्रियां"
     },
     zh: {
+      locale_preferences_title: "Language and currency",
+      locale_preferences_description: "Choose your preferred language and display currency, then save.",
+      locale_preferences_save: "Save",
       catalog_search_view_all: "View all results",
       catalog_search_similar: "Similar matches",
       catalog_search_action: "Search",
@@ -9195,6 +9234,9 @@
       usertype_factory: "工厂"
     },
     ja: {
+      locale_preferences_title: "Language and currency",
+      locale_preferences_description: "Choose your preferred language and display currency, then save.",
+      locale_preferences_save: "Save",
       catalog_search_view_all: "View all results",
       catalog_search_similar: "Similar matches",
       catalog_search_action: "Search",
@@ -9902,6 +9944,9 @@
       usertype_factory: "工場"
     },
     ko: {
+      locale_preferences_title: "Language and currency",
+      locale_preferences_description: "Choose your preferred language and display currency, then save.",
+      locale_preferences_save: "Save",
       catalog_search_view_all: "View all results",
       catalog_search_similar: "Similar matches",
       catalog_search_action: "Search",
@@ -10609,6 +10654,9 @@
       usertype_factory: "공장"
     },
     id: {
+      locale_preferences_title: "Language and currency",
+      locale_preferences_description: "Choose your preferred language and display currency, then save.",
+      locale_preferences_save: "Save",
       catalog_search_view_all: "View all results",
       catalog_search_similar: "Similar matches",
       catalog_search_action: "Search",
@@ -11316,6 +11364,9 @@
       usertype_factory: "Pabrik"
     },
     ms: {
+      locale_preferences_title: "Language and currency",
+      locale_preferences_description: "Choose your preferred language and display currency, then save.",
+      locale_preferences_save: "Save",
       catalog_search_view_all: "View all results",
       catalog_search_similar: "Similar matches",
       catalog_search_action: "Search",
@@ -12023,6 +12074,9 @@
       usertype_factory: "Kilang"
     },
     th: {
+      locale_preferences_title: "Language and currency",
+      locale_preferences_description: "Choose your preferred language and display currency, then save.",
+      locale_preferences_save: "Save",
       catalog_search_view_all: "View all results",
       catalog_search_similar: "Similar matches",
       catalog_search_action: "Search",
@@ -12730,6 +12784,9 @@
       usertype_factory: "โรงงาน"
     },
     vi: {
+      locale_preferences_title: "Language and currency",
+      locale_preferences_description: "Choose your preferred language and display currency, then save.",
+      locale_preferences_save: "Save",
       catalog_search_view_all: "View all results",
       catalog_search_similar: "Similar matches",
       catalog_search_action: "Search",
@@ -13437,6 +13494,9 @@
       usertype_factory: "Nha may"
     },
     he: {
+      locale_preferences_title: "Language and currency",
+      locale_preferences_description: "Choose your preferred language and display currency, then save.",
+      locale_preferences_save: "Save",
       catalog_search_view_all: "View all results",
       catalog_search_similar: "Similar matches",
       catalog_search_action: "Search",
@@ -14144,6 +14204,9 @@
       usertype_factory: "מפעלים"
     },
     nl: {
+      locale_preferences_title: "Language and currency",
+      locale_preferences_description: "Choose your preferred language and display currency, then save.",
+      locale_preferences_save: "Save",
       catalog_search_view_all: "View all results",
       catalog_search_similar: "Similar matches",
       catalog_search_action: "Search",
@@ -14851,6 +14914,9 @@
       usertype_factory: "Fabrieken"
     },
     pl: {
+      locale_preferences_title: "Language and currency",
+      locale_preferences_description: "Choose your preferred language and display currency, then save.",
+      locale_preferences_save: "Save",
       catalog_search_view_all: "View all results",
       catalog_search_similar: "Similar matches",
       catalog_search_action: "Search",
@@ -15558,6 +15624,9 @@
       usertype_factory: "Fabryki"
     },
     sv: {
+      locale_preferences_title: "Language and currency",
+      locale_preferences_description: "Choose your preferred language and display currency, then save.",
+      locale_preferences_save: "Save",
       catalog_search_view_all: "View all results",
       catalog_search_similar: "Similar matches",
       catalog_search_action: "Search",
@@ -16265,6 +16334,9 @@
       usertype_factory: "Fabriker"
     },
     el: {
+      locale_preferences_title: "Language and currency",
+      locale_preferences_description: "Choose your preferred language and display currency, then save.",
+      locale_preferences_save: "Save",
       catalog_search_view_all: "View all results",
       catalog_search_similar: "Similar matches",
       catalog_search_action: "Search",
@@ -16972,6 +17044,9 @@
       usertype_factory: "Ergostasia"
     },
     bn: {
+      locale_preferences_title: "Language and currency",
+      locale_preferences_description: "Choose your preferred language and display currency, then save.",
+      locale_preferences_save: "Save",
       catalog_search_view_all: "View all results",
       catalog_search_similar: "Similar matches",
       catalog_search_action: "Search",
@@ -17679,6 +17754,9 @@
       usertype_factory: "কারখানা"
     },
     pa: {
+      locale_preferences_title: "Language and currency",
+      locale_preferences_description: "Choose your preferred language and display currency, then save.",
+      locale_preferences_save: "Save",
       catalog_search_view_all: "View all results",
       catalog_search_similar: "Similar matches",
       catalog_search_action: "Search",
@@ -18386,6 +18464,9 @@
       usertype_factory: "ਫੈਕਟਰੀਆਂ"
     },
     ta: {
+      locale_preferences_title: "Language and currency",
+      locale_preferences_description: "Choose your preferred language and display currency, then save.",
+      locale_preferences_save: "Save",
       catalog_search_view_all: "View all results",
       catalog_search_similar: "Similar matches",
       catalog_search_action: "Search",
@@ -19093,6 +19174,9 @@
       usertype_factory: "தொழிற்சாலைகள்"
     },
     sw: {
+      locale_preferences_title: "Language and currency",
+      locale_preferences_description: "Choose your preferred language and display currency, then save.",
+      locale_preferences_save: "Save",
       catalog_search_view_all: "View all results",
       catalog_search_similar: "Similar matches",
       catalog_search_action: "Search",
@@ -19800,6 +19884,9 @@
       usertype_factory: "Viwanda"
     },
     am: {
+      locale_preferences_title: "Language and currency",
+      locale_preferences_description: "Choose your preferred language and display currency, then save.",
+      locale_preferences_save: "Save",
       catalog_search_view_all: "View all results",
       catalog_search_similar: "Similar matches",
       catalog_search_action: "Search",
@@ -20507,6 +20594,9 @@
       usertype_factory: "ፋብሪካዎች"
     },
     ku: {
+      locale_preferences_title: "Language and currency",
+      locale_preferences_description: "Choose your preferred language and display currency, then save.",
+      locale_preferences_save: "Save",
       catalog_search_view_all: "View all results",
       catalog_search_similar: "Similar matches",
       catalog_search_action: "Search",

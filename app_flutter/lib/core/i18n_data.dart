@@ -46,6 +46,9 @@ const List<Map<String, String>> kCategories = [
 
 const Map<String, Map<String, String>> kDict = {
   "ar": {
+    "locale_preferences_title": "تعيين اللغة والعملة",
+    "locale_preferences_description": "اختر اللغة وعملة العرض المفضلتين لديك، ثم اضغط حفظ.",
+    "locale_preferences_save": "حفظ",
     "catalog_search_view_all": "عرض جميع النتائج",
     "catalog_search_similar": "نتائج قريبة من كلمة البحث",
     "catalog_search_action": "بحث",
@@ -753,6 +756,9 @@ const Map<String, Map<String, String>> kDict = {
     "usertype_factory": "مصانع",
   },
   "en": {
+    "locale_preferences_title": "Language and currency",
+    "locale_preferences_description": "Choose your preferred language and display currency, then save.",
+    "locale_preferences_save": "Save",
     "catalog_search_view_all": "View all results",
     "catalog_search_similar": "Similar matches",
     "catalog_search_action": "Search",
@@ -1460,6 +1466,9 @@ const Map<String, Map<String, String>> kDict = {
     "usertype_factory": "Factories",
   },
   "am": {
+    "locale_preferences_title": "Language and currency",
+    "locale_preferences_description": "Choose your preferred language and display currency, then save.",
+    "locale_preferences_save": "Save",
     "catalog_search_view_all": "View all results",
     "catalog_search_similar": "Similar matches",
     "catalog_search_action": "Search",
@@ -2167,6 +2176,9 @@ const Map<String, Map<String, String>> kDict = {
     "usertype_factory": "ፋብሪካዎች",
   },
   "bn": {
+    "locale_preferences_title": "Language and currency",
+    "locale_preferences_description": "Choose your preferred language and display currency, then save.",
+    "locale_preferences_save": "Save",
     "catalog_search_view_all": "View all results",
     "catalog_search_similar": "Similar matches",
     "catalog_search_action": "Search",
@@ -2874,6 +2886,9 @@ const Map<String, Map<String, String>> kDict = {
     "usertype_factory": "কারখানা",
   },
   "de": {
+    "locale_preferences_title": "Language and currency",
+    "locale_preferences_description": "Choose your preferred language and display currency, then save.",
+    "locale_preferences_save": "Save",
     "catalog_search_view_all": "View all results",
     "catalog_search_similar": "Similar matches",
     "catalog_search_action": "Search",
@@ -3581,6 +3596,9 @@ const Map<String, Map<String, String>> kDict = {
     "usertype_factory": "Fabriken",
   },
   "el": {
+    "locale_preferences_title": "Language and currency",
+    "locale_preferences_description": "Choose your preferred language and display currency, then save.",
+    "locale_preferences_save": "Save",
     "catalog_search_view_all": "View all results",
     "catalog_search_similar": "Similar matches",
     "catalog_search_action": "Search",
@@ -4288,6 +4306,9 @@ const Map<String, Map<String, String>> kDict = {
     "usertype_factory": "Ergostasia",
   },
   "es": {
+    "locale_preferences_title": "Language and currency",
+    "locale_preferences_description": "Choose your preferred language and display currency, then save.",
+    "locale_preferences_save": "Save",
     "catalog_search_view_all": "View all results",
     "catalog_search_similar": "Similar matches",
     "catalog_search_action": "Search",
@@ -4995,6 +5016,9 @@ const Map<String, Map<String, String>> kDict = {
     "usertype_factory": "Fabricas",
   },
   "fa": {
+    "locale_preferences_title": "Language and currency",
+    "locale_preferences_description": "Choose your preferred language and display currency, then save.",
+    "locale_preferences_save": "Save",
     "catalog_search_view_all": "View all results",
     "catalog_search_similar": "Similar matches",
     "catalog_search_action": "Search",
@@ -5702,6 +5726,9 @@ const Map<String, Map<String, String>> kDict = {
     "usertype_factory": "کارخانه‌ها",
   },
   "fr": {
+    "locale_preferences_title": "Language and currency",
+    "locale_preferences_description": "Choose your preferred language and display currency, then save.",
+    "locale_preferences_save": "Save",
     "catalog_search_view_all": "View all results",
     "catalog_search_similar": "Similar matches",
     "catalog_search_action": "Search",
@@ -6409,6 +6436,9 @@ const Map<String, Map<String, String>> kDict = {
     "usertype_factory": "Usines",
   },
   "he": {
+    "locale_preferences_title": "Language and currency",
+    "locale_preferences_description": "Choose your preferred language and display currency, then save.",
+    "locale_preferences_save": "Save",
     "catalog_search_view_all": "View all results",
     "catalog_search_similar": "Similar matches",
     "catalog_search_action": "Search",
@@ -7116,6 +7146,9 @@ const Map<String, Map<String, String>> kDict = {
     "usertype_factory": "מפעלים",
   },
   "hi": {
+    "locale_preferences_title": "Language and currency",
+    "locale_preferences_description": "Choose your preferred language and display currency, then save.",
+    "locale_preferences_save": "Save",
     "catalog_search_view_all": "View all results",
     "catalog_search_similar": "Similar matches",
     "catalog_search_action": "Search",
@@ -7823,6 +7856,9 @@ const Map<String, Map<String, String>> kDict = {
     "usertype_factory": "फैक्ट्रियां",
   },
   "id": {
+    "locale_preferences_title": "Language and currency",
+    "locale_preferences_description": "Choose your preferred language and display currency, then save.",
+    "locale_preferences_save": "Save",
     "catalog_search_view_all": "View all results",
     "catalog_search_similar": "Similar matches",
     "catalog_search_action": "Search",
@@ -8530,6 +8566,9 @@ const Map<String, Map<String, String>> kDict = {
     "usertype_factory": "Pabrik",
   },
   "it": {
+    "locale_preferences_title": "Language and currency",
+    "locale_preferences_description": "Choose your preferred language and display currency, then save.",
+    "locale_preferences_save": "Save",
     "catalog_search_view_all": "View all results",
     "catalog_search_similar": "Similar matches",
     "catalog_search_action": "Search",
@@ -9237,6 +9276,9 @@ const Map<String, Map<String, String>> kDict = {
     "usertype_factory": "Fabbriche",
   },
   "ja": {
+    "locale_preferences_title": "Language and currency",
+    "locale_preferences_description": "Choose your preferred language and display currency, then save.",
+    "locale_preferences_save": "Save",
     "catalog_search_view_all": "View all results",
     "catalog_search_similar": "Similar matches",
     "catalog_search_action": "Search",
@@ -9944,6 +9986,9 @@ const Map<String, Map<String, String>> kDict = {
     "usertype_factory": "工場",
   },
   "ko": {
+    "locale_preferences_title": "Language and currency",
+    "locale_preferences_description": "Choose your preferred language and display currency, then save.",
+    "locale_preferences_save": "Save",
     "catalog_search_view_all": "View all results",
     "catalog_search_similar": "Similar matches",
     "catalog_search_action": "Search",
@@ -10651,6 +10696,9 @@ const Map<String, Map<String, String>> kDict = {
     "usertype_factory": "공장",
   },
   "ku": {
+    "locale_preferences_title": "Language and currency",
+    "locale_preferences_description": "Choose your preferred language and display currency, then save.",
+    "locale_preferences_save": "Save",
     "catalog_search_view_all": "View all results",
     "catalog_search_similar": "Similar matches",
     "catalog_search_action": "Search",
@@ -11358,6 +11406,9 @@ const Map<String, Map<String, String>> kDict = {
     "usertype_factory": "Fabrike",
   },
   "ms": {
+    "locale_preferences_title": "Language and currency",
+    "locale_preferences_description": "Choose your preferred language and display currency, then save.",
+    "locale_preferences_save": "Save",
     "catalog_search_view_all": "View all results",
     "catalog_search_similar": "Similar matches",
     "catalog_search_action": "Search",
@@ -12065,6 +12116,9 @@ const Map<String, Map<String, String>> kDict = {
     "usertype_factory": "Kilang",
   },
   "nl": {
+    "locale_preferences_title": "Language and currency",
+    "locale_preferences_description": "Choose your preferred language and display currency, then save.",
+    "locale_preferences_save": "Save",
     "catalog_search_view_all": "View all results",
     "catalog_search_similar": "Similar matches",
     "catalog_search_action": "Search",
@@ -12772,6 +12826,9 @@ const Map<String, Map<String, String>> kDict = {
     "usertype_factory": "Fabrieken",
   },
   "pa": {
+    "locale_preferences_title": "Language and currency",
+    "locale_preferences_description": "Choose your preferred language and display currency, then save.",
+    "locale_preferences_save": "Save",
     "catalog_search_view_all": "View all results",
     "catalog_search_similar": "Similar matches",
     "catalog_search_action": "Search",
@@ -13479,6 +13536,9 @@ const Map<String, Map<String, String>> kDict = {
     "usertype_factory": "ਫੈਕਟਰੀਆਂ",
   },
   "pl": {
+    "locale_preferences_title": "Language and currency",
+    "locale_preferences_description": "Choose your preferred language and display currency, then save.",
+    "locale_preferences_save": "Save",
     "catalog_search_view_all": "View all results",
     "catalog_search_similar": "Similar matches",
     "catalog_search_action": "Search",
@@ -14186,6 +14246,9 @@ const Map<String, Map<String, String>> kDict = {
     "usertype_factory": "Fabryki",
   },
   "pt": {
+    "locale_preferences_title": "Language and currency",
+    "locale_preferences_description": "Choose your preferred language and display currency, then save.",
+    "locale_preferences_save": "Save",
     "catalog_search_view_all": "View all results",
     "catalog_search_similar": "Similar matches",
     "catalog_search_action": "Search",
@@ -14893,6 +14956,9 @@ const Map<String, Map<String, String>> kDict = {
     "usertype_factory": "Fabricas",
   },
   "ru": {
+    "locale_preferences_title": "Language and currency",
+    "locale_preferences_description": "Choose your preferred language and display currency, then save.",
+    "locale_preferences_save": "Save",
     "catalog_search_view_all": "View all results",
     "catalog_search_similar": "Similar matches",
     "catalog_search_action": "Search",
@@ -15600,6 +15666,9 @@ const Map<String, Map<String, String>> kDict = {
     "usertype_factory": "Заводы",
   },
   "sv": {
+    "locale_preferences_title": "Language and currency",
+    "locale_preferences_description": "Choose your preferred language and display currency, then save.",
+    "locale_preferences_save": "Save",
     "catalog_search_view_all": "View all results",
     "catalog_search_similar": "Similar matches",
     "catalog_search_action": "Search",
@@ -16307,6 +16376,9 @@ const Map<String, Map<String, String>> kDict = {
     "usertype_factory": "Fabriker",
   },
   "sw": {
+    "locale_preferences_title": "Language and currency",
+    "locale_preferences_description": "Choose your preferred language and display currency, then save.",
+    "locale_preferences_save": "Save",
     "catalog_search_view_all": "View all results",
     "catalog_search_similar": "Similar matches",
     "catalog_search_action": "Search",
@@ -17014,6 +17086,9 @@ const Map<String, Map<String, String>> kDict = {
     "usertype_factory": "Viwanda",
   },
   "ta": {
+    "locale_preferences_title": "Language and currency",
+    "locale_preferences_description": "Choose your preferred language and display currency, then save.",
+    "locale_preferences_save": "Save",
     "catalog_search_view_all": "View all results",
     "catalog_search_similar": "Similar matches",
     "catalog_search_action": "Search",
@@ -17721,6 +17796,9 @@ const Map<String, Map<String, String>> kDict = {
     "usertype_factory": "தொழிற்சாலைகள்",
   },
   "th": {
+    "locale_preferences_title": "Language and currency",
+    "locale_preferences_description": "Choose your preferred language and display currency, then save.",
+    "locale_preferences_save": "Save",
     "catalog_search_view_all": "View all results",
     "catalog_search_similar": "Similar matches",
     "catalog_search_action": "Search",
@@ -18428,6 +18506,9 @@ const Map<String, Map<String, String>> kDict = {
     "usertype_factory": "โรงงาน",
   },
   "tr": {
+    "locale_preferences_title": "Language and currency",
+    "locale_preferences_description": "Choose your preferred language and display currency, then save.",
+    "locale_preferences_save": "Save",
     "catalog_search_view_all": "View all results",
     "catalog_search_similar": "Similar matches",
     "catalog_search_action": "Search",
@@ -19135,6 +19216,9 @@ const Map<String, Map<String, String>> kDict = {
     "usertype_factory": "Fabrikalar",
   },
   "ur": {
+    "locale_preferences_title": "Language and currency",
+    "locale_preferences_description": "Choose your preferred language and display currency, then save.",
+    "locale_preferences_save": "Save",
     "catalog_search_view_all": "View all results",
     "catalog_search_similar": "Similar matches",
     "catalog_search_action": "Search",
@@ -19842,6 +19926,9 @@ const Map<String, Map<String, String>> kDict = {
     "usertype_factory": "فیکٹریاں",
   },
   "vi": {
+    "locale_preferences_title": "Language and currency",
+    "locale_preferences_description": "Choose your preferred language and display currency, then save.",
+    "locale_preferences_save": "Save",
     "catalog_search_view_all": "View all results",
     "catalog_search_similar": "Similar matches",
     "catalog_search_action": "Search",
@@ -20549,6 +20636,9 @@ const Map<String, Map<String, String>> kDict = {
     "usertype_factory": "Nha may",
   },
   "zh": {
+    "locale_preferences_title": "Language and currency",
+    "locale_preferences_description": "Choose your preferred language and display currency, then save.",
+    "locale_preferences_save": "Save",
     "catalog_search_view_all": "View all results",
     "catalog_search_similar": "Similar matches",
     "catalog_search_action": "Search",

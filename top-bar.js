@@ -47,6 +47,7 @@
   function start() {
     var injected = inject();
     enhanceActions();
+    if (global.SFCurrencyUI) global.SFCurrencyUI.mount();
     if (global.SFSiteSearch) global.SFSiteSearch.bind();
     if (!injected) return;
     /* الترجمة بعد الحقن: applyTranslations جرت على
