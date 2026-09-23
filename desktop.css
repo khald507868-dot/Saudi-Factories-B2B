@@ -339,7 +339,26 @@
 
   .dt-catscroll::-webkit-scrollbar { display: none; }
 
-  .dt-catscroll > a { flex-shrink: 0; }
+  .dt-catscroll > a {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 8px;
+    border-radius: 5px;
+    line-height: 20px;
+    transition: background-color .15s ease;
+  }
+
+  .dt-catscroll > a:hover,
+  .dt-catscroll > a:focus-visible {
+    background-color: #dceede;
+    color: #12331d;
+  }
+
+  .dt-catscroll > a:focus-visible {
+    outline: 2px solid #386442;
+    outline-offset: -2px;
+  }
 
   /* زر ☰ يبقى ثابتاً ولا يُمرّر مع الروابط */
   .dt-catbar-inner > a { flex-shrink: 0; }

@@ -2067,8 +2067,8 @@ select table_name, column_name, data_type
 --  مجمّعة لا صفوفاً. فلا تكشف من اشترى ولا بكم ولا من أي مصنع،
 --  ويبقى حاجز RLS على الجداول نفسه كما هو.
 --
---  الطلبات الملغاة والفاشلة مستثناة: عدّها إيراداً يضخّم الرقم
---  بما لم يُبَع فعلاً.
+--  المبيعات والوحدات المباعة تُحتسب بعد تأكيد الدفع فقط، وتبقى
+--  محتسبة أثناء التجهيز والشحن وبعد الاكتمال. الطلبات المنتظرة مستثناة.
 --
 --  طريقة التطبيق: Supabase ← SQL Editor ← New query ← لصق ← Run
 --  الملف قابل لإعادة التشغيل بأمان.
@@ -2086,6 +2086,11 @@ security definer
 set search_path = public
 stable
 as $fn$
+  with paid_orders as (
+    select o.id, o.total
+      from public.orders o
+     where o.status in ('paid', 'processing', 'shipped', 'completed')
+  )
   select
     (select count(*) from public.factories where status = 'approved'),
     (select count(*) from public.products p
@@ -2094,14 +2099,9 @@ as $fn$
     coalesce((
       select sum(oi.quantity)
         from public.order_items oi
-        join public.orders o on o.id = oi.order_id
-       where o.status not in ('cancelled', 'payment_failed')
+        join paid_orders o on o.id = oi.order_id
     ), 0),
-    coalesce((
-      select sum(o.total)
-        from public.orders o
-       where o.status not in ('cancelled', 'payment_failed')
-    ), 0);
+    coalesce((select sum(o.total) from paid_orders o), 0);
 $fn$;
 
 -- الدالة عامة: الصفحة الرئيسية تفتح للزائر بلا حساب.

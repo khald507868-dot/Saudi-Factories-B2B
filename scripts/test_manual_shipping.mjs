@@ -487,5 +487,46 @@ try {
     assert.equal((await action(6,o.id,'book',{booking_reference:'PRODUCTION-DONE',pickup_at:future(2)})).status,'booked');
     assert.equal((await one('select total from orders where id=$1',[o.id])).total,'241.15');
   });
+  await check('public sales start only at confirmed payment and survive fulfilment',async()=>{
+    const migration=read('supabase/migrations/20260923090000_paid_sales_stats.sql');
+    const snapshots=(await db.query('select * from orders order by id')).rows;
+    await db.exec(migration);await db.exec(migration);
+    assert.deepEqual((await db.query('select * from orders order by id')).rows,snapshots,'Migration never marks orders paid or changes totals');
+    const stats=async(role='anon')=>(await as(0,'select * from get_public_stats()',[],role))[0];
+    const initial=await stats();
+    assert.deepEqual(Object.keys(initial),['factories_count','products_count','units_sold','revenue']);
+    assert.deepEqual(await stats('authenticated'),initial);
+    await assert.rejects(()=>as(0,'select * from orders',[],'anon'),e=>e.code==='42501');
+    const o=await order();
+    assert.equal(o.status,'awaiting_shipping');
+    await action(2,o.id,'destination',{destination,delivery_type:'door'});
+    assert.deepEqual(await stats(),initial,'Stage two, awaiting factory confirmation, is not a sale');
+    await action(1,o.id,'packing',{packing,ready_at:future(1)});
+    const s=await action(6,o.id,'quote',quote());
+    await action(2,o.id,'accept',{quote_id:s.current_quote_id});
+    assert.equal((await one('select status from orders where id=$1',[o.id])).status,'awaiting_payment');
+    assert.deepEqual(await stats(),initial,'Quote approval is not payment');
+    await as(6,'select * from mark_order_paid($1)',[o.id]);
+    const paid=await stats();
+    const total=Number((await one('select total from orders where id=$1',[o.id])).total);
+    assert.equal(Number(paid.units_sold)-Number(initial.units_sold),10);
+    assert.equal(Math.round((Number(paid.revenue)-Number(initial.revenue))*100),Math.round(total*100));
+    assert.equal(paid.factories_count,initial.factories_count);
+    assert.equal(paid.products_count,initial.products_count);
+    // Multiple order lines must not multiply the order's monetary total.
+    await db.query('update order_items set quantity=4 where order_id=$1',[o.id]);
+    await db.query("insert into order_items(order_id,product_id,product_name,unit_price,quantity,line_total) values($1,1,'Additional line',10,6,60)",[o.id]);
+    assert.deepEqual(await stats(),paid);
+    for(const status of ['pending','awaiting_shipping','awaiting_payment','cancelled','payment_failed','paid','processing','shipped','completed']){
+      await db.query('update orders set status=$2 where id=$1',[o.id,status]);
+      assert.deepEqual(await stats(),['paid','processing','shipped','completed'].includes(status)?paid:initial,status);
+    }
+    await db.exec('begin');
+    await db.exec("update orders set status='awaiting_payment'");
+    const empty=await one('select * from get_public_stats()');
+    assert.equal(Number(empty.units_sold),0);assert.equal(Number(empty.revenue),0);
+    assert.equal(empty.factories_count,initial.factories_count);
+    await db.exec('rollback');
+  });
   console.log(`Completed ${checks} manual shipping checks; no production access.`);
 } finally {await db.close();}
