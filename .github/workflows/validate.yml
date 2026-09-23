@@ -31,6 +31,7 @@ jobs:
           node scripts/test_avatar_security.mjs
           node scripts/test_profile_image.mjs
           node scripts/test_product_translation.mjs
+          node scripts/test_product_navigation.mjs
           node scripts/test_factory_translation.mjs
           node scripts/test_translate_client.mjs
           node scripts/test_locale_picker.mjs

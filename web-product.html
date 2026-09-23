@@ -1315,7 +1315,7 @@
 
       var params    = new URLSearchParams(window.location.search);
       var factoryId = params.get("factory") || "0";
-      var productId = params.get("product") || params.get("product_id") || "";
+      var productId = params.get("product") || params.get("product_id") || params.get("id") || "";
       var prodIndex = parseInt(params.get("p") || "0", 10);
       if (isNaN(prodIndex) || prodIndex < 0) prodIndex = 0;
 
@@ -2712,6 +2712,22 @@
         if (!row) return;
         product = row;
         factory = row.factories || factory;
+        // Direct product links do not include the supplier ID; use the live row.
+        if (row.factory_id != null) factoryId = String(row.factory_id);
+        factoryName = factory.name || factoryName;
+        var supplierName = wrap.querySelector(".supplier-name");
+        if (supplierName) supplierName.textContent = factoryName;
+        var supplierLink = wrap.querySelector(".supplier-link");
+        if (supplierLink) supplierLink.href = "web-factory.html?id=" + encodeURIComponent(factoryId);
+        var supplierLogo = wrap.querySelector(".supplier-logo");
+        if (supplierLogo) {
+          var logoUrl = sfSafeHttpUrl(factory.logo);
+          supplierLogo.innerHTML = logoUrl ? '<img alt="" src="' + escapeHTML(logoUrl) + '">' : factoryIcon;
+        }
+        var liveActions = wrap.querySelector(".actions");
+        if (liveActions) liveActions.querySelectorAll("a.act-btn").forEach(function (link) {
+          link.href = chatURL("");
+        });
         syncVerified();
         /* رابط Storage أولاً — دالة الحفظ تقصّ عند 2048 حرفًا،
            فتصل قيمة base64 مقصوصة لا يعرضها المتصفّح. */

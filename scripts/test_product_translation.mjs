@@ -10,7 +10,7 @@ function functionSource(name) {
   const end = page.indexOf('\n      }', start);
   return page.slice(start, end + '\n      }'.length);
 }
-const functions = ['descCardHTML', 'specsCardHTML', 'global_SFTranslate', 'applyLiveProduct'].map(functionSource).join('\n');
+const functions = ['descCardHTML', 'specsCardHTML', 'global_SFTranslate', 'chatURL', 'applyLiveProduct'].map(functionSource).join('\n');
 const flush = () => new Promise(resolve => setImmediate(resolve));
 
 for (const language of ['en', 'fr', 'ar', 'unsupported']) {
@@ -24,6 +24,8 @@ for (const language of ['en', 'fr', 'ar', 'unsupported']) {
     };
   }
   const title = element();
+  const supplierName = element(), supplierLink = element(), supplierLogo = element();
+  const contacts = [element(), element(), element()];
   const info = {
     querySelector() { return null; },
     appendChild(card) {
@@ -36,6 +38,10 @@ for (const language of ['en', 'fr', 'ar', 'unsupported']) {
   const wrap = {
     querySelector(selector) {
       if (selector === '.prod-name') return title;
+      if (selector === '.supplier-name') return supplierName;
+      if (selector === '.supplier-link') return supplierLink;
+      if (selector === '.supplier-logo') return supplierLogo;
+      if (selector === '.actions') return {querySelectorAll: () => contacts};
       if (selector === '.pd-info') return info;
       if (selector === '.add-cart-btn') return {}; // existing purchase controls
       return cards.find(card => '#' + card.id === selector) || null;
@@ -47,8 +53,9 @@ for (const language of ['en', 'fr', 'ar', 'unsupported']) {
   };
   const requests = [];
   const context = vm.createContext({
-    console, Promise, wrap, product: {}, factory: {}, factoryName: 'Factory',
-    basePriceText: '', imageIcon: '',
+    console, Promise, wrap, product: {}, factory: {}, factoryName: 'Factory', factoryId: '0',
+    basePriceText: '', imageIcon: '', factoryIcon: 'factory-placeholder',
+    sfSafeHttpUrl: value => typeof value === 'string' && value.startsWith('https://') ? value : '',
     I18N: { getLang: () => language, t: key => key },
     escapeHTML: value => String(value), // test fixtures contain no HTML
     syncVerified() {}, loadReviewsBlock() {}, paintThumbs() {}, renderTiers() {},
@@ -77,10 +84,15 @@ for (const language of ['en', 'fr', 'ar', 'unsupported']) {
   context.window = context;
   vm.runInContext(read('translate.js'), context);
   vm.runInContext(functions, context);
-  const row = { name: 'تانكي', description: 'وصف المنتج', material: 'حديد', colors: 'أبيض', sizes: 'كبير', moq: 5 };
+  const row = { id: 48, factory_id: 8, factories: {id:8,name:'Live supplier',logo:'https://example.com/logo.png'}, name: 'تانكي', description: 'وصف المنتج', material: 'حديد', colors: 'أبيض', sizes: 'كبير', moq: 5 };
   const cardName = await context.SFTranslate.translate(row.name, language);
   context.applyLiveProduct(row);
   await flush();
+  assert.equal(context.factoryId, '8');
+  assert.equal(supplierName.textContent, 'Live supplier');
+  assert.equal(supplierLink.href, 'web-factory.html?id=8');
+  assert(supplierLogo.innerHTML.includes('https://example.com/logo.png'));
+  assert(contacts.every(link => link.href === 'web-messages.html?factory=8'));
   const expected = text => language === 'ar' || language === 'unsupported' ? text : language + ':' + text;
   assert.equal(title.textContent, cardName, language + ': same name as homepage card');
   assert.equal(title.getAttribute('data-sf-translate'), '');
