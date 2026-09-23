@@ -16,7 +16,7 @@ window.sb={rpc:async()=>({data:{factories_count:1,products_count:3,units_sold:0,
 const svg='<svg xmlns="http://www.w3.org/2000/svg" width="400" height="600"><rect width="400" height="600" fill="#c7dfce"/><text x="80" y="250" font-size="40" fill="#183c24">BANNER</text></svg>';
 const src='data:image/svg+xml,'+encodeURIComponent(svg);
 window.saved=[];window.removed=[];window.rows=[{id:'one',title:'',image_url:src,target_url:'',is_active:true,sort_order:0}];
-window.SFPromotions={listPublic:async()=>rows.filter(r=>r.is_active),targetUrl:v=>v,isAdmin:()=>IS_ADMIN,listAdmin:async()=>{if(!IS_ADMIN)throw Error('denied');return rows.slice();},imagePath:()=>true,validateFile:()=>{},save:async(v,file)=>{if(!IS_ADMIN)throw Error('denied');saved.push(v);const row={...v,id:v.id||'new',image_url:src};if(v.id)rows=rows.map(r=>r.id===v.id?row:r);else rows.push(row);return row;},remove:async row=>{if(!IS_ADMIN)throw Error('denied');removed.push(row.id);rows=rows.filter(r=>r.id!==row.id);}};
+window.SFPromotions={listPublic:async()=>rows.filter(r=>r.is_active),targetUrl:v=>v,destination:row=>({href:row.discount_category?'web-offers.html?promotion='+row.id:row.target_url,external:!row.discount_category}),isAdmin:()=>IS_ADMIN,listAdmin:async()=>{if(!IS_ADMIN)throw Error('denied');return rows.slice();},imagePath:()=>true,validateFile:()=>{},save:async(v,file)=>{if(!IS_ADMIN)throw Error('denied');saved.push(v);const row={...v,id:v.id||'new',image_url:src};if(v.id)rows=rows.map(r=>r.id===v.id?row:r);else rows.push(row);return row;},remove:async row=>{if(!IS_ADMIN)throw Error('denied');removed.push(row.id);rows=rows.filter(r=>r.id!==row.id);}};
 `;
 const tests=async function(){
  const result={},check=(name,ok)=>{if(!ok)throw Error(name);result[name]=true;};
@@ -83,7 +83,7 @@ const homeTests=async function(){
 };
 for(const [lang,admin,width,home] of [['en',true,1440,false],['ar',true,1024,false],['en',false,1440,false],['en',true,1440,true],['ar',false,1440,true]]) {
  const key=(home?'home-':'')+lang+'-'+admin+'-'+width;
- let html=(home?read('index.html'):original).replace(/<script\b[^>]*>[\s\S]*?<\/script>/g,'').replace(/href="([^":]+\.css)"/g,(_,p)=>'href="'+pathToFileURL(join(root,p)).href+'"');
+ let html=(home?read('index.html'):original).replace(/<script\b[^>]*>[\s\S]*?<\/script>/g,'').replace(/href="([^":?]+\.css)(?:\?[^"\s]*)?"/g,(_,p)=>'href="'+pathToFileURL(join(root,p)).href+'"');
  const init='<script>const IS_ADMIN='+admin+';'+mock+'</script>';
  const scripts=['i18n.js','bestsellers-scroll.js',home?'home-panels.js':'promotion-admin.js'].map(f=>'<script src="'+pathToFileURL(join(root,f)).href+'"></script>').join('');
  html=html.replace('</body>','<pre id="result" hidden></pre>'+init+scripts+'<script>I18N.setLang('+JSON.stringify(lang)+');'+(home?'':main)+';('+(home?homeTests:tests).toString()+')();</script></body>');

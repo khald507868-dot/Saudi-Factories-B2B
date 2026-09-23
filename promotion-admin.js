@@ -9,7 +9,7 @@
   }
   function setBusy(value) {
     busy = value;
-    panel.querySelectorAll("button, input").forEach(function (el) { el.disabled = value; });
+    panel.querySelectorAll("button, input, select").forEach(function (el) { el.disabled = value; });
     form.setAttribute("aria-busy", String(value));
   }
   function releasePreview() {
@@ -21,6 +21,8 @@
     existing = row || null;
     form.reset();
     $("promo-link").value = row ? row.target_url : "";
+    $("promo-discount-category").value = row && row.discount_category || "";
+    $("promo-discount-percent").value = row && row.discount_percent != null ? row.discount_percent : "";
     var highestOrder = adminRows.reduce(function (max, item) { return Math.max(max, Number(item.sort_order) || 0); }, -1);
     $("promo-order").value = row ? row.sort_order : Math.min(9999, highestOrder + 1);
     $("promo-active").checked = row ? row.is_active : true;
@@ -109,6 +111,7 @@
     if (!service.isAdmin() || busy || !form.reportValidity()) return;
     var values = { id: existing && existing.id, image_url: existing && existing.image_url,
       title: existing ? existing.title : "", target_url: $("promo-link").value,
+      discount_category: $("promo-discount-category").value, discount_percent: $("promo-discount-percent").value,
       sort_order: $("promo-order").value, is_active: $("promo-active").checked };
     var file = $("promo-file").files[0];
     setBusy(true);
@@ -120,6 +123,10 @@
       status("home-promo-status", t("promo_saved"));
     } catch (err) { status("home-promo-status", err.message || t("promo_load_failed"), true); }
     finally { setBusy(false); }
+  });
+  (root.I18N.categories || []).forEach(function (category) {
+    var option = document.createElement("option"); option.value = category.en;
+    option.textContent = root.I18N.categoryName(category); $("promo-discount-category").appendChild(option);
   });
   root.SFPromotionAdmin = { show: async function () {
     await (root.SF_AUTH_READY || Promise.resolve());

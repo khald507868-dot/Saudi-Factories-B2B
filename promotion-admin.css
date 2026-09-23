@@ -9,5 +9,6 @@
 }
 .admin-promotions[hidden], .admin-promotions [hidden] { display: none !important; }
 .admin-promotions .home-promo-editor { max-width: 760px; }
+.admin-promotions select { width: 100%; min-width: 0; padding: 10px; font: inherit; color: inherit; border: 1px solid #c7dfce; border-radius: 8px; background: white; }
 .admin-promo-thumbnail { width: 64px; height: 80px; object-fit: cover; border-radius: 8px; }
 .account-page .tabs { flex-wrap: wrap; }

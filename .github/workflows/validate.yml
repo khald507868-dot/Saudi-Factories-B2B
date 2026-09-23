@@ -35,6 +35,9 @@ jobs:
           node scripts/test_translate_client.mjs
           node scripts/test_locale_picker.mjs
           node scripts/test_site_search.mjs
+          node scripts/test_web_promotions.mjs
+          node scripts/test_quantity_offers_client.mjs
+          node scripts/test_promotion_quantity_offers.mjs "$RUNNER_TEMP/security-tests"
           node scripts/test_manual_shipping_client.mjs
           node scripts/test_shipping_images_client.mjs
           node scripts/test_delivery_addresses_client.mjs

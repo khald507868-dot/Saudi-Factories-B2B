@@ -6,7 +6,7 @@ import vm from 'node:vm';
 const uid = '10000000-0000-4000-8000-000000000001';
 const image = 'https://project.example/storage/v1/object/public/promotion-media/' + uid + '/promotions/banner.png';
 let calls = [], records = [], resultError = null, uploads = 0;
-const context = vm.createContext({ URL, I18N: { t: key => key },
+const context = vm.createContext({ URL, I18N: { t: key => key, categories: [{en:'Food & Beverages'}] },
   SUPABASE_URL: 'https://project.example', SF_AUTH_READY: Promise.resolve(),
   SF_USER: null, SF_PROFILE: null,
   SFUpload: { async uploadFile() { uploads++; return { url: image, path: uid + '/promotions/banner.png' }; } },
@@ -72,6 +72,20 @@ assert.equal(uploads, 1);
 assert.equal((await service.save({ ...values, title: ' ' })).title, '');
 assert.equal((await service.save({ ...values, title: undefined })).title, '');
 assert.equal((await service.save({ ...values, id: 'saved', is_active: false })).is_active, false);
+const deal = { ...values, target_url: '', discount_category: 'Food & Beverages', discount_percent: 40 };
+const savedDeal = await service.save(deal);
+assert.equal(savedDeal.discount_category, deal.discount_category);
+assert.equal(savedDeal.discount_percent, 40);
+assert.equal(service.destination({...savedDeal,id:'one'}).href, 'web-offers.html?promotion=one');
+assert.equal(service.destination(savedDeal).external, false);
+assert.equal(service.destination(values).href, values.target_url);
+assert.equal(service.destination(values).external, true);
+assert.equal(service.destination({target_url:''}).href, '');
+for(const override of [{discount_category:'Unknown'}, {discount_percent:0}, {discount_percent:100}, {discount_percent:''}, {discount_category:''}]) {
+  await assert.rejects(service.save({...deal,...override}), /promo_discount_invalid/);
+}
+await assert.rejects(service.save({...deal,target_url:values.target_url}), /promo_discount_link_conflict/);
+assert.equal((await service.save(values)).discount_category, null);
 resultError = new Error('Server denied write');
 await assert.rejects(service.save(values), /Server denied write/);
 await assert.rejects(service.remove({ id: 'saved' }), /Server denied write/);

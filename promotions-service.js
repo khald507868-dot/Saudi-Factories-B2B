@@ -2,7 +2,7 @@
    Their RLS policies enforce administrator-only writes, including uploads. */
 (function (root) {
   "use strict";
-  var columns = "id,title,image_url,target_url,is_active,sort_order";
+  var columns = "id,title,image_url,target_url,is_active,sort_order,discount_category,discount_percent";
   var bucket = "promotion-media";
   function error(key) { return new Error(root.I18N.t(key)); }
   function isAdmin() {
@@ -39,11 +39,33 @@
     if (!file || !["image/jpeg", "image/png", "image/webp", "image/gif"].includes(file.type) ||
         file.size <= 0 || file.size > 5 * 1024 * 1024) throw error("promo_image_invalid");
   }
+  function discountTarget(values) {
+    var category = String(values.discount_category || "").trim();
+    var percent = values.discount_percent == null || values.discount_percent === "" ? null : Number(values.discount_percent);
+    if (!category && percent === null) return { discount_category: null, discount_percent: null };
+    if (!(root.I18N.categories || []).some(function (item) { return item.en === category; }) ||
+        !Number.isFinite(percent) || percent <= 0 || percent >= 100) throw error("promo_discount_invalid");
+    if (String(values.target_url || "").trim()) throw error("promo_discount_link_conflict");
+    return { discount_category: category, discount_percent: percent };
+  }
+  function destination(row) {
+    if (row.discount_category && Number(row.discount_percent) > 0 && Number(row.discount_percent) < 100) {
+      return { href: "web-offers.html?promotion=" + encodeURIComponent(row.id), external: false };
+    }
+    return { href: targetUrl(row.target_url), external: true };
+  }
   async function list(admin) {
     await ready(admin);
-    var query = root.sb.from("home_promotions").select(columns);
-    if (!admin) query = query.eq("is_active", true);
-    var result = await query.order("sort_order").order("created_at").order("id");
+    function select(fields) {
+      var query = root.sb.from("home_promotions").select(fields);
+      if (!admin) query = query.eq("is_active", true);
+      return query.order("sort_order").order("created_at").order("id");
+    }
+    var result = await select(columns);
+    // Keep existing artwork visible while the new migration is being installed.
+    if (result.error && ["42703", "PGRST204"].includes(result.error.code)) {
+      result = await select("id,title,image_url,target_url,is_active,sort_order");
+    }
     if (result.error) throw result.error;
     return result.data || [];
   }
@@ -62,6 +84,7 @@
     var order = Number(values.sort_order);
     if (!Number.isInteger(order) || order < 0 || order > 9999) throw error("promo_order_invalid");
     var link = targetUrl(values.target_url);
+    var discount = discountTarget(values);
     var imageUrl = values.image_url || "";
     if (file) validateFile(file);
     else if (!imagePath(imageUrl)) throw error("promo_image_required");
@@ -72,7 +95,8 @@
         imageUrl = uploaded.url;
       }
       var payload = { title: title, image_url: imageUrl, target_url: link,
-        is_active: values.is_active === true, sort_order: order };
+        is_active: values.is_active === true, sort_order: order,
+        discount_category: discount.discount_category, discount_percent: discount.discount_percent };
       var query = root.sb.from("home_promotions");
       query = values.id ? query.update(payload).eq("id", values.id) : query.insert(payload);
       var result = await query.select(columns).single();
@@ -97,5 +121,5 @@
   }
   root.SFPromotions = { isAdmin: isAdmin, listPublic: function () { return list(false); },
     listAdmin: function () { return list(true); }, save: save, remove: remove,
-    imagePath: imagePath, targetUrl: targetUrl, validateFile: validateFile };
+    imagePath: imagePath, targetUrl: targetUrl, validateFile: validateFile, destination: destination };
 })(window);

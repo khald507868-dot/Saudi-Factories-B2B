@@ -115,11 +115,18 @@
       heading.appendChild(title);
     }
     if (heading.childElementCount) card.appendChild(heading);
-    var link = "";
-    try { link = service.targetUrl(row.target_url); } catch (_) {}
+    var link = "", external = false;
+    try { var target = service.destination(row); link = target.href; external = target.external; } catch (_) {}
     var frame = document.createElement(link ? "a" : "div");
     frame.className = "home-promo-card-image";
-    if (link) { frame.href = link; frame.target = "_blank"; frame.rel = "noopener noreferrer"; }
+    if (link) {
+      frame.href = link;
+      if (external) { frame.target = "_blank"; frame.rel = "noopener noreferrer"; }
+      else {
+        var category = (root.I18N.categories || []).find(function (cat) { return cat.en === row.discount_category; });
+        frame.setAttribute("aria-label", t("quantity_offers") + " — " + (category ? root.I18N.categoryName(category) : row.discount_category));
+      }
+    }
     var img = document.createElement("img");
     img.alt = row.title || t("promo_image");
     img.src = row.image_url;
