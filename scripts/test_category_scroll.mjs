@@ -101,4 +101,19 @@ for(const dir of ['ltr','rtl']){
 }
 const homeReduced=setup('ltr',true,300,false,{pauseOnHover:false,pauseOnPointerFocus:false});
 const stopped=homeReduced.view.scrollLeft;homeReduced.step();homeReduced.step();assert.equal(homeReduced.view.scrollLeft,stopped);
+for(const dir of ['ltr','rtl']){
+ const similar=setup(dir,false,1800,false,{repeatToFill:true,pauseOnHover:false,pauseOnPointerFocus:false});
+ const sign=dir==='rtl'?-1:1,span=654.75;
+ similar.step();let before=sign*similar.view.scrollLeft;
+ assert(similar.view.children.length>12,'Short similar-product lists fill the viewport and loop seam');
+ for(let i=0;i<600;i++){
+  similar.step();const after=sign*similar.view.scrollLeft;
+  assert(Math.abs(((after-before)%span+span)%span-1.3)<0.001,'Short similar-product loop moves smoothly');
+  before=after;
+ }
+ const phase=(sign*similar.view.scrollLeft)%span;
+ similar.sizes[0].fn();
+ assert(Math.abs((sign*similar.view.scrollLeft)%span-phase)<0.001,'Expanding tiers keeps the carousel position');
+ similar.view.sfStopScroll();assert.equal(similar.view.children.length,4);assert.equal(similar.frames.size,0);
+}
 console.log('PASS continuous seams, hover options, pointer-focus resume, keyboard focus, reduced motion, arrows and clean remount');

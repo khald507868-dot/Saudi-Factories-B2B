@@ -21,7 +21,7 @@
 <script src="translate.js"></script>
 <script src="reviews-service.js"></script>
 <script src="i18n.js?v=20260923-quantity-offers"></script>
-<script src="product-card-data.js?v=20260924-tier-details"></script>
+<script src="product-card-data.js?v=20260924-similar-details"></script>
 <script src="bestsellers-scroll.js?v=20260924-pointer-resume"></script>
 <script src="category-scroll.js?v=20260923-category-loop"></script>
 <script src="currency-ui.js?v=20260922-locale-dropdown"></script>
@@ -1837,36 +1837,7 @@
           (rated ? '<span>' + m.avg.toFixed(1) + ' (' + m.count + ')</span>' : '') + '</div>';
       }
 
-      function pricingHTML(ranges) {
-        if (!ranges.length) return '';
-        return '<div class="pc-pricing"><table><caption>' + escapeHTML(I18N.t('tier_pricing')) + '</caption>' +
-          '<thead><tr><th scope="col">' + escapeHTML(I18N.t('offer_quantity')) + '</th><th scope="col">' + escapeHTML(I18N.t('offer_unit_price')) + '</th></tr></thead><tbody>' +
-          ranges.map(function (tier, index) {
-            var qty = tier.max == null ? tier.min + '+' : tier.min + '–' + tier.max;
-            return '<tr' + (index ? ' data-pc-extra hidden' : '') + '><td><bdi>' + qty + '</bdi> ' + escapeHTML(I18N.t('tier_piece')) +
-              '</td><td>' + I18N.money(tier.price.toFixed(2)) + '</td></tr>';
-          }).join('') + '</tbody></table>' +
-          (ranges.length > 1 ? '<button type="button" class="pc-pricing-toggle" aria-expanded="false">' + escapeHTML(I18N.t('home_more_products')) + '</button>' : '') + '</div>';
-      }
-
-      // Delegation also handles the copies used by the continuous carousel.
-      document.addEventListener('click', function (event) {
-        var button = event.target.closest('.pc-pricing-toggle');
-        if (!button) return;
-        event.preventDefault();
-        var cell = button.closest('.product-cell');
-        var id = cell.getAttribute('data-product-id');
-        var expanded = button.getAttribute('aria-expanded') !== 'true';
-        document.querySelectorAll('.product-cell[data-product-id]').forEach(function (item) {
-          if (item.getAttribute('data-product-id') !== id) return;
-          item.querySelectorAll('[data-pc-extra]').forEach(function (tr) { tr.hidden = !expanded; });
-          var toggle = item.querySelector('.pc-pricing-toggle');
-          if (toggle) {
-            toggle.setAttribute('aria-expanded', String(expanded));
-            toggle.textContent = I18N.t(expanded ? 'currency_show_less' : 'home_more_products');
-          }
-        });
-      });
+      SFProductCard.bindPricingControls(document, '.product-cell');
 
       var verified = I18N.t('product_verified');
 
@@ -1950,7 +1921,7 @@
                     : '') +
                 '</div>' +
               '</div>' +
-            '</a>' + pricingHTML(ranges) + '</div>' +
+            '</a>' + SFProductCard.pricingHTML(ranges) + '</div>' +
             '</div>';
         });
         if (target.sfStopScroll) target.sfStopScroll();

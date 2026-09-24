@@ -34,6 +34,47 @@
     return ranges;
   }
 
+  function escapeText(value) {
+    return String(value).replace(/[&<>"']/g, function (character) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character];
+    });
+  }
+
+  function pricingHTML(ranges) {
+    if (!ranges.length) return '';
+    return '<div class="pc-pricing"><table><caption>' + escapeText(I18N.t('tier_pricing')) + '</caption>' +
+      '<thead><tr><th scope="col">' + escapeText(I18N.t('offer_quantity')) + '</th><th scope="col">' + escapeText(I18N.t('offer_unit_price')) + '</th></tr></thead><tbody>' +
+      ranges.map(function (tier, index) {
+        var qty = tier.max == null ? tier.min + '+' : tier.min + '–' + tier.max;
+        return '<tr' + (index ? ' data-pc-extra hidden' : '') + '><td><bdi>' + qty + '</bdi> ' + escapeText(I18N.t('tier_piece')) +
+          '</td><td>' + I18N.money(tier.price.toFixed(2)) + '</td></tr>';
+      }).join('') + '</tbody></table>' +
+      (ranges.length > 1 ? '<button type="button" class="pc-pricing-toggle" aria-expanded="false">' + escapeText(I18N.t('home_more_products')) + '</button>' : '') + '</div>';
+  }
+
+  function bindPricingControls(scope, cardSelector) {
+    if (scope.sfPricingBound) return;
+    scope.sfPricingBound = true;
+    scope.addEventListener('click', function (event) {
+      var button = event.target.closest('.pc-pricing-toggle');
+      if (!button) return;
+      var cell = button.closest(cardSelector);
+      if (!cell) return;
+      event.preventDefault();
+      var id = cell.getAttribute('data-product-id');
+      var expanded = button.getAttribute('aria-expanded') !== 'true';
+      scope.querySelectorAll(cardSelector + '[data-product-id]').forEach(function (item) {
+        if (item.getAttribute('data-product-id') !== id) return;
+        item.querySelectorAll('[data-pc-extra]').forEach(function (tr) { tr.hidden = !expanded; });
+        var toggle = item.querySelector('.pc-pricing-toggle');
+        if (toggle) {
+          toggle.setAttribute('aria-expanded', String(expanded));
+          toggle.textContent = I18N.t(expanded ? 'currency_show_less' : 'home_more_products');
+        }
+      });
+    });
+  }
+
   function trimNum(value) {
     return Number(value).toFixed(2).replace(/[.]00$/, "");
   }
@@ -56,5 +97,5 @@
     return global.I18N.money(low !== null ? trimNum(low) : product.price);
   }
 
-  global.SFProductCard = { priceHTML: priceHTML, priceRanges: priceRanges };
+  global.SFProductCard = { priceHTML: priceHTML, priceRanges: priceRanges, pricingHTML: pricingHTML, bindPricingControls: bindPricingControls };
 })(window);

@@ -22,7 +22,7 @@ const { I18N, SFCurrency, SFProductCard } = context;
 const product = {
   id: 7, factory_id: 8, name: 'Product <name>', price: '99',
   tiers: [{ min: 1, price: 32 }, { min: 10, price: 23 }],
-  factories: { status: 'approved' },
+  factories: { name: 'Factory <supplier>', status: 'approved' },
 };
 assert.equal(SFProductCard.priceHTML(product), I18N.moneyRange('23', '32'));
 assert.equal(SFProductCard.priceHTML({ ...product, tiers: [] }), I18N.money('99'));
@@ -44,11 +44,49 @@ assert.match(card, /4\.3 \(12\)/);
 assert.match(card, /clip-path:inset\(0 70\.00% 0 0\)/);
 assert.match(card, /similar-verified/);
 assert.match(card, /data-sf-translate>Product &lt;name&gt;/);
+assert.match(card, /pc-factory-name">Factory &lt;supplier&gt;/);
+assert(card.indexOf('class="similar-rating"') < card.indexOf('class="similar-price"'));
+assert.match(card, /<article class="similar-card" data-product-id="7"><a class="similar-link"/);
+assert.match(card, /<\/a><div class="pc-pricing">/);
+assert.match(card, /<bdi>1–9<\/bdi>/);
+assert.match(card, /<tr data-pc-extra hidden>/);
+assert.match(card, /class="pc-pricing-toggle" aria-expanded="false"/);
+assert.doesNotMatch(context.similarCardHTML({...product,tiers:[]}), /pc-pricing-toggle/);
 for (const status of ['pending', 'rejected', undefined]) {
   card = context.similarCardHTML({ ...product, factories: { status } });
-  assert.doesNotMatch(card, /similar-verified|similar-rating/);
+  assert.doesNotMatch(card, /similar-verified/);
+  assert.match(card, /similar-rating-empty/);
 }
-assert.doesNotMatch(context.similarCardHTML(product, { avg: 0, count: 0 }), /similar-rating/);
+const unrated=context.similarCardHTML(product, { avg: 0, count: 0 });
+assert.match(unrated, /similar-rating-empty/);
+assert.doesNotMatch(unrated, /0\.0 \/ 5|0\.0 \(0\)/);
+assert(unrated.includes(I18N.t('reviews_none')));
+
+vm.runInContext(source.slice(source.indexOf('      function startSimilarLoop('),source.indexOf('      function loadSimilar(')),context);
+const mounts=[];
+context.SFBestsellersScroll={mount(node,options){mounts.push({node,options});}};
+const handlers=[],cards=[];
+const interactiveTrack={addEventListener(name,fn){assert.equal(name,'click');handlers.push(fn);},querySelectorAll(){return cards;}};
+context.startSimilarLoop(interactiveTrack);context.startSimilarLoop(interactiveTrack);
+assert.equal(handlers.length,1,'Repeated loads do not duplicate toggle handlers');
+assert.equal(mounts[0].options.itemSelector,'.similar-card');
+assert.equal(mounts[0].options.sectionSelector,'.similar-strip');
+assert.equal(mounts[0].options.repeatToFill,true);
+assert.equal(mounts[0].options.pauseOnHover,false);
+assert.equal(mounts[0].options.pauseOnPointerFocus,false);
+function control(id){
+ const rows=[{hidden:true},{hidden:true}];
+ const btn={attrs:{'aria-expanded':'false'},getAttribute(k){return this.attrs[k];},setAttribute(k,v){this.attrs[k]=v;},closest(){return item;}};
+ const item={getAttribute(){return id;},querySelectorAll(){return rows;},querySelector(){return btn;}};
+ return {item,btn,rows};
+}
+const original=control('7'),copy=control('7'),other=control('8');cards.push(original.item,copy.item,other.item);
+let prevented=0;
+const event={target:{closest(){return copy.btn;}},preventDefault(){prevented++;}};
+handlers[0](event);
+assert.equal(prevented,1);assert(original.rows.every(row=>!row.hidden));assert(copy.rows.every(row=>!row.hidden));assert(other.rows.every(row=>row.hidden));
+assert.equal(original.btn.attrs['aria-expanded'],'true');
+handlers[0](event);assert(original.rows.every(row=>row.hidden));assert(copy.rows.every(row=>row.hidden));
 
 const box = { hidden: true }, track = { innerHTML: '' };
 context.document.getElementById = id => id === 'similar-strip' ? box : track;
@@ -56,7 +94,7 @@ const events = [];
 context.startSimilarLoop = () => events.push('loop');
 context.SFTranslate = { translateAll: target => { assert.equal(target, track); events.push('translate'); } };
 const query = {
-  select(fields) { assert.match(fields, /tiers/); assert.match(fields, /factories\(status\)/); return this; },
+  select(fields) { assert.match(fields, /tiers/); assert.match(fields, /\bmoq\b/); assert.match(fields, /factories\(name,status\)/); return this; },
   eq(field, id) { assert.equal(field, 'factory_id'); assert.equal(id, 8); return this; },
   order() { return this; }, limit() { return this; },
   then(resolve) { return Promise.resolve({ data: [product, { ...product, id: 9 }] }).then(resolve); },
@@ -74,6 +112,6 @@ assert.deepEqual(events, ['loop', 'translate']);
 context.SFReviews.loadRatings = () => Promise.reject(new Error('Ratings unavailable'));
 await context.loadSimilar(8, 9);
 assert.ok(track.innerHTML.includes(I18N.moneyRange('23', '32')));
-assert.doesNotMatch(track.innerHTML, /similar-rating/);
+assert.match(track.innerHTML, /similar-rating-empty/);
 assert.match(track.innerHTML, /similar-verified/);
-console.log('PASS shared prices, currency conversion, ratings, verification, translation, exclusion, and ratings failure fallback');
+console.log('PASS similar product supplier, price range, empty stars, expandable tiers, carousel controls, current-product exclusion, and failure fallback');

@@ -29,7 +29,7 @@
 <script src="translate.js"></script>
 <script src="reviews-service.js"></script>
 <script src="i18n.js?v=20260922-locale"></script>
-<script src="product-card-data.js"></script>
+<script src="product-card-data.js?v=20260924-similar-details"></script>
 <script src="currency-ui.js?v=20260922-locale-dropdown"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase-config.js"></script>
@@ -42,7 +42,7 @@
 <script src="geo-location.js"></script>
 <link rel="stylesheet" href="site-search.css?v=20260922-live-search">
 <script src="site-search.js?v=20260922-live-search" defer></script>
-<script src="bestsellers-scroll.js?v=20260923-category-loop"></script>
+<script src="bestsellers-scroll.js?v=20260924-pointer-resume"></script>
 <script src="category-scroll.js?v=20260923-category-loop"></script>
 <script src="top-bar.js?v=20260923-category-loop"></script>
 <script src="lang-switch.js?v=20260922-locale"></script>
@@ -580,13 +580,13 @@
     align-items: center;
     gap: 4px;
     font-weight: 700;
-    color: #1f6b42;
+    color: #04361b;
   }
 
   .prod-verified svg {
     width: 14px;
     height: 14px;
-    stroke: #1f6b42;
+    stroke: #c9a227;
     fill: none;
     stroke-width: 2.6;
   }
@@ -1293,6 +1293,7 @@
 <link rel="stylesheet" href="mobile.css">
 <link rel="stylesheet" href="desktop.css?v=20260923-category-hover">
 <link rel="stylesheet" href="green-frames.css">
+<link rel="stylesheet" href="home-product-details.css?v=20260924-similar-details">
 </head>
 <body class="store-page product-page">
   <!-- شعار الصفحة — متحرّك، موحّد في كل صفحات الموقع -->
@@ -2368,14 +2369,14 @@
         '</span>';
       }
 
-      function starsHTML(avg) {
+      function starsHTML(avg, label) {
         var v = Number(avg) || 0;
         var out = '';
         for (var i = 1; i <= 5; i++) {
           out += starHTML(Math.max(0, Math.min(1, v - (i - 1))));
         }
         return '<span class="rv-stars" role="img" aria-label="' +
-          v.toFixed(1) + ' / 5">' + out + '</span>';
+          escapeHTML(label || v.toFixed(1) + ' / 5') + '">' + out + '</span>';
       }
 
       function rvDate(iso) {
@@ -2865,97 +2866,42 @@
           })[0] : "");
         var href = "web-product.html?factory=" + encodeURIComponent(row.factory_id) +
           "&product=" + encodeURIComponent(row.id);
-        var cardPrice = SFProductCard.priceHTML(row);
-        var ratingHTML = rating && rating.count > 0
+        var ranges = SFProductCard.priceRanges(row);
+        var cardPrice = SFProductCard.priceHTML(ranges.length ? Object.assign({}, row, { tiers: ranges }) : row);
+        var rated = rating && Number.isFinite(rating.avg) && rating.avg >= 1 && rating.avg <= 5 && Number.isInteger(rating.count) && rating.count > 0;
+        var ratingHTML = rated
           ? '<div class="similar-rating">' + starsHTML(rating.avg) +
               '<span>' + Number(rating.avg).toFixed(1) + ' (' +
-                escapeHTML(rating.count) + ')</span></div>' : '';
-        return '<a class="similar-card" href="' + escapeHTML(href) + '">' +
+                escapeHTML(rating.count) + ')</span></div>'
+          : '<div class="similar-rating similar-rating-empty">' + starsHTML(0, I18N.t('reviews_none')) + '</div>';
+        return '<article class="similar-card" data-product-id="' + escapeHTML(row.id) + '"><a class="similar-link" href="' + escapeHTML(href) + '">' +
           '<div class="similar-thumb">' +
             (img ? '<img alt="" loading="lazy" src="' + escapeHTML(img) + '">' : imageIcon) +
           '</div>' +
           '<div class="similar-body">' +
             '<div class="similar-name" data-sf-translate>' + escapeHTML(row.name || "") + '</div>' +
+            (row.factories && row.factories.name ? '<div class="pc-factory-name">' + escapeHTML(row.factories.name) + '</div>' : '') +
+            ratingHTML +
             (cardPrice
               ? '<div class="similar-price">' + cardPrice + '</div>'
               : '<div class="similar-price on-request">' +
                   escapeHTML(I18N.t("product_price_on_request")) + '</div>') +
-            ratingHTML +
             (row.factories && row.factories.status === "approved"
               ? '<div class="similar-verified">' + checkIcon +
                   escapeHTML(I18N.t("product_verified")) + '</div>' : '') +
           '</div>' +
-        '</a>';
+        '</a>' + SFProductCard.pricingHTML(ranges) + '</article>';
       }
 
       /* نكرّر القائمة بما يكفي لتغطية النافذة ودورة حركة كاملة،
          ونقيس الدورة من البطاقات الأصلية والفواصل بينها.
          نسختان فقط لا تكفيان عندما تكون القائمة أقصر من النافذة. */
       function startSimilarLoop(track) {
-        var reduce = window.matchMedia &&
-          window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-        var SPEED = 26;            /* بكسل في الثانية */
-        var offset = 0;
-        var last = 0;
-        var paused = false;
-        var rtl = document.documentElement.getAttribute("dir") !== "ltr";
-        var originals = Array.prototype.slice.call(track.children);
-        if (!originals.length) return;
-        var span = 0;
-        var copies = 1;
-
-        /* المستمع على النافذة الثابتة لا على المسار:
-           المسار ينزلق تحت المؤشّر فيتناوب عليه
-           mouseenter/mouseleave وهو واقف مكانه. */
-        var view = track.parentNode || track;
-        function updateLoopSize() {
-          var gap = parseFloat(window.getComputedStyle(track).columnGap) || 0;
-          span = originals.reduce(function (width, card) {
-            return width + card.getBoundingClientRect().width + gap;
-          }, 0);
-          if (span <= 0) return;
-
-          var needed = Math.max(2, Math.ceil((view.clientWidth + gap) / span) + 1);
-          while (copies < needed) {
-            originals.forEach(function (card) { track.appendChild(card.cloneNode(true)); });
-            copies++;
-          }
-          while (copies > needed) {
-            originals.forEach(function () { track.lastElementChild.remove(); });
-            copies--;
-          }
-          offset %= span;
-          track.style.transform = "translateX(" + (rtl ? offset : -offset) + "px)";
-        }
-        updateLoopSize();
-        if (window.ResizeObserver) {
-          var sizeObserver = new ResizeObserver(updateLoopSize);
-          sizeObserver.observe(view);
-          sizeObserver.observe(originals[0]);
-        } else {
-          window.addEventListener("resize", updateLoopSize);
-        }
-        if (reduce) return;
-
-        view.addEventListener("mouseenter", function () { paused = true; });
-        view.addEventListener("mouseleave", function () { paused = false; });
-        document.addEventListener("visibilitychange", function () { last = 0; });
-
-        function step(now) {
-          if (document.hidden) { last = now; requestAnimationFrame(step); return; }
-          if (!last) last = now;
-          var dt = (now - last) / 1000;
-          last = now;
-          if (!paused) {
-            if (span > 0) {
-              offset = (offset + SPEED * dt) % span;
-              track.style.transform = "translateX(" +
-                (rtl ? offset : -offset) + "px)";
-            }
-          }
-          requestAnimationFrame(step);
-        }
-        requestAnimationFrame(step);
+        SFProductCard.bindPricingControls(track, '.similar-card');
+        SFBestsellersScroll.mount(track, {
+          itemSelector: '.similar-card', sectionSelector: '.similar-strip',
+          repeatToFill: true, pauseOnHover: false, pauseOnPointerFocus: false
+        });
       }
 
       function loadSimilar(fid, excludeId) {
@@ -2965,7 +2911,7 @@
         if (!box || !track) return;
 
         return sb.from("products")
-          .select("id, factory_id, name, price, tiers, image, images, factories(status)")
+          .select("id, factory_id, name, price, moq, tiers, image, images, factories(name,status)")
           .eq("factory_id", fid)
           .order("sort_order")
           .limit(13)
@@ -2980,6 +2926,7 @@
               ? SFReviews.loadRatings(rows.map(function (row) { return row.id; }))
               : Promise.resolve({});
             return ratings.catch(function () { return {}; }).then(function (map) {
+              if (track.sfStopScroll) track.sfStopScroll();
               track.innerHTML = rows.map(function (row) {
                 return similarCardHTML(row, (map || {})[String(row.id)]);
               }).join("");

@@ -72,6 +72,12 @@
       } else { money(price, low, 'offers-unit-price'); }
     } else { money(price, row.unit_price, 'offers-unit-price'); }
     add(price, 'span', ' ' + t('offers_per_unit'));
+    // The offers RPC only returns products from approved factories.
+    var verified = add(body, 'div', '', 'offer-verified');
+    var check = add(verified, 'span', '', 'offer-verified-icon');
+    check.setAttribute('aria-hidden', 'true');
+    check.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>';
+    add(verified, 'span', t('product_verified'));
     if (!ranges || !ranges.length) add(body, 'p', quantity(row.min_quantity, row.max_quantity), 'offer-quantity');
     if (ranges && ranges.length) {
       var table = add(body, 'table', '', 'offer-pricing');
