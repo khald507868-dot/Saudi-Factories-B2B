@@ -16,6 +16,17 @@ const _uid = '11111111-1111-4111-8111-111111111111';
 const _image =
     '$kSupabaseUrl/storage/v1/object/public/video-promotion-media/$_uid/banners/test.png';
 
+const _user = {
+  'id': _uid,
+  'aud': 'authenticated',
+  'role': 'authenticated',
+  'email': 'admin@example.test',
+  'app_metadata': <String, dynamic>{},
+  'user_metadata': <String, dynamic>{},
+  'created_at': '2026-01-01T00:00:00Z',
+  'email_confirmed_at': '2026-01-01T00:00:00Z',
+};
+
 http.Response _json(Object value, [int status = 200]) => http.Response(
   jsonEncode(value),
   status,
@@ -67,20 +78,17 @@ void main() {
               'refresh_token': 'test-refresh',
               'token_type': 'bearer',
               'expires_in': 3600,
-              'user': {
-                'id': _uid,
-                'aud': 'authenticated',
-                'role': 'authenticated',
-                'email': 'admin@example.test',
-                'app_metadata': <String, dynamic>{},
-                'user_metadata': <String, dynamic>{},
-                'created_at': '2026-01-01T00:00:00Z',
-              },
+              'user': _user,
             });
           }
+          if (path == '/auth/v1/user') return _json(_user);
           if (path == '/auth/v1/logout') return http.Response('', 204);
           if (path == '/rest/v1/profiles') {
-            return _json({'is_admin': isAdmin, 'full_name': 'مدير الموقع'});
+            return _json({
+              'account_type': 'individual',
+              'is_admin': isAdmin,
+              'full_name': 'مدير الموقع',
+            });
           }
           if (path == '/rest/v1/home_video_promotions') {
             if (request.method == 'GET') {
@@ -143,7 +151,7 @@ void main() {
   });
 
   tearDown(() async {
-    if (AuthService.instance.isSignedIn) await AuthService.instance.signOut();
+    if (AuthService.instance.user != null) await AuthService.instance.signOut();
   });
 
   tearDownAll(() async => Supabase.instance.dispose());
@@ -156,6 +164,7 @@ void main() {
     await tester.runAsync(
       () => AuthService.instance.signIn('admin@example.test', 'test-only'),
     );
+    expect(AuthService.instance.isSignedIn, isTrue);
     expect(AuthService.instance.profile?.isAdmin, isTrue);
     await tester.pumpWidget(_host());
     await tester.pumpAndSettle();
@@ -174,6 +183,8 @@ void main() {
     await tester.runAsync(
       () => AuthService.instance.signIn('user@example.test', 'test-only'),
     );
+    expect(AuthService.instance.isSignedIn, isTrue);
+    expect(AuthService.instance.profile?.isAdmin, isFalse);
     await tester.pumpAndSettle();
     expect(reads, 0);
     expect(writes, 0);
