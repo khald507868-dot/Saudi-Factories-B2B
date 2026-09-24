@@ -1,8 +1,14 @@
 .offers-page #offers-status:empty{display:none}
+.offers-page .catalog-card{border:1px solid #b5d3bb}
 .offer-saving{display:inline-block;background:#e1f1e3;color:#285e38;border-radius:20px;padding:3px 12px;font-weight:700}
 .offer-reference{color:#637368;font-size:13px;border-top:1px solid #e5ece6;padding-top:10px}
 .offer-quantity{font-size:14px;color:#285e38}
 .offers-unit-price{font-size:22px;font-weight:800}
+.offer-rating{display:flex;align-items:center;flex-wrap:wrap;gap:7px;margin:8px 0;color:#637368;font-size:13px}
+.offer-stars{display:inline-flex;direction:ltr;gap:2px;line-height:1}
+.offer-star{position:relative;display:inline-block;color:#dfe5e1;font-size:18px}
+.offer-star-fill{position:absolute;left:0;top:0;overflow:hidden;color:#e5a12b}
+.offer-rating-score{direction:ltr;unicode-bidi:isolate}
 .catalog-card-image{position:relative}
 .catalog-card-image .offer-saving{position:absolute;inset-block-start:10px;inset-inline-start:10px}
 .offers-page .geo-overlay{position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(4,54,27,.45)}

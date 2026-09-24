@@ -18,7 +18,22 @@
     // Only a finite server price enters the shared currency formatter's HTML.
     el.innerHTML = root.I18N.money(Number(value).toFixed(2)); return el;
   }
-  function card(row) {
+  function rating(parent, summary) {
+    var avg = Number(summary && summary.avg), count = Number(summary && summary.count);
+    if (!Number.isFinite(avg) || avg < 1 || avg > 5 || !Number.isInteger(count) || count < 1) return;
+    var line = add(parent, 'div', '', 'offer-rating');
+    var stars = add(line, 'span', '', 'offer-stars');
+    stars.setAttribute('role', 'img'); stars.setAttribute('aria-label', avg.toFixed(1) + ' / 5');
+    for (var i = 0; i < 5; i++) {
+      var star = add(stars, 'span', '★', 'offer-star');
+      star.setAttribute('aria-hidden', 'true');
+      var fill = add(star, 'span', '★', 'offer-star-fill');
+      fill.style.width = (Math.max(0, Math.min(1, avg - i)) * 100) + '%';
+    }
+    var score = add(line, 'span', avg.toFixed(1) + ' (' + count + ')', 'offer-rating-score');
+    score.setAttribute('aria-label', count === 1 ? t('reviews_count_one') : count + ' ' + t('reviews_count_many'));
+  }
+  function card(row, summary) {
     var link = document.createElement('a'); link.className = 'catalog-card';
     link.href = 'web-product.html?id=' + encodeURIComponent(row.id);
     var visual = add(link, 'div', '', 'catalog-card-image');
@@ -31,6 +46,7 @@
     var body = add(link, 'div', '', 'catalog-card-body');
     add(body, 'h3', row.name).setAttribute('data-sf-translate', '');
     add(body, 'p', row.factory_name, 'catalog-factory-name');
+    rating(body, summary);
     var price = add(body, 'p'); money(price, row.unit_price, 'offers-unit-price');
     add(price, 'span', ' ' + t('offers_per_unit'));
     add(body, 'p', quantity(row.min_quantity, row.max_quantity), 'offer-quantity');
@@ -68,7 +84,12 @@
         if (!page) {
           grid.replaceChildren(); status.textContent = t('offers_unavailable'); more.hidden = true; return;
         }
-        page.items.forEach(function (row) { grid.appendChild(card(row)); }); offset += page.items.length;
+        var ratings = {};
+        if (page.items.length && root.SFReviews) {
+          try { ratings = await root.SFReviews.loadRatings(page.items.map(function (row) { return row.id; })) || {}; }
+          catch (_) { /* Products remain available if the rating service fails. */ }
+        }
+        page.items.forEach(function (row) { grid.appendChild(card(row, ratings[String(row.id)])); }); offset += page.items.length;
         status.textContent = offset ? '' : t('offers_empty');
         more.hidden = !page.has_more; more.textContent = t('home_more_products');
         if (root.SFTranslate) root.SFTranslate.translateAll(grid);
