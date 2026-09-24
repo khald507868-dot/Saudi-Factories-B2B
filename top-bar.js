@@ -30,8 +30,14 @@
     /* قبل أوّل عنصر في body: الشريط أعلى الصفحة دائماً،
        وشعار الصفحة (.page-logo) يليه. */
     var first = document.body.firstElementChild;
-    while (host.firstChild) {
-      document.body.insertBefore(host.firstChild, first);
+    if (document.body.classList.contains("product-page")) {
+      /* Use the homepage shell so its white background spans the viewport. */
+      host.className = "top-bar";
+      document.body.insertBefore(host, first);
+    } else {
+      while (host.firstChild) {
+        document.body.insertBefore(host.firstChild, first);
+      }
     }
 
     /* شعار الصفحة يُخفى حيث يُحقن الشريط: الشريط

@@ -44,7 +44,7 @@
 <script src="site-search.js?v=20260922-live-search" defer></script>
 <script src="bestsellers-scroll.js?v=20260924-pointer-resume"></script>
 <script src="category-scroll.js?v=20260923-category-loop"></script>
-<script src="top-bar.js?v=20260923-category-loop"></script>
+<script src="top-bar.js?v=20260924-product-header"></script>
 <script src="lang-switch.js?v=20260922-locale"></script>
 <script src="commerce-service.js"></script>
 <script src="favorites-service.js"></script>
@@ -60,6 +60,32 @@
   }
 
   /* ===== الرأس ===== */
+  .product-page > .top-bar {
+    background: transparent !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  }
+
+  .product-page > .top-bar .dt-bar {
+    position: relative;
+    isolation: isolate;
+    z-index: 1;
+  }
+
+  /* Keep the search row white across the viewport, leaving the map visible
+     through the category row below it. */
+  .product-page > .top-bar .dt-bar::before {
+    content: "";
+    position: absolute;
+    inset: 0 calc(50% - 50vw);
+    background: #fff;
+    z-index: -1;
+    pointer-events: none;
+  }
+
+  .product-page > .top-bar .dt-catbar {
+    background: transparent;
+  }
+
   .page-header {
     display: flex;
     align-items: center;
@@ -1301,8 +1327,10 @@
 <link rel="stylesheet" href="desktop.css?v=20260923-category-hover">
 <link rel="stylesheet" href="green-frames.css">
 <link rel="stylesheet" href="home-product-details.css?v=20260924-similar-details">
+<link rel="stylesheet" href="page-watermark.css?v=20260924-map">
 </head>
-<body class="store-page product-page">
+<body class="store-page product-page has-map-watermark">
+  <div class="page-map-watermark" aria-hidden="true"><img src="assets/brand/saudi-map-watermark.svg" alt="" draggable="false"></div>
   <!-- شعار الصفحة — متحرّك، موحّد في كل صفحات الموقع -->
   <a class="page-logo" href="index.html">
     <span class="wm-title"><span class="w-green">Saudi</span> <span class="w-dark">Factories</span> <span class="w-b2b">B2B</span></span>
