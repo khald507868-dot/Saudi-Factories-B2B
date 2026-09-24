@@ -1203,8 +1203,10 @@
   top: 0;
   inset-inline-start: 0;
   z-index: 60;
-  width: 250px;
+  width: 300px;
   max-width: calc(100vw - 24px);
+  max-height: calc(100dvh - 96px);
+  overflow-y: auto;
   padding: 12px 14px;
   border-radius: 12px;
   background: #ffffff;
@@ -1271,6 +1273,11 @@
   /* الأرقام لاتينيّة دائماً فلا ينعكس ترتيبها. */
   direction: ltr;
 }
+.cart-toast-row .sf-money { font-size: 14px; }
+.cart-toast-row .cart-toast-shipping-value { direction: inherit; text-align: end; font-size: 11.5px; }
+.cart-toast-price { margin-top: 8px; padding-top: 8px; border-top: 1px solid #e5ece6; }
+.cart-toast-price .sf-money { font-size: 18px; }
+.cart-toast-row[hidden], .cart-toast-breakdown[hidden] { display: none; }
 
 .cart-toast-link {
   display: block;
@@ -1716,9 +1723,15 @@
 
       /* لوحة تنسدل تحت أيقونة السلة بعد الإضافة
          (بطلب المالك): المنتج والكمّية والسعر،
-         ثمّ تختفي بعد خمس ثوانٍ. */
+         مع تفاصيل السعر، وتبقى أثناء القراءة أو تركيز رابط السلة. */
       var cartBar = null;
       var cartBarTimer = null;
+      var cartBarHovered = false;
+      function scheduleCartBarHide() {
+        if (cartBarTimer) clearTimeout(cartBarTimer);
+        if (cartBarHovered || (cartBar && cartBar.contains(document.activeElement))) return;
+        cartBarTimer = setTimeout(hideCartBar, 10000);
+      }
 
       /* الموضع يُحسب من موضع الأيقونة فعلاً: هي
          داخل شريط يبنيه top-bar.js وليست أباً للوحة،
@@ -1732,6 +1745,7 @@
 
         if (!icon || !icon.offsetParent) {
           cartBar.style.top = (pad + 60) + "px";
+          cartBar.style.maxHeight = Math.max(0, window.innerHeight - pad - 60 - pad) + "px";
           cartBar.style.insetInlineStart = pad + "px";
           cartBar.style.insetInlineEnd = "auto";
           return;
@@ -1742,6 +1756,7 @@
         var rtl = document.documentElement.getAttribute("dir") === "rtl";
 
         cartBar.style.top = (r.bottom + 8) + "px";
+        cartBar.style.maxHeight = Math.max(0, window.innerHeight - r.bottom - 8 - pad) + "px";
 
         /* تمركز تحت الأيقونة، مقيّدةً بحدّي النافذة
            لئلّا تخرج عنها — والأيقونة قريبة من الحافة
@@ -1780,9 +1795,14 @@
             '</div>' +
             '<div class="cart-toast-name"></div>' +
             '<div class="cart-toast-row cart-toast-qty"></div>' +
+            '<div class="cart-toast-breakdown"></div>' +
             '<div class="cart-toast-row cart-toast-price"></div>' +
             '<a class="cart-toast-link" href="web-cart.html"></a>';
           document.body.appendChild(cartBar);
+          cartBar.addEventListener('mouseenter', function () { cartBarHovered = true; scheduleCartBarHide(); });
+          cartBar.addEventListener('mouseleave', function () { cartBarHovered = false; scheduleCartBarHide(); });
+          cartBar.addEventListener('focusin', scheduleCartBarHide);
+          cartBar.addEventListener('focusout', function () { setTimeout(scheduleCartBarHide, 0); });
           /* اللوحة معلّقة بموضع الأيقونة، فتتبعها
              عند تغيّر المقاس والتمرير. */
           window.addEventListener("resize", placeCartBar);
@@ -1809,38 +1829,32 @@
         /* السعر بنفس قاعدة الإجمالي: الوحدة
            مقرّبة ثمّ تُضرب، فلا تخالف ما في
            الصندوق ولا ما في السلة. */
-        var priceRow = cartBar.querySelector(".cart-toast-price");
-        var u = parseFloat(unit);
-        if (isFinite(u) && u > 0 && q > 0) {
-          var cur = window.SFCurrency;
-          var amountHTML;
-          if (cur && cur.isForeign()) {
-            var dec = cur.info(cur.getCode()).dec;
-            var shownUnit = Number(cur.convert(u).toFixed(dec));
-            amountHTML = cur.formatNumber(shownUnit * q) +
-              ' <span class="cur-sym">' +
-              escapeHTML(cur.info(cur.getCode()).sym) + '</span>';
-          } else {
-            amountHTML = I18N.money((u * q).toFixed(2));
-          }
-          priceRow.innerHTML =
-            '<span>' + escapeHTML(I18N.t("shipping_before_total")) + '</span>' +
-            '<b>' + amountHTML + '</b>';
-          priceRow.hidden = false;
-        } else {
-          priceRow.hidden = true;
+        var priceRow = cartBar.querySelector('.cart-toast-price');
+        var details = cartBar.querySelector('.cart-toast-breakdown');
+        var breakdown = buyBreakdown(unit, q);
+        details.hidden = priceRow.hidden = !breakdown;
+        details.innerHTML = ''; priceRow.innerHTML = '';
+        if (breakdown) {
+          [
+            ['offer_unit_price', buyMoney(breakdown.unit)],
+            ['order_subtotal', buyMoney(breakdown.subtotal)],
+            ['order_shipping', escapeHTML(I18N.t('shipping_pending'))],
+            ['order_payment_fee', buyMoney(breakdown.fee)],
+            ['order_vat', buyMoney(breakdown.vat)]
+          ].forEach(function (entry) {
+            var shippingClass = entry[0] === 'order_shipping' ? ' class="cart-toast-shipping-value"' : '';
+            details.innerHTML += '<div class="cart-toast-row"><span>' + escapeHTML(I18N.t(entry[0])) +
+              '</span><b' + shippingClass + '>' + entry[1] + '</b></div>';
+          });
+          priceRow.innerHTML = '<span>' + escapeHTML(I18N.t('shipping_before_total')) +
+            '</span><b>' + buyMoney(breakdown.total) + '</b>';
         }
 
         cartBar.classList.add("is-open");
         /* بعد إضافة is-open: العرض يُقاس من عنصر
            مرسوم، والمخفي عرضه قد يقرأ صفراً. */
         placeCartBar();
-
-        /* خمس ثوانٍ، والموقّت القديم يُلغى: إضافة
-           ثانية قبل انقضائه كانت ستغلق اللوحة بعد
-           لحظة من فتحها الجديد. */
-        if (cartBarTimer) clearTimeout(cartBarTimer);
-        cartBarTimer = setTimeout(hideCartBar, 5000);
+        scheduleCartBarHide();
       }
 
       /* الكمّية تُقرأ عند النقر لا عند البناء:
@@ -2036,6 +2050,34 @@
       /* الإجمالي = سعر الوحدة × الكمّية. وسعر الوحدة
          من الشريحة المطبّقة، وإلّا فمن الأساسيّ.
          وبلا سعر يُخفى الصندوق: صفر لا يقول شيئاً. */
+      // Shared display calculation for the purchase panel and added-item receipt.
+      function buyBreakdown(unit, qty) {
+        unit = Number(unit); qty = Number(qty);
+        if (!Number.isFinite(unit) || unit <= 0 || !Number.isSafeInteger(qty) || qty < 1) return null;
+        var cur = window.SFCurrency;
+
+        /* مجموع المنتج بالريال: منه تُحسب
+           الرسوم والضريبة كما يفعل الخادم. */
+        var subtotalSar;
+        if (cur && cur.isForeign()) {
+          /* سعر الوحدة محوّلاً ومقرّباً ثمّ مضروباً،
+             ثمّ يُردّ إلى الريال ليبني بقيّة البيان
+             على أرقام الخادم نفسها. */
+          var dec = cur.info(cur.getCode()).dec;
+          var rate = cur.info(cur.getCode()).rate;
+          var shownUnit = Number(cur.convert(unit).toFixed(dec));
+          subtotalSar = (shownUnit * qty) / rate;
+        } else {
+          subtotalSar = unit * qty;
+        }
+
+        var fee = Math.round((subtotalSar + BUY_SHIPPING) * BUY_FEE_RATE * 100) / 100;
+        var taxable = subtotalSar + BUY_SHIPPING + fee;
+        var vat = Math.round(taxable * BUY_VAT_RATE * 100) / 100;
+
+        return { unit: unit, quantity: qty, subtotal: subtotalSar, fee: fee, vat: vat, total: taxable + vat };
+      }
+
       function paintBuyTotal(unitPrice) {
         var box = document.getElementById("buy-total");
         if (!box) return;
@@ -2069,30 +2111,10 @@
            وهذا في العرض وحده: الطلب يحسبه الخادم
            بالريال في create_order_from_cart ولا يقبل مبلغاً
            من المتصفّح. */
-        var qty = readQty();
-        var cur = window.SFCurrency;
-
-        /* مجموع المنتج بالريال: منه تُحسب
-           الرسوم والضريبة كما يفعل الخادم. */
-        var subtotalSar;
-        if (cur && cur.isForeign()) {
-          /* سعر الوحدة محوّلاً ومقرّباً ثمّ مضروباً،
-             ثمّ يُردّ إلى الريال ليبني بقيّة البيان
-             على أرقام الخادم نفسها. */
-          var dec = cur.info(cur.getCode()).dec;
-          var rate = cur.info(cur.getCode()).rate;
-          var shownUnit = Number(cur.convert(unit).toFixed(dec));
-          subtotalSar = (shownUnit * qty) / rate;
-        } else {
-          subtotalSar = unit * qty;
-        }
-
-        var fee = Math.round((subtotalSar + BUY_SHIPPING) * BUY_FEE_RATE * 100) / 100;
-        var taxable = subtotalSar + BUY_SHIPPING + fee;
-        var vat = Math.round(taxable * BUY_VAT_RATE * 100) / 100;
-
-        paintBuySums(subtotalSar, fee, vat);
-        val.innerHTML = buyMoney(taxable + vat);
+        var breakdown = buyBreakdown(unit, readQty());
+        if (!breakdown) { hideAll(); return; }
+        paintBuySums(breakdown.subtotal, breakdown.fee, breakdown.vat);
+        val.innerHTML = buyMoney(breakdown.total);
       }
 
       /* صفوف البيان. وتُبنى مرّةً واحدةً ثمّ
@@ -2660,6 +2682,7 @@
              ثانيةً في الردّ لأمكن أن يغيّرها المشتري
              في الأثناء فتعرض اللوحة غير ما أُرسل. */
           var sentQty = readQty();
+          var sentUnit = unitForQty(sentQty);
           SFCommerce.addToCart(product.id, sentQty).then(function () {
             cartButton.textContent = I18N.t("product_added_to_cart");
             /* لا نقل قسري للسلة (طلب المالك): يبقى المشتري ليواصل
@@ -2669,7 +2692,7 @@
               cartButton.textContent = I18N.t("product_add_to_cart");
             }, 1600);
             /* السعر من الشريحة المطبّقة لا من الأساسيّ. */
-            showCartBar(sentQty, unitForQty(sentQty));
+            showCartBar(sentQty, sentUnit);
           }).catch(function (err) {
             cartButton.disabled = false;
             cartButton.textContent = err && err.message ? err.message : I18N.t("fx_failed");
