@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
-function setup(direction='ltr',reduced=false,viewport=300,category=true) {
+function setup(direction='ltr',reduced=false,viewport=300,category=true,options={}) {
  let now=100,id=0;const frames=new Map(),timers=new Map(),sizes=[];
  class Element {
   constructor(tag='div',width=0){this.tagName=tag;this.width=width;this.children=[];this.events={};this.style={};this.attrs={};this.hidden=false;this.classes=new Set();this.classList={add:v=>this.classes.add(v),toggle:(v,on)=>on?this.classes.add(v):this.classes.delete(v)};}
@@ -42,7 +42,7 @@ function setup(direction='ltr',reduced=false,viewport=300,category=true) {
  });
  for(const file of ['bestsellers-scroll.js','category-scroll.js'])vm.runInContext(readFileSync(new URL('../'+file,import.meta.url),'utf8'),context);
  if(category)root.SFCategoryScroll.mount(view);
- else root.SFBestsellersScroll.mount(view,{itemSelector:'a',sectionSelector:'.dt-catbar'});
+ else root.SFBestsellersScroll.mount(view,{itemSelector:'a',sectionSelector:'.dt-catbar',...options});
  const step=(ms=50)=>{now+=ms;const pending=[...frames.values()];frames.clear();pending.forEach(f=>f(now));};
  return {root,doc,view,area,left,right,frames,timers,sizes,step,media};
 }
@@ -78,4 +78,27 @@ const fits=setup('ltr',false,1000);fits.step();fits.step();assert.equal(fits.vie
 const existing=setup('ltr',false,300,false);existing.step();const previous=existing.view.scrollLeft;existing.step();
 assert(Math.abs(existing.view.scrollLeft-previous-1.3)<0.001,'Existing galleries retain their 26px/s speed');
 existing.view.emit('mouseenter');const held=existing.view.scrollLeft;existing.step();assert.equal(existing.view.scrollLeft,held);
-console.log('PASS continuous category seams in RTL/LTR, links, hover/resume, resize, arrows, wheel, reduced motion and clean remount');
+for(const dir of ['ltr','rtl']){
+ const home=setup(dir,false,300,false,{pauseOnHover:false,pauseOnPointerFocus:false});
+ home.step();let before=home.view.scrollLeft;
+ home.view.emit('mouseenter');home.step();assert.notEqual(home.view.scrollLeft,before,'Homepage keeps moving beneath a stationary pointer');
+ home.view.emit('pointerdown');home.doc.activeElement=home.view.children[4];
+ before=home.view.scrollLeft;home.step();assert.equal(home.view.scrollLeft,before,'A pointer press pauses while held');
+ home.root.emit('pointerup');home.step(2600);
+ assert.notEqual(home.view.scrollLeft,before,'Pointer focus after expanding prices does not freeze the strip');
+ const span=654.75,sign=dir==='rtl'?-1:1;
+ before=sign*home.view.scrollLeft;let wraps=0;
+ for(let i=0;i<600;i++){
+  home.step();const after=sign*home.view.scrollLeft;
+  if(after<before)wraps++;
+  assert(Math.abs(((after-before)%span+span)%span-1.3)<0.001,'Continuous motion after a pointer click');
+  before=after;
+ }
+ assert(wraps>0);
+ home.doc.emit('keydown',{key:'Tab'});before=home.view.scrollLeft;
+ home.step();assert.equal(home.view.scrollLeft,before,'Keyboard focus remains stable for navigation');
+ home.doc.activeElement=null;home.view.emit('focusout');home.step();assert.notEqual(home.view.scrollLeft,before);
+}
+const homeReduced=setup('ltr',true,300,false,{pauseOnHover:false,pauseOnPointerFocus:false});
+const stopped=homeReduced.view.scrollLeft;homeReduced.step();homeReduced.step();assert.equal(homeReduced.view.scrollLeft,stopped);
+console.log('PASS continuous seams, hover options, pointer-focus resume, keyboard focus, reduced motion, arrows and clean remount');

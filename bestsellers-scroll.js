@@ -14,6 +14,7 @@
     var hoverTarget = options.hoverTarget || view;
     var paused = motion.matches;
     var hover = false, touching = false, visible = true;
+    var pointerFocus = false;
     var last = 0, frame = 0, span = 0, position = 0, looping = false;
     var sign = getComputedStyle(view).direction === 'rtl' ? -1 : 1;
     var manualUntil = 0;
@@ -74,8 +75,11 @@
       last = 0;
       updateControl();
     }
+    function focusPauses() {
+      return view.contains(document.activeElement) && !(options.pauseOnPointerFocus === false && pointerFocus);
+    }
     function normalize() {
-      if (!looping || view.contains(document.activeElement)) return;
+      if (!looping || focusPauses()) return;
       var current = sign * view.scrollLeft;
       if (current < span - 1 || current >= 2 * span) {
         position = span + ((current % span) + span) % span;
@@ -87,7 +91,7 @@
       last = now;
       if (looping && visible && !document.hidden && !paused && !hover && !touching &&
           !(options.isPaused && options.isPaused()) &&
-          !view.contains(document.activeElement) && now > manualUntil) {
+          !focusPauses() && now > manualUntil) {
         position += elapsed * speed;
         if (position >= span * 2) position -= span;
         view.scrollLeft = sign * position;
@@ -98,13 +102,14 @@
       listen(hoverTarget, 'mouseenter', function () { hover = true; });
       listen(hoverTarget, 'mouseleave', function () { hover = false; position = sign * view.scrollLeft; last = 0; });
     }
-    listen(view, 'pointerdown', function () { touching = true; });
+    listen(view, 'pointerdown', function () { touching = true; pointerFocus = true; });
+    listen(document, 'keydown', function () { pointerFocus = false; });
     listen(global, 'pointerup', function () { touching = false; manualUntil = performance.now() + 2500; });
     listen(global, 'pointercancel', function () { touching = false; });
     listen(view, 'wheel', function () { manualUntil = performance.now() + 2500; }, { passive: true });
     listen(view, 'scroll', function () {
       normalize();
-      if (hover || touching || paused || performance.now() <= manualUntil || view.contains(document.activeElement) || (options.isPaused && options.isPaused())) {
+      if (hover || touching || paused || performance.now() <= manualUntil || focusPauses() || (options.isPaused && options.isPaused())) {
         position = sign * view.scrollLeft;
       }
     }, { passive: true });

@@ -22,7 +22,7 @@
 <script src="reviews-service.js"></script>
 <script src="i18n.js?v=20260923-quantity-offers"></script>
 <script src="product-card-data.js?v=20260924-tier-details"></script>
-<script src="bestsellers-scroll.js?v=20260923-category-loop"></script>
+<script src="bestsellers-scroll.js?v=20260924-pointer-resume"></script>
 <script src="category-scroll.js?v=20260923-category-loop"></script>
 <script src="currency-ui.js?v=20260922-locale-dropdown"></script>
 <!-- منتقي اللغة والعملة المشترك بجانب السلة -->
@@ -1066,7 +1066,7 @@
 <link rel="stylesheet" href="mobile.css">
 <link rel="stylesheet" href="desktop.css?v=20260923-category-hover">
 <link rel="stylesheet" href="green-frames.css">
-<link rel="stylesheet" href="home-product-details.css?v=20260924-tier-details">
+<link rel="stylesheet" href="home-product-details.css?v=20260924-price-sizing">
 <link rel="stylesheet" href="home-panels.css">
 </head>
 <body class="home-page">
@@ -1956,7 +1956,7 @@
         if (target.sfStopScroll) target.sfStopScroll();
         if (append) target.insertAdjacentHTML('beforeend', html);
         else target.innerHTML = html;
-        if (target === grid) SFBestsellersScroll.mount(grid);
+        if (target === grid) SFBestsellersScroll.mount(grid, { pauseOnHover: false, pauseOnPointerFocus: false });
         wireFavorites(target);
         startCardSliders(target);
         /* أسماء المنتجات تُترجم بعد الرسم، والخدمة

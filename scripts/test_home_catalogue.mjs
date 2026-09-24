@@ -35,7 +35,11 @@ function fixture({ count = 57, failFirst = false, ratingsFail = false, authFail 
       querySelectorAll(selector) { return selector === '.product-cell[data-product-id]' ? interactiveCards : []; } },
     localStorage: { getItem(key) { return key === 'sf_lang' ? language : null; }, setItem() {} },
     sfSafeHttpUrl: () => '', setInterval, clearInterval,
-    SFBestsellersScroll: { mount(node) { mounts.push(node); } },
+    SFBestsellersScroll: { mount(node, options) {
+      assert.equal(options.pauseOnHover,false);
+      assert.equal(options.pauseOnPointerFocus,false);
+      mounts.push(node);
+    } },
     SFReviews: { loadRatings(ids) {
       return ratingsFail ? Promise.reject(new Error('ratings unavailable'))
         : Promise.resolve(unrated ? {} : Object.fromEntries(ids.map(id => [id, { avg: 4.5, count: 2 }])));
