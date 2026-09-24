@@ -1,12 +1,31 @@
 .offers-page #offers-status:empty{display:none}
+.offers-page .catalog-main{max-width:1080px}
+.offers-page #offers-grid{gap:14px;align-items:start}
+.offers-page #offers-grid .catalog-card-image{height:130px}
+.offers-page #offers-grid .catalog-card-body{padding:12px;font-size:13px;line-height:1.4}
+.offers-page #offers-grid .catalog-card h3{font-size:15px;margin-bottom:5px}
+.offers-page #offers-grid .catalog-card p{margin:4px 0}
+.offers-page #offers-grid .catalog-factory-name{font-size:13px}
 .offers-page .catalog-card{border:1px solid #b5d3bb}
-.offer-saving{display:inline-block;background:#e1f1e3;color:#285e38;border-radius:20px;padding:3px 12px;font-weight:700}
+.offer-product-link{display:block;color:inherit;text-decoration:none;min-width:0}
+.offer-product-link:focus-visible{outline:3px solid #c9a227;outline-offset:-3px}
+.offer-pricing tr[hidden]{display:none}
+.offer-pricing-toggle{align-self:stretch;margin:0 12px 10px;padding:6px 10px;border:1px solid #b5d3bb;border-radius:8px;background:#f1f7f2;color:#285e38;font-family:inherit;font-size:12px;font-weight:600;line-height:1.4;cursor:pointer}
+.offer-pricing-toggle:hover{background:#e1f1e3}
+.offer-pricing-toggle:focus-visible{outline:2px solid #386c48;outline-offset:2px}
+.offer-saving{display:inline-block;background:#e1f1e3;color:#285e38;border-radius:20px;padding:3px 10px;font-size:13px;line-height:1.4;font-weight:700}
 .offer-reference{color:#637368;font-size:13px;border-top:1px solid #e5ece6;padding-top:10px}
-.offer-quantity{font-size:14px;color:#285e38}
-.offers-unit-price{font-size:22px;font-weight:800}
-.offer-rating{display:flex;align-items:center;flex-wrap:wrap;gap:7px;margin:8px 0;color:#637368;font-size:13px}
+.offer-pricing{width:100%;border-collapse:collapse;margin-top:8px;font-size:12px;line-height:1.4;text-align:start}
+.offer-pricing caption{text-align:start;font-weight:700;padding:5px 0;color:#285e38}
+.offer-pricing th,.offer-pricing td{text-align:start;padding:5px 4px;border-bottom:1px solid #e5ece6;vertical-align:top}
+.offer-pricing th{color:#637368;font-weight:600}
+.offer-pricing td:last-child{font-weight:700;white-space:nowrap}
+.offer-pricing-selected{background:#edf5ef;color:#285e38}
+.offer-quantity{font-size:12px;color:#285e38}
+.offers-unit-price{font-size:18px;font-weight:800}
+.offer-rating{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin:6px 0;color:#637368;font-size:12px}
 .offer-stars{display:inline-flex;direction:ltr;gap:2px;line-height:1}
-.offer-star{position:relative;display:inline-block;color:#dfe5e1;font-size:18px}
+.offer-star{position:relative;display:inline-block;color:#dfe5e1;font-size:14px}
 .offer-star-fill{position:absolute;left:0;top:0;overflow:hidden;color:#e5a12b}
 .offer-rating-score{direction:ltr;unicode-bidi:isolate}
 .catalog-card-image{position:relative}
