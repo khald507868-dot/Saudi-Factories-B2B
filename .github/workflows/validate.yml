@@ -39,6 +39,8 @@ jobs:
           node scripts/test_category_scroll.mjs
           node scripts/test_web_promotions.mjs
           node scripts/test_quantity_offers_client.mjs
+          node scripts/test_home_catalogue.mjs
+          node scripts/test_product_card_data.mjs
           node scripts/test_promotion_quantity_offers.mjs "$RUNNER_TEMP/security-tests"
           node scripts/test_manual_shipping_client.mjs
           node scripts/test_shipping_images_client.mjs

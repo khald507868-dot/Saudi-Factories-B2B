@@ -32,7 +32,7 @@ function setup(responses,query='?promotion='+promo,ratingResponses=[],pricingRes
    if(name==='get_product_ratings'){ratingCalls.push(args.p_product_ids);return ratingResponses.shift()||{data:[]};}
    calls.push({name,args});return responses.shift();
   }}
- });context.window=context;vm.runInContext(reviewsSource,context);vm.runInContext(source,context);
+ });context.window=context;vm.runInContext(readFileSync(new URL('../product-card-data.js',import.meta.url),'utf8'),context);vm.runInContext(reviewsSource,context);vm.runInContext(source,context);
  return {context,ids,calls,ratingCalls,pricingCalls,events};
 }
 const s=setup([{data:page}]);await flush();

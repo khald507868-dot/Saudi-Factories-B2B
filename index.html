@@ -21,7 +21,7 @@
 <script src="translate.js"></script>
 <script src="reviews-service.js"></script>
 <script src="i18n.js?v=20260923-quantity-offers"></script>
-<script src="product-card-data.js"></script>
+<script src="product-card-data.js?v=20260924-tier-details"></script>
 <script src="bestsellers-scroll.js?v=20260923-category-loop"></script>
 <script src="category-scroll.js?v=20260923-category-loop"></script>
 <script src="currency-ui.js?v=20260922-locale-dropdown"></script>
@@ -712,8 +712,7 @@
     opacity: 0.85;
   }
 
-  /* غلاف البطاقة — البطاقة نفسها <a> فلا يصحّ وضع زر داخلها،
-     فالزر شقيق لها داخل غلاف نسبي يعلوها. */
+  /* الغلاف النسبي يضع المفضلة فوق الصورة، وأزرار الأسعار خارج رابط المنتج. */
   .product-cell { position: relative; }
 
   /* زر القلب: يجلس في الطرف الابتدائي حسب اتجاه القراءة، فيتبع
@@ -1067,6 +1066,7 @@
 <link rel="stylesheet" href="mobile.css">
 <link rel="stylesheet" href="desktop.css?v=20260923-category-hover">
 <link rel="stylesheet" href="green-frames.css">
+<link rel="stylesheet" href="home-product-details.css?v=20260924-tier-details">
 <link rel="stylesheet" href="home-panels.css">
 </head>
 <body class="home-page">
@@ -1814,7 +1814,7 @@
 
       var PC_STAR = "M12 2.6l2.9 5.9 6.5.9-4.7 4.6 1.1 6.4-5.8-3-5.8 3 1.1-6.4L2.6 9.4l6.5-.9z";
 
-      function pcStars(avg) {
+      function pcStars(avg, rated) {
         var v = Number(avg) || 0;
         var out = '';
         for (var i = 1; i <= 5; i++) {
@@ -1825,18 +1825,48 @@
               (100 - f).toFixed(2) + '% 0 0)"><path class="s-fg" d="' + PC_STAR + '"></path></svg>' +
           '</span>';
         }
-        return '<span class="pc-stars" role="img" aria-label="' + v.toFixed(1) + ' / 5">' +
+        return '<span class="pc-stars' + (rated ? '' : ' pc-stars-empty') + '" role="img" aria-label="' + escapeHTML(rated ? v.toFixed(1) + ' / 5' : I18N.t('reviews_none')) + '">' +
           out + '</span>';
       }
 
-      /* بلا تقييم لا نجوم: خمس نجوم فارغة تُقرأ
-         أنّ المنتج سيئ، والحقيقة أنّه جديد. */
+      /* Unrated products have empty stars, without a numeric score. */
       function rateHTML(productId) {
         var m = RATINGS[String(productId)];
-        if (!m || !m.count) return '';
-        return '<div class="pc-rate">' + pcStars(m.avg) +
-          '<span>' + m.avg.toFixed(1) + ' (' + m.count + ')</span></div>';
+        var rated = m && Number.isFinite(m.avg) && m.avg >= 1 && m.avg <= 5 && Number.isInteger(m.count) && m.count > 0;
+        return '<div class="pc-rate">' + pcStars(rated ? m.avg : 0, rated) +
+          (rated ? '<span>' + m.avg.toFixed(1) + ' (' + m.count + ')</span>' : '') + '</div>';
       }
+
+      function pricingHTML(ranges) {
+        if (!ranges.length) return '';
+        return '<div class="pc-pricing"><table><caption>' + escapeHTML(I18N.t('tier_pricing')) + '</caption>' +
+          '<thead><tr><th scope="col">' + escapeHTML(I18N.t('offer_quantity')) + '</th><th scope="col">' + escapeHTML(I18N.t('offer_unit_price')) + '</th></tr></thead><tbody>' +
+          ranges.map(function (tier, index) {
+            var qty = tier.max == null ? tier.min + '+' : tier.min + '–' + tier.max;
+            return '<tr' + (index ? ' data-pc-extra hidden' : '') + '><td><bdi>' + qty + '</bdi> ' + escapeHTML(I18N.t('tier_piece')) +
+              '</td><td>' + I18N.money(tier.price.toFixed(2)) + '</td></tr>';
+          }).join('') + '</tbody></table>' +
+          (ranges.length > 1 ? '<button type="button" class="pc-pricing-toggle" aria-expanded="false">' + escapeHTML(I18N.t('home_more_products')) + '</button>' : '') + '</div>';
+      }
+
+      // Delegation also handles the copies used by the continuous carousel.
+      document.addEventListener('click', function (event) {
+        var button = event.target.closest('.pc-pricing-toggle');
+        if (!button) return;
+        event.preventDefault();
+        var cell = button.closest('.product-cell');
+        var id = cell.getAttribute('data-product-id');
+        var expanded = button.getAttribute('aria-expanded') !== 'true';
+        document.querySelectorAll('.product-cell[data-product-id]').forEach(function (item) {
+          if (item.getAttribute('data-product-id') !== id) return;
+          item.querySelectorAll('[data-pc-extra]').forEach(function (tr) { tr.hidden = !expanded; });
+          var toggle = item.querySelector('.pc-pricing-toggle');
+          if (toggle) {
+            toggle.setAttribute('aria-expanded', String(expanded));
+            toggle.textContent = I18N.t(expanded ? 'currency_show_less' : 'home_more_products');
+          }
+        });
+      });
 
       var verified = I18N.t('product_verified');
 
@@ -1873,18 +1903,19 @@
              فيظهر للمشتري كأنّه المنتج ويُضلّله. */
           var image = gallery[0] || '';
           var name = row.name || factory.name || '';
-          var cardPrice = SFProductCard.priceHTML(row);
+          var ranges = SFProductCard.priceRanges(row);
+          var cardPrice = SFProductCard.priceHTML(ranges.length ? Object.assign({}, row, { tiers: ranges }) : row);
           var priceHTML = cardPrice
             ? '<div class="product-price">' + cardPrice + '</div>' : '';
 
           var fid = row.factory_id;
 
           html +=
-            '<div class="product-cell">' +
+            '<div class="product-cell" data-product-id="' + escapeHTML(row.id) + '">' +
             '<button class="fav-heart" type="button" data-fav="' + escapeHTML(row.id) + '" aria-label="' + escapeHTML(I18N.t('fav_add')) + '">' +
               '<svg viewBox="0 0 24 24"><path d="M12 21s-7.5-4.7-9.5-9A5.2 5.2 0 0 1 12 6.6 5.2 5.2 0 0 1 21.5 12c-2 4.3-9.5 9-9.5 9z"/></svg>' +
             '</button>' +
-            '<a class="product-card" href="web-product.html?factory=' + encodeURIComponent(fid) + '&p=0&product=' + encodeURIComponent(row.id) + '">' +
+            '<div class="product-card"><a class="product-link" href="web-product.html?factory=' + encodeURIComponent(fid) + '&p=0&product=' + encodeURIComponent(row.id) + '">' +
               '<div class="product-image"' +
                    (gallery.length > 1 ? ' data-slides="' + gallery.length + '"' : '') + '>' +
                 (gallery.length > 1
@@ -1907,10 +1938,11 @@
               '</div>' +
               '<div class="product-body">' +
                 (name ? '<div class="product-name" data-sf-translate>' + escapeHTML(name) + '</div>' : '') +
+                (factory.name ? '<div class="pc-factory-name">' + escapeHTML(factory.name) + '</div>' : '') +
+                rateHTML(row.id) +
                 (priceHTML
                   ? priceHTML
                   : '') +
-                rateHTML(row.id) +
                 '<div class="product-meta">' +
                   /* للمعتمد وحده (بطلب المالك) */
                   (factory.status === 'approved'
@@ -1918,7 +1950,7 @@
                     : '') +
                 '</div>' +
               '</div>' +
-            '</a>' +
+            '</a>' + pricingHTML(ranges) + '</div>' +
             '</div>';
         });
         if (target.sfStopScroll) target.sfStopScroll();
@@ -2075,7 +2107,7 @@
         allStatus.textContent = I18N.t('fx_loading');
         return ready.then(function () {
           return sb.from('products')
-            .select('id, factory_id, name, price, tiers, image, images, factories!inner(name, status)')
+            .select('id, factory_id, name, price, moq, tiers, image, images, factories!inner(name, status)')
             .eq('factories.status', 'approved')
             .order('sort_order').order('id')
             .range(offset, offset + LIMIT);
@@ -2114,7 +2146,7 @@
 
       ready.then(function () {
         return sb.from('products')
-          .select('id, factory_id, name, price, tiers, image, images, factories(name, cover, status)')
+          .select('id, factory_id, name, price, moq, tiers, image, images, factories(name, cover, status)')
           .order('sort_order')
           .limit(LIMIT);
       }).then(function (res) {
@@ -2122,10 +2154,10 @@
         var rows = res.data || [];
         /* التقييمات قبل الرسم لا بعده: لو رُسمت البطاقات
            أوّلاً لقفزت النجوم فيها بعد حين. وفشلها لا
-           يمنع العرض: الخريطة تبقى فارغة فلا نجوم. */
+           يمنع العرض: تبقى النجوم فارغة بلا رقم تقييم. */
         if (!window.SFReviews) { render(rows); return null; }
         var ids = rows.map(function (r) { return r.id; });
-        return SFReviews.loadRatings(ids).then(function (map) {
+        return SFReviews.loadRatings(ids).catch(function () { return {}; }).then(function (map) {
           Object.assign(RATINGS, map || {});
           render(rows);
         });
