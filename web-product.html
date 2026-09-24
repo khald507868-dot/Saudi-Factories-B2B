@@ -60,32 +60,6 @@
   }
 
   /* ===== الرأس ===== */
-  .product-page > .top-bar {
-    background: transparent !important;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-  }
-
-  .product-page > .top-bar .dt-bar {
-    position: relative;
-    isolation: isolate;
-    z-index: 1;
-  }
-
-  /* Keep the search row white across the viewport, leaving the map visible
-     through the category row below it. */
-  .product-page > .top-bar .dt-bar::before {
-    content: "";
-    position: absolute;
-    inset: 0 calc(50% - 50vw);
-    background: #fff;
-    z-index: -1;
-    pointer-events: none;
-  }
-
-  .product-page > .top-bar .dt-catbar {
-    background: transparent;
-  }
-
   .page-header {
     display: flex;
     align-items: center;
@@ -1328,6 +1302,7 @@
 <link rel="stylesheet" href="green-frames.css">
 <link rel="stylesheet" href="home-product-details.css?v=20260924-similar-details">
 <link rel="stylesheet" href="page-watermark.css?v=20260924-map">
+<link rel="stylesheet" href="storefront-header.css?v=20260924-offers-header">
 </head>
 <body class="store-page product-page has-map-watermark">
   <div class="page-map-watermark" aria-hidden="true"><img src="assets/brand/saudi-map-watermark.svg" alt="" draggable="false"></div>

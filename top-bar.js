@@ -30,7 +30,7 @@
     /* قبل أوّل عنصر في body: الشريط أعلى الصفحة دائماً،
        وشعار الصفحة (.page-logo) يليه. */
     var first = document.body.firstElementChild;
-    if (document.body.classList.contains("product-page")) {
+    if (document.body.classList.contains("product-page") || document.body.classList.contains("offers-page")) {
       /* Use the homepage shell so its white background spans the viewport. */
       host.className = "top-bar";
       document.body.insertBefore(host, first);

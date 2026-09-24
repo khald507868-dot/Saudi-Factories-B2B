@@ -51,23 +51,23 @@
       '.sf-locale-wrap{display:inline-flex;flex-shrink:0}',
       '.sf-locale-toggle{width:40px;height:40px;padding:0;border:1px solid #c7dfce;border-radius:11px;background:#f4f8f5;color:#193923;display:flex;align-items:center;justify-content:center;cursor:pointer}',
       '.sf-locale-toggle svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}',
-      '.sf-locale-panel{position:fixed;z-index:300;box-sizing:border-box;width:360px;max-width:calc(100vw - 24px);max-height:calc(100dvh - 24px);overflow-y:auto;padding:22px;background:white;color:#193923;border:1px solid #d7e2da;border-radius:18px;box-shadow:0 10px 35px #04361b26;font:14px/1.7 "Segoe UI",Tahoma,Arial,sans-serif;text-align:start}',
+      '.sf-locale-panel{position:fixed;z-index:300;box-sizing:border-box;width:300px;max-width:calc(100vw - 24px);max-height:calc(100dvh - 24px);overflow-y:auto;padding:16px;background:white;color:#193923;border:1px solid #d7e2da;border-radius:14px;box-shadow:0 10px 35px #04361b26;font:13px/1.5 "Segoe UI",Tahoma,Arial,sans-serif;text-align:start}',
       '.sf-locale-panel[hidden]{display:none!important}',
-      '.sf-locale-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}',
-      '.sf-locale-heading h2{font-size:17px;margin:0;color:#193923}',
+      '.sf-locale-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}',
+      '.sf-locale-heading h2{font-size:15px;margin:0;color:#193923}',
       '.sf-locale-close{width:28px;height:28px;flex-shrink:0;display:grid;place-items:center;padding:0;border:0;border-radius:50%;background:#f3f6f4;color:#193923;cursor:pointer;font:22px/1 Arial}',
-      '.sf-locale-description{margin:0 0 18px;color:#596d60}',
-      '.sf-locale-panel label{display:block;font-size:14px;font-weight:600;margin:16px 0 7px}',
-      '.sf-locale-choice{box-sizing:border-box;width:100%;min-height:44px;display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid #bdd0c2;border-radius:8px;background:white;color:#193923;padding:9px 12px;font:inherit;text-align:start;cursor:pointer}',
+      '.sf-locale-description{margin:0 0 12px;color:#596d60}',
+      '.sf-locale-panel label{display:block;font-size:13px;font-weight:600;margin:10px 0 5px}',
+      '.sf-locale-choice{box-sizing:border-box;width:100%;min-height:38px;display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid #bdd0c2;border-radius:8px;background:white;color:#193923;padding:7px 10px;font:inherit;text-align:start;cursor:pointer}',
       '.sf-locale-choice svg{width:16px;height:16px;flex-shrink:0;fill:none;stroke:#63766a;stroke-width:2}',
       '.sf-locale-choice[aria-expanded="true"]{border-color:#386c48;box-shadow:0 0 0 1px #386c48}',
-      '.sf-locale-options{position:fixed;z-index:310;box-sizing:border-box;overflow-y:auto;overscroll-behavior:contain;scrollbar-gutter:stable;background:white;color:#193923;border:1px solid #d7e2da;border-radius:8px;box-shadow:0 8px 22px #04361b26;padding:4px;font:14px/1.6 "Segoe UI",Tahoma,Arial,sans-serif;text-align:start}',
+      '.sf-locale-options{position:fixed;z-index:310;box-sizing:border-box;overflow-y:auto;overscroll-behavior:contain;scrollbar-gutter:stable;background:white;color:#193923;border:1px solid #d7e2da;border-radius:8px;box-shadow:0 8px 22px #04361b26;padding:4px;font:13px/1.5 "Segoe UI",Tahoma,Arial,sans-serif;text-align:start}',
       '.sf-locale-options[hidden]{display:none!important}',
-      '.sf-locale-option{padding:10px 12px;border-radius:4px;cursor:pointer;overflow-wrap:anywhere}',
+      '.sf-locale-option{padding:8px 10px;border-radius:4px;cursor:pointer;overflow-wrap:anywhere}',
       '.sf-locale-option:hover,.sf-locale-option[data-active="true"]{background:#edf5ef}',
       '.sf-locale-option[aria-selected="true"]{font-weight:700;color:#17663d}',
-      '.sf-locale-note{margin:14px 0;color:#596d60;font-size:12px}',
-      '.sf-locale-save{width:100%;min-height:44px;border:0;border-radius:24px;background:#386c48;color:#fff;font:700 15px "Segoe UI",Tahoma,Arial,sans-serif;cursor:pointer;padding:10px 20px}',
+      '.sf-locale-note{margin:10px 0;color:#596d60;font-size:12px}',
+      '.sf-locale-save{width:100%;min-height:38px;border:0;border-radius:20px;background:#386c48;color:#fff;font:700 14px "Segoe UI",Tahoma,Arial,sans-serif;cursor:pointer;padding:8px 16px}',
       '.sf-locale-save:hover{background:#285237}',
       '.sf-locale-panel :focus-visible,.sf-locale-toggle:focus-visible{outline:3px solid #c9a227;outline-offset:3px}'
     ].join('');
@@ -151,7 +151,7 @@
   function position() {
     if (!panel || panel.hidden) return;
     var rect = button.getBoundingClientRect();
-    var width = Math.min(360, root.innerWidth - 24);
+    var width = Math.min(300, root.innerWidth - 24);
     var left = doc.documentElement.dir === 'rtl' ? rect.right - width : rect.left;
     panel.style.left = Math.max(12, Math.min(left, root.innerWidth - width - 12)) + 'px';
     var height = panel.offsetHeight;
