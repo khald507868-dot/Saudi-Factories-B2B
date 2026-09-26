@@ -31,9 +31,9 @@
 <script src="geo-location.js"></script>
 <link rel="stylesheet" href="site-search.css?v=20260922-live-search">
 <script src="site-search.js?v=20260922-live-search" defer></script>
-<script src="bestsellers-scroll.js?v=20260923-category-loop"></script>
+<script src="bestsellers-scroll.js?v=20260924-pointer-resume"></script>
 <script src="category-scroll.js?v=20260923-category-loop"></script>
-<script src="top-bar.js?v=20260923-category-loop"></script>
+<script src="top-bar.js?v=20260926-category-header"></script>
 <script src="lang-switch.js?v=20260922-locale"></script>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -221,8 +221,11 @@
 <link rel="stylesheet" href="mobile.css">
 <link rel="stylesheet" href="desktop.css?v=20260926-toolbar-colors">
 <link rel="stylesheet" href="green-frames.css">
+<link rel="stylesheet" href="page-watermark.css?v=20260924-map">
+<link rel="stylesheet" href="storefront-header.css?v=20260926-category-header">
 </head>
-<body>
+<body class="factories-page has-map-watermark">
+  <div class="page-map-watermark" aria-hidden="true"><img src="assets/brand/saudi-map-watermark.svg" alt="" draggable="false"></div>
   <!-- شعار الصفحة — متحرّك، موحّد في كل صفحات الموقع -->
   <a class="page-logo" href="index.html">
     <span class="wm-title"><span class="w-green">Saudi</span> <span class="w-dark">Factories</span> <span class="w-b2b">B2B</span></span>

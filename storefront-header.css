@@ -1,10 +1,10 @@
-/* Shared homepage-style header for product, quantity-offer and shipping pages. */
-  :is(.product-page, .offers-page, .shipping-page) > .top-bar {
+/* Shared homepage-style header for product, offer, shipping and category pages. */
+  :is(.product-page, .offers-page, .shipping-page, .factories-page) > .top-bar {
     background: transparent !important;
     box-shadow: 0 2px 8px rgba(0,0,0,0.15);
   }
 
-  :is(.product-page, .offers-page, .shipping-page) > .top-bar .dt-bar {
+  :is(.product-page, .offers-page, .shipping-page, .factories-page) > .top-bar .dt-bar {
     position: relative;
     isolation: isolate;
     z-index: 1;
@@ -12,7 +12,7 @@
 
   /* Keep the search row white across the viewport, leaving the map visible
      through the category row below it. */
-  :is(.product-page, .offers-page, .shipping-page) > .top-bar .dt-bar::before {
+  :is(.product-page, .offers-page, .shipping-page, .factories-page) > .top-bar .dt-bar::before {
     content: "";
     position: absolute;
     inset: 0 calc(50% - 50vw);
@@ -21,12 +21,12 @@
     pointer-events: none;
   }
 
-  :is(.product-page, .offers-page, .shipping-page) > .top-bar .dt-catbar {
+  :is(.product-page, .offers-page, .shipping-page, .factories-page) > .top-bar .dt-catbar {
     background: transparent;
   }
 
 
-:is(.offers-page, .shipping-page) > .top-bar {
+:is(.offers-page, .shipping-page, .factories-page) > .top-bar {
   line-height: normal;
 }
 
