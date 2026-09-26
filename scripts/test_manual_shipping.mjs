@@ -528,5 +528,120 @@ try {
     assert.equal(empty.factories_count,initial.factories_count);
     await db.exec('rollback');
   });
+  const returnMigration=read('supabase/migrations/20260926090000_shipping_return_stage.sql');
+  const beforeReturnMigration=(await db.query('select * from order_shipments order by order_id')).rows;
+  await db.exec(returnMigration);await db.exec(returnMigration);
+  assert.deepEqual((await db.query('select * from order_shipments order by order_id')).rows,beforeReturnMigration);
+  const back=async(user,id,stage,reason='Correct the previous details',revision)=>(await as(user,
+    'select * from return_shipping_stage($1,$2,$3,$4)',[id,revision??(await shipment(id)).revision,stage,reason]))[0];
+  await check('return authorization, reason, revision and payment boundary are enforced by the server',async()=>{
+    const o=await order();
+    await assert.rejects(()=>as(0,'select return_shipping_stage($1,0,2,$2)',[o.id,'Correct'],'anon'),e=>e.code==='42501');
+    for(const user of [0,3,4,5])await assert.rejects(()=>back(user,o.id,1),/access_denied/);
+    await assert.rejects(()=>back(2,o.id,1),/locked/);
+    await action(2,o.id,'destination',{destination,delivery_type:'door'});
+    for(const reason of ['', '   ', 'x'.repeat(1001)])await assert.rejects(()=>back(2,o.id,2,reason),/reason_required/);
+    await assert.rejects(()=>back(2,o.id,2,'Correction',0),/stale/);
+    await assert.rejects(()=>back(2,o.id,3),/stale/);
+    const previous=await shipment(o.id),returned=await back(1,o.id,2);
+    assert.equal(returned.buyer_confirmed_at,null);assert.deepEqual(returned.destination,previous.destination);
+    assert.equal(returned.revision,previous.revision+1);
+    await assert.rejects(()=>back(1,o.id,2,'Correction',previous.revision),/stale/);
+    await assert.rejects(()=>action(1,o.id,'packing',{packing,ready_at:future(1)}),/buyer_confirmation_required/);
+    const event=await one("select * from shipping_events where order_id=$1 and kind='returned_to_stage_1'",[o.id]);
+    assert.equal(event.note,'Correct the previous details');assert.equal(event.actor_id,uid(1));
+    assert.equal(event.return_details.from_stage,2);assert.equal(event.return_details.to_stage,1);
+    assert(event.return_details.shipment.buyer_confirmed_at);
+    assert((await as(2,"select * from shipping_notifications where order_id=$1 and kind='returned_to_stage_1'",[o.id])).length);
+  });
+  await check('pre-payment returns preserve drafts and quote history while invalidating acceptance',async()=>{
+    const o=await order();await prepare(o.id);let s=await shipment(o.id);const quoteId=s.current_quote_id;
+    await action(2,o.id,'accept',{quote_id:quoteId});
+    s=await back(2,o.id,4);
+    assert.equal(s.status,'awaiting_quote');assert.equal(s.current_quote_id,null);
+    assert(s.factory_confirmed_at);assert.deepEqual(s.packing,packing);
+    const changed=await one('select * from orders where id=$1',[o.id]);
+    assert.equal(changed.status,'awaiting_shipping');assert.equal(changed.shipping,'0.00');assert.equal(changed.total,'116.15');
+    assert((await one('select accepted_at from shipping_quotes where id=$1',[quoteId])).accepted_at);
+    await assert.rejects(()=>as(1,'select mark_order_paid($1)',[o.id]),/not awaiting payment/);
+    s=await back(6,o.id,3);assert.equal(s.status,'awaiting_details');assert.equal(s.factory_confirmed_at,null);assert(s.buyer_confirmed_at);
+    await assert.rejects(()=>action(6,o.id,'quote',quote()),/factory_confirmation_required/);
+    await action(1,o.id,'packing',{packing,ready_at:future(1)});await action(6,o.id,'quote',quote());
+    s=await shipment(o.id);assert.notEqual(s.current_quote_id,quoteId);
+    await action(2,o.id,'accept',{quote_id:s.current_quote_id});await as(1,'select mark_order_paid($1)',[o.id]);
+    await assert.rejects(()=>back(6,o.id,5),/payment_locked/);
+    assert.equal((await one('select status from orders where id=$1',[o.id])).status,'paid');
+  });
+  await check('paid production, readiness, collection and delivery corrections keep payment and sales intact',async()=>{
+    const o=await order();await prepare(o.id);let s=await shipment(o.id);
+    await action(2,o.id,'accept',{quote_id:s.current_quote_id});await as(1,'select mark_order_paid($1)',[o.id]);
+    const totals=await one('select total,shipping,payment_fee,vat_amount from orders where id=$1',[o.id]);
+    const stats=await one('select * from get_public_stats()');
+    const production=async act=>as(1,'select update_shipping_production($1,$2,$3)',[o.id,(await shipment(o.id)).revision,act]);
+    const ready=async()=>as(1,'select confirm_shipping_pickup_ready($1,$2)',[o.id,(await shipment(o.id)).revision]);
+    await production('start');await production('complete');
+    await assert.rejects(()=>back(2,o.id,6),/access_denied/);
+    s=await back(1,o.id,6);assert.equal(s.production_completed_at,null);assert(s.production_started_at);
+    await assert.rejects(ready,/production_required/);
+    await production('complete');await ready();s=await back(1,o.id,7);assert.equal(s.pickup_ready_at,null);
+    await ready();await action(6,o.id,'book',{booking_reference:'BOOK-RETURN',pickup_at:future(2)});
+    await assert.rejects(()=>back(1,o.id,7),/access_denied/);
+    s=await back(6,o.id,7);assert.equal(s.booking_reference,null);assert.equal(s.pickup_at,null);assert.equal(s.status,'booking_requested');
+    const bookingHistory=await one("select return_details from shipping_events where order_id=$1 and kind='returned_to_stage_6' order by id desc limit 1",[o.id]);
+    assert.equal(bookingHistory.return_details.shipment.booking_reference,'BOOK-RETURN');
+    await ready();await action(6,o.id,'book',{booking_reference:'BOOK-FIXED',pickup_at:future(2)});
+    await db.query('update order_shipments set pickup_at=$2 where order_id=$1',[o.id,future(-1)]);
+    await action(6,o.id,'track',{status:'collected',note:'Collected'});
+    s=await back(6,o.id,8);assert.equal(s.status,'booked');assert(s.pickup_ready_at);
+    for(const status of ['collected','departed','arrived','delivered'])await action(6,o.id,'track',{status,note:status});
+    await assert.rejects(()=>back(2,o.id,9),/access_denied/);
+    s=await back(6,o.id,9);assert.equal(s.status,'arrived');
+    assert.equal((await one('select status from orders where id=$1',[o.id])).status,'shipped');
+    assert.deepEqual(await one('select total,shipping,payment_fee,vat_amount from orders where id=$1',[o.id]),totals);
+    assert.deepEqual(await one('select * from get_public_stats()'),stats);
+    await action(6,o.id,'track',{status:'delivered',note:'Corrected delivery'});
+    const cancelled=await order();await action(2,cancelled.id,'cancel');
+    await assert.rejects(()=>back(6,cancelled.id,2),/locked/);
+  });
+  const exportMigration=read('supabase/migrations/20260926100000_shipping_export_preferences.sql');
+  const beforeExport=(await db.query('select * from order_shipments order by order_id')).rows;
+  await db.exec(exportMigration);await db.exec(exportMigration);
+  assert.deepEqual((await db.query('select * from order_shipments order by order_id')).rows,beforeExport);
+  const preferences={version:1,transport_mode:'sea',sea_service:'fcl',container_type:'40ft_hc',container_count:2,delivery_route:'port_to_port',origin_terminal:'Jeddah',incoterm:'FOB',incoterms_version:'2020',named_place:'Jeddah'};
+  const exportDestination={...destination,scope:'international',port:'Dubai',phone:'544569187',phone_country_code:'+966',phone_country_iso:'SA',export_preferences:preferences};
+  await check('export preferences enforce mode, service, route, containers and trade terms on the server',async()=>{
+    const o=await order();
+    for(const changes of [{version:2},{transport_mode:'invalid'},{sea_service:'invalid'},{container_type:'invalid'},{container_count:0},{container_count:1.5},{container_count:1001},{container_count:'2'},{container_count:null},{delivery_route:'invalid'},{origin_terminal:''},{named_place:'   '},{named_place:{}},{incoterm:'invalid'},{incoterms_version:'2010'},{transport_mode:'air',sea_service:null,container_type:null,container_count:null}]){
+      await assert.rejects(()=>action(2,o.id,'destination',{destination:{...exportDestination,export_preferences:{...preferences,...changes}},delivery_type:'port'}),/invalid_export_preferences/);
+    }
+    await assert.rejects(()=>action(2,o.id,'destination',{destination:exportDestination,delivery_type:'door'}),/invalid_export_preferences/);
+    await assert.rejects(()=>action(1,o.id,'destination',{destination:exportDestination,delivery_type:'port'}),/access_denied/);
+    await action(2,o.id,'destination',{destination:exportDestination,delivery_type:'port'});
+    assert.deepEqual((await shipment(o.id)).destination.export_preferences,preferences);
+    assert.equal((await shipment(o.id)).destination.phone_country_code,'+966');assert.equal((await shipment(o.id)).destination.phone,'544569187');
+    for(const mode of ['air','road','rail','express','multimodal']){
+      const pref={...preferences,transport_mode:mode,sea_service:null,container_type:null,container_count:null,incoterm:'FCA'};
+      await action(2,o.id,'destination',{destination:{...exportDestination,export_preferences:pref},delivery_type:'port'});
+      assert.equal((await shipment(o.id)).destination.export_preferences.transport_mode,mode);
+    }
+  });
+  await check('export changes invalidate factory approval and quotes while preserving quote snapshots',async()=>{
+    const o=await order();await action(2,o.id,'destination',{destination:exportDestination,delivery_type:'port'});
+    await action(1,o.id,'packing',{packing,ready_at:future(1)});await action(6,o.id,'quote',quote());
+    let s=await shipment(o.id);const quoteId=s.current_quote_id;
+    assert.deepEqual((await one('select destination_snapshot from shipping_quotes where id=$1',[quoteId])).destination_snapshot.export_preferences,preferences);
+    const phoneSnapshot=(await one('select destination_snapshot from shipping_quotes where id=$1',[quoteId])).destination_snapshot;
+    assert.equal(phoneSnapshot.phone_country_code,'+966');assert.equal(phoneSnapshot.phone_country_iso,'SA');assert.equal(phoneSnapshot.phone,'544569187');
+    const next={...preferences,sea_service:'lcl',container_type:null,container_count:null};
+    await action(2,o.id,'destination',{destination:{...exportDestination,export_preferences:next},delivery_type:'port'});
+    s=await shipment(o.id);assert.equal(s.factory_confirmed_at,null);assert.equal(s.current_quote_id,null);
+    assert.deepEqual((await one('select destination_snapshot from shipping_quotes where id=$1',[quoteId])).destination_snapshot.export_preferences,preferences);
+    await assert.rejects(()=>action(2,o.id,'accept',{quote_id:quoteId}),/quote|stale|invalid/);
+    await action(1,o.id,'packing',{packing,ready_at:future(1)});await action(6,o.id,'quote',quote());
+    s=await shipment(o.id);await action(2,o.id,'accept',{quote_id:s.current_quote_id});
+    await as(1,'select mark_order_paid($1)',[o.id]);
+    await assert.rejects(()=>action(2,o.id,'destination',{destination:exportDestination,delivery_type:'port'}),/locked/);
+    const legacy=await order();await prepare(legacy.id);assert((await shipment(legacy.id)).current_quote_id);
+  });
   console.log(`Completed ${checks} manual shipping checks; no production access.`);
 } finally {await db.close();}

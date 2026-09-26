@@ -44,6 +44,7 @@ jobs:
           node scripts/test_cart_toast.mjs
           node scripts/test_promotion_quantity_offers.mjs "$RUNNER_TEMP/security-tests"
           node scripts/test_manual_shipping_client.mjs
+          node scripts/test_shipping_export.mjs
           node scripts/test_shipping_images_client.mjs
           node scripts/test_delivery_addresses_client.mjs
           node scripts/test_delivery_geocoding.mjs

@@ -9,25 +9,46 @@
   <title data-i18n="shipping_title">الشحن — المصانع السعودية</title>
   <script src="currency.js"></script>
   <script src="i18n.js"></script>
+  <script src="currency-ui.js?v=20260922-locale-dropdown"></script>
+  <script src="lang-switch.js?v=20260922-locale"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js"></script>
   <script src="account-access.js"></script>
   <script src="auth-guard.js"></script>
+  <script src="geo-location.js"></script>
+  <script src="bestsellers-scroll.js?v=20260924-pointer-resume"></script>
+  <script src="category-scroll.js?v=20260923-category-loop"></script>
+  <script src="top-bar.js?v=20260926-shipping-header" defer></script>
+  <script src="site-search.js?v=20260922-live-search" defer></script>
+  <script src="messages-badge.js" defer></script>
   <script src="shipping-notifications.js" defer></script>
-  <link rel="stylesheet" href="desktop.css">
-  <link rel="stylesheet" href="shipping.css?v=20260922-current-stage-motion">
+  <link rel="stylesheet" href="desktop.css?v=20260923-category-hover">
+  <link rel="stylesheet" href="site-search.css?v=20260922-live-search">
+  <link rel="stylesheet" href="shipping.css?v=20260926-green-frame-map">
+  <link rel="stylesheet" href="page-watermark.css?v=20260924-map">
+  <link rel="stylesheet" href="storefront-header.css?v=20260926-shipping-header">
   <script src="shipping-images.js?v=20260921-images" defer></script>
-  <script src="shipping-page.js?v=20260922-stage-art" defer></script>
+  <script src="shipping-export.js?v=20260926-export-select" defer></script>
+  <script src="shipping-calling-codes.js?v=20260926-phone-code" defer></script>
+  <script src="shipping-countries.js?v=20260926-phone-required" defer></script>
+  <script src="shipping-page.js?v=20260926-stage-timeline" defer></script>
 </head>
-<body class="shipping-page">
-  <header class="shipping-header">
-    <a href="index.html" data-i18n="nav_home">الرئيسية</a>
-    <nav aria-label="التنقل"><a href="web-account.html" data-i18n="nav_account">حسابي</a><a href="web-orders.html" data-i18n="dash_my_orders">طلباتي</a>
-          <a href="web-shipping.html" data-shipping-nav data-i18n="shipping_title">الشحن</a></nav>
-  </header>
+<body class="shipping-page has-map-watermark">
+  <div class="page-map-watermark" aria-hidden="true"><img src="assets/brand/saudi-map-watermark.svg" alt="" draggable="false"></div>
+  <!-- The shared storefront header is mounted by top-bar.js. -->
+  <div class="geo-overlay" id="geo-overlay" role="dialog" aria-modal="true" aria-labelledby="geo-title" hidden>
+    <div class="geo-panel">
+      <button type="button" class="geo-close" id="geo-close" aria-label="إغلاق">&times;</button>
+      <h2 id="geo-title" data-i18n="geo_title">موقعي على الخريطة</h2>
+      <p class="geo-hint" data-i18n="geo_hint">الصق رابط موقعك من خرائط قوقل</p>
+      <button type="button" class="geo-gps" id="geo-gps" data-i18n="geo_use_current">استخدم موقعي الحالي</button>
+      <div class="geo-sep"><span data-i18n="geo_or">أو</span></div>
+      <input type="url" id="geo-input" aria-labelledby="geo-title" data-i18n-placeholder="geo_placeholder" placeholder="الصق الرابط هنا...">
+      <p class="geo-msg" id="geo-msg" role="status" hidden></p>
+      <button type="button" class="geo-save" id="geo-save" data-i18n="geo_save">حفظ الموقع</button>
+    </div>
+  </div>
   <main class="shipping-main">
-    <h1 data-i18n="shipping_title">الشحن</h1>
-    <p class="shipping-intro" data-i18n="shipping_intro">عرض شحن مستقل لكل مصنع. أكمل الوجهة وبيانات التغليف ليُراجع طلبك، ثم وافق على السعر قبل طلب الحجز.</p>
     <div id="shipping-notices" aria-live="polite"></div>
     <p id="shipping-error" role="alert" hidden></p>
     <section id="shipping-workflow" class="shipping-panel shipping-workflow" aria-live="polite" hidden></section>

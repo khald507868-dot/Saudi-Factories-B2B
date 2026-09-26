@@ -1,10 +1,10 @@
-/* Shared homepage-style header for product and quantity-offer pages. */
-  :is(.product-page, .offers-page) > .top-bar {
+/* Shared homepage-style header for product, quantity-offer and shipping pages. */
+  :is(.product-page, .offers-page, .shipping-page) > .top-bar {
     background: transparent !important;
     box-shadow: 0 2px 8px rgba(0,0,0,0.15);
   }
 
-  :is(.product-page, .offers-page) > .top-bar .dt-bar {
+  :is(.product-page, .offers-page, .shipping-page) > .top-bar .dt-bar {
     position: relative;
     isolation: isolate;
     z-index: 1;
@@ -12,7 +12,7 @@
 
   /* Keep the search row white across the viewport, leaving the map visible
      through the category row below it. */
-  :is(.product-page, .offers-page) > .top-bar .dt-bar::before {
+  :is(.product-page, .offers-page, .shipping-page) > .top-bar .dt-bar::before {
     content: "";
     position: absolute;
     inset: 0 calc(50% - 50vw);
@@ -21,11 +21,29 @@
     pointer-events: none;
   }
 
-  :is(.product-page, .offers-page) > .top-bar .dt-catbar {
+  :is(.product-page, .offers-page, .shipping-page) > .top-bar .dt-catbar {
     background: transparent;
   }
 
 
-.offers-page > .top-bar {
+:is(.offers-page, .shipping-page) > .top-bar {
   line-height: normal;
 }
+
+/* Location dialog used by the shared shipping header. */
+.shipping-page .geo-overlay{position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(4,54,27,.45)}
+.shipping-page .geo-panel{position:relative;width:100%;max-width:420px;max-height:calc(100dvh - 40px);overflow:auto;background:#fff;border-radius:16px;padding:22px 20px 20px;box-shadow:0 18px 50px #04361b47}
+.shipping-page .geo-panel h2{margin:0 0 6px;padding-inline-end:24px;font-size:17px}
+.shipping-page .geo-hint{margin:0 0 14px;font-size:13px;color:#6b7d70}
+.shipping-page .geo-panel input{width:100%;padding:11px 13px;border:1px solid #dfe5e1;border-radius:10px;font:inherit;font-size:14px;color:#04361b;background:#fff;direction:ltr;text-align:left}
+.shipping-page .geo-msg{margin:10px 0 0;font-size:13px;color:#b03030}
+.shipping-page .geo-msg.ok{color:#1f6b42}
+.shipping-page .geo-gps,.shipping-page .geo-save{width:100%;padding:11px;border:1px solid #1f6b42;border-radius:10px;background:#f2f8f4;color:#1f6b42;font:600 14px "Segoe UI",Tahoma,Arial,sans-serif;cursor:pointer}
+.shipping-page .geo-save{margin-top:14px;background:#1f6b42;color:#fff}
+.shipping-page .geo-gps:hover{background:#e6f2ea}.shipping-page .geo-save:hover{background:#185634}
+.shipping-page .geo-panel button:disabled{opacity:.6;cursor:default}
+.shipping-page .geo-sep{display:flex;align-items:center;gap:10px;margin:14px 0;color:#9aa8a0;font-size:12px}
+.shipping-page .geo-sep::before,.shipping-page .geo-sep::after{content:"";flex:1;height:1px;background:#e4eae6}
+.shipping-page .geo-close{position:absolute;top:10px;inset-inline-end:12px;border:0;background:none;font-size:24px;line-height:1;color:#6b7d70;cursor:pointer}
+.shipping-page > .top-bar {position:relative;z-index:20;}
+.shipping-page > .top-bar :is(h1,h2,h3,p,ul){margin:0;}
