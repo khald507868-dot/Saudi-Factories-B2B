@@ -2380,15 +2380,20 @@
 }
 
 /* Shared toolbar: consistent symbols, focus and selected states. */
+#dt-actions {
+  --toolbar-icon-color: #193923;
+  --toolbar-icon-background: #f4f8f5;
+  --toolbar-icon-border: #c7dfce;
+}
 #dt-actions :is(.dt-icon, .sf-lang-btn, .sf-cur-btn) {
   width: 40px;
   height: 40px;
   flex-shrink: 0;
   box-sizing: border-box;
-  border: 1px solid #c7dfce;
+  border: 1px solid var(--toolbar-icon-border);
   border-radius: 11px;
-  color: #193923;
-  background: #f4f8f5 !important;
+  color: var(--toolbar-icon-color);
+  background: var(--toolbar-icon-background) !important;
   box-shadow: 0 2px 5px rgba(25, 57, 35, .04);
 }
 #dt-actions :is(.dt-icon, .sf-cur-btn) svg {
@@ -2424,9 +2429,9 @@
   box-shadow: 0 3px 8px rgba(25, 57, 35, .09);
 }
 #dt-actions :is(.dt-icon, .sf-lang-btn, .sf-cur-btn):is([aria-current="page"], [aria-expanded="true"], :active) {
-  color: #fff;
-  background: #3d6947 !important;
-  border-color: #3d6947;
+  color: var(--toolbar-icon-color);
+  background: var(--toolbar-icon-background) !important;
+  border-color: var(--toolbar-icon-border);
 }
 #dt-actions :is(.dt-icon, .sf-lang-btn, .sf-cur-btn):focus-visible {
   outline: 2px solid #3d6947;
